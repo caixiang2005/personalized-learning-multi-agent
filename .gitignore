@@ -1,0 +1,12 @@
+# 虚拟环境
+**/.venv/
+venv/
+
+# Python缓存文件
+__pycache__/
+
+# 本地真实配置文件（带密码，绝对不上传）
+.env
+
+# Docker临时文件
+docker-compose.override.yml
