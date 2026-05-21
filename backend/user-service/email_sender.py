@@ -10,11 +10,13 @@ from email_settings import get_email_config
 PURPOSE_SUBJECT = {
     "register": "【个性化学习】注册验证码",
     "login": "【个性化学习】登录验证码",
+    "reset_password": "【个性化学习】重置密码验证码",
 }
 
 PURPOSE_ACTION = {
     "register": "注册账号",
     "login": "登录账号",
+    "reset_password": "重置密码",
 }
 
 
