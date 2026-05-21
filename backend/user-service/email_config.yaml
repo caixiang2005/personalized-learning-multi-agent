@@ -5,11 +5,11 @@ smtp:
   port: 465
   use_ssl: true
   # QQ/163 等邮箱请使用「授权码」，不是登录密码
-  username: chuntian_02023@qq.com
-  password: bdirleubauxccfbd
+  username:your@qq.com
+  password: 12345678abcd
 
 from:
-  address: chuntian_02023@qq.com
+  address: your@qq.com
   name: 个性化学习系统
 
 verification:
