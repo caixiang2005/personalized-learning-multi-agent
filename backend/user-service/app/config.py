@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     )
 
     database_url: str = (
-        "postgresql+psycopg2://team_user:YOUR_DB_PASSWORD@127.0.0.1:5432/project_db"
+        "postgresql+psycopg2://root:YOUR_DB_PASSWORD@8.153.204.117:22/project_db"
     )
     avatar_max_size_mb: int = 2
     avatar_allowed_extensions: tuple[str, ...] = (".jpg", ".jpeg", ".png", ".webp")
