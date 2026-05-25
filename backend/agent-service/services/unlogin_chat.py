@@ -23,7 +23,7 @@ async def get_unlogin_reply(user_input: str, session_id: str) -> str:
 
     history = await load_history(session_id)
 
-    # 未登录用户最多免费对话 MAX_FREE_ROUNDS 轮，第 4 轮起提示登录
+    # 未登录用户最多免费对话 MAX_FREE_ROUNDS 轮
     user_rounds = sum(1 for m in history if m["role"] == "user")
     if user_rounds >= MAX_FREE_ROUNDS:
         return (
