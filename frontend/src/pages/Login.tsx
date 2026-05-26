@@ -1,17 +1,17 @@
 /**
  * @file Login.tsx
- * @description 登录页：邮箱/用户名 + 密码或验证码，成功后跳转 /home。
- *
- * 【当前 Mock】下方 mockApi 模拟延迟与校验，演示账号密码/验证码均为 123456，不请求网络。
- * 【待同步后端】
- *   - submitPwdLogin / submitCodeLogin → loginApi()，见 lib/api/client.ts
- *   - getCode → sendCodeApi()
- *   - 成功后在 loginApi 内写入 localStorage.access_token（client 已写好）
- *   - setLoggedIn(true) 保留，用于路由守卫
+ * @description 登录页：毛玻璃卡片 + 邮箱/用户名 + 密码或验证码，成功后跳转 /home。
  */
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Sparkles, BookOpen, Brain, MessageSquare } from "lucide-react";
+import {
+  GraduationCap,
+  ScanFace,
+  Boxes,
+  Waypoints,
+  MessageSquare,
+  BrainCircuit,
+} from "lucide-react";
 import { useAppStore } from "../store/useAppStore";
 // 【待同步】import { loginApi, sendCodeApi } from "../lib/api/client";
 
@@ -31,8 +31,9 @@ const mockApi = {
 
 const features = [
   { icon: MessageSquare, text: "对话式学习引导" },
-  { icon: Brain, text: "6 维度动态画像" },
-  { icon: BookOpen, text: "多模态资源生成" },
+  { icon: BrainCircuit, text: "6 维度动态画像" },
+  { icon: Boxes, text: "多模态资源生成" },
+  { icon: Waypoints, text: "个性化学习路径" },
 ];
 
 export default function Login() {
@@ -66,23 +67,23 @@ export default function Login() {
     }
   }, [tipText, navigate, setLoggedIn]);
 
-const submitPwdLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
-  setTipText("");
-  try {
-    if (loginType === "email") {
-      await mockApi.loginByEmailPwd({ email, password });
-    } else {
-      await mockApi.loginByUsernamePwd();
+  const submitPwdLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setTipText("");
+    try {
+      if (loginType === "email") {
+        await mockApi.loginByEmailPwd({ email, password });
+      } else {
+        await mockApi.loginByUsernamePwd();
+      }
+      setTipText("登录成功，正在进入学习中心...");
+    } catch (err: unknown) {
+      setTipText((err as { msg: string }).msg);
+    } finally {
+      setLoading(false);
     }
-    setTipText("登录成功，正在进入学习中心...");
-  } catch (err: unknown) {
-    setTipText((err as { msg: string }).msg);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const getCode = async () => {
     if (!email) return setTipText("请先填写邮箱");
@@ -110,128 +111,209 @@ const submitPwdLogin = async (e: React.FormEvent) => {
   const tipSuccess = tipText.includes("成功");
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* 左侧品牌区 */}
-      <div className="lg:w-1/2 gradient-hero text-white p-10 lg:p-16 flex flex-col justify-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_30%_20%,white,transparent_50%)]" />
-        <div className="relative z-10 max-w-md">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-8">
-            <Sparkles className="w-7 h-7" />
-          </div>
-          <h1 className="text-3xl lg:text-4xl font-bold leading-tight mb-4">智慧学习中心</h1>
-          <p className="text-white/85 text-lg mb-10">高等教育个性化学习平台</p>
-          <ul className="space-y-4">
+    <div className="login-shell">
+      <div className="login-shell__glow" aria-hidden />
+
+      <div className="login-layout">
+        <section className="login-brand landing-glass landing-enter">
+          <span className="login-brand__icon">
+            <GraduationCap size={22} strokeWidth={2} />
+          </span>
+          <h1 className="login-brand__title">智慧学习中心</h1>
+          <p className="login-brand__sub">高等教育个性化学习平台</p>
+          <ul className="login-brand__list">
             {features.map((f) => (
-              <li key={f.text} className="flex items-center gap-3 text-white/90">
-                <span className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-                  <f.icon size={20} />
+              <li key={f.text} className="login-brand__item">
+                <span className="landing-icon-glass landing-icon-glass--sm">
+                  <f.icon size={16} strokeWidth={1.75} />
                 </span>
                 {f.text}
               </li>
             ))}
           </ul>
-          <p className="mt-12 text-sm text-white/60">对话式 · 多模态 · 自适应 · 科技蓝与教育白</p>
-        </div>
-      </div>
+          <p className="mt-8 text-xs text-gray-400 flex items-center gap-1.5">
+            <ScanFace size={14} strokeWidth={1.75} />
+            对话式 · 多模态 · 自适应学习
+          </p>
+        </section>
 
-      {/* 右侧登录区 */}
-      <div className="lg:w-1/2 flex items-center justify-center p-8 lg:p-16 bg-white dark:bg-gray-900">
-        <div className="w-full max-w-[400px]">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">登录学习中心</h2>
-            <p className="text-sm text-gray-500 mt-2">开启你的专属 AI 学习之旅</p>
-          </div>
+        <section className="login-form-area">
+          <div
+            className="login-glass-card landing-glass landing-enter"
+            style={{ animationDelay: "80ms" }}
+          >
+            <h2 className="login-glass-card__title">欢迎登录</h2>
+            <p className="login-glass-card__sub">登录后进入个性化学习中心</p>
 
-          <div className="min-h-[280px]">
-            {loginType === "email" ? (
-              <>
-                {loginMode === "pwd" ? (
-                  <form onSubmit={submitPwdLogin} className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">邮箱账号</label>
-                      <input className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="请输入邮箱" required />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">登录密码</label>
-                      <input className="input-field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="演示密码：123456" required />
-                    </div>
-                    <button type="submit" className="btn-primary w-full py-3" disabled={loading}>
-                      {loading ? "登录中..." : "立即登录"}
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={submitCodeLogin} className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">邮箱账号</label>
-                      <input className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="请输入邮箱" required />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">短信验证码</label>
-                      <div className="flex gap-2">
-                        <input className="input-field flex-1" value={code} onChange={(e) => setCode(e.target.value)} placeholder="演示验证码：123456" maxLength={6} required />
-                        <button type="button" className="btn-secondary shrink-0 px-4" onClick={getCode} disabled={countdown > 0 || loading}>
-                          {countdown > 0 ? `${countdown}s` : "获取验证码"}
-                        </button>
-                      </div>
-                    </div>
-                    <button type="submit" className="btn-primary w-full py-3" disabled={loading}>
-                      {loading ? "登录中..." : "立即登录"}
-                    </button>
-                  </form>
-                )}
-                <p className="mt-4 text-sm">
+            <div className="min-h-[260px]">
+              {loginType === "email" ? (
+                <>
                   {loginMode === "pwd" ? (
-                    <button type="button" className="text-primary hover:underline" onClick={() => setLoginMode("code")}>
-                      忘记密码？验证码登录
-                    </button>
+                    <form onSubmit={submitPwdLogin}>
+                      <div className="login-glass-field">
+                        <label htmlFor="login-email">邮箱账号</label>
+                        <input
+                          id="login-email"
+                          className="login-glass-input"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="请输入邮箱"
+                          required
+                        />
+                      </div>
+                      <div className="login-glass-field">
+                        <label htmlFor="login-password">登录密码</label>
+                        <input
+                          id="login-password"
+                          className="login-glass-input"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="请输入密码"
+                          required
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="landing-btn-glass login-glass-submit"
+                        disabled={loading}
+                      >
+                        {loading ? "登录中…" : "登录"}
+                      </button>
+                    </form>
                   ) : (
-                    <button type="button" className="text-primary hover:underline" onClick={() => setLoginMode("pwd")}>
-                      返回密码登录
-                    </button>
+                    <form onSubmit={submitCodeLogin}>
+                      <div className="login-glass-field">
+                        <label htmlFor="login-email-code">邮箱账号</label>
+                        <input
+                          id="login-email-code"
+                          className="login-glass-input"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="请输入邮箱"
+                          required
+                        />
+                      </div>
+                      <div className="login-glass-field">
+                        <label htmlFor="login-code">短信验证码</label>
+                        <div className="flex gap-2">
+                          <input
+                            id="login-code"
+                            className="login-glass-input flex-1"
+                            value={code}
+                            onChange={(e) => setCode(e.target.value)}
+                            placeholder="请输入验证码"
+                            maxLength={6}
+                            required
+                          />
+                          <button
+                            type="button"
+                            className="landing-glass-inner shrink-0 px-3 text-xs font-medium text-primary"
+                            onClick={getCode}
+                            disabled={countdown > 0 || loading}
+                          >
+                            {countdown > 0 ? `${countdown}s` : "获取"}
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        className="landing-btn-glass login-glass-submit"
+                        disabled={loading}
+                      >
+                        {loading ? "登录中…" : "登录"}
+                      </button>
+                    </form>
                   )}
-                </p>
-              </>
-            ) : (
-              <form onSubmit={submitPwdLogin} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">用户名</label>
-                  <input className="input-field" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="请输入用户名" required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1.5">登录密码</label>
-                  <input className="input-field" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="演示密码：123456" required />
-                </div>
-                <button type="submit" className="btn-primary w-full py-3" disabled={loading}>
-                  {loading ? "登录中..." : "立即登录"}
-                </button>
-              </form>
+                  <p className="mt-4 text-center text-sm">
+                    {loginMode === "pwd" ? (
+                      <button
+                        type="button"
+                        className="login-form-link"
+                        onClick={() => setLoginMode("code")}
+                      >
+                        忘记密码？验证码登录
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="login-form-link"
+                        onClick={() => setLoginMode("pwd")}
+                      >
+                        返回密码登录
+                      </button>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <form onSubmit={submitPwdLogin}>
+                  <div className="login-glass-field">
+                    <label htmlFor="login-username">用户名</label>
+                    <input
+                      id="login-username"
+                      className="login-glass-input"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="请输入用户名"
+                      required
+                    />
+                  </div>
+                  <div className="login-glass-field">
+                    <label htmlFor="login-username-pwd">登录密码</label>
+                    <input
+                      id="login-username-pwd"
+                      className="login-glass-input"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="请输入密码"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="landing-btn-glass login-glass-submit"
+                    disabled={loading}
+                  >
+                    {loading ? "登录中…" : "登录"}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {tipText && (
+              <p
+                className={`mt-3 text-center text-sm ${tipSuccess ? "text-accent font-medium" : "text-red-500"}`}
+              >
+                {tipText}
+              </p>
             )}
+
+            <p className="mt-5 text-center text-sm">
+              {loginType === "email" ? (
+                <button
+                  type="button"
+                  className="login-form-link"
+                  onClick={() => setLoginType("username")}
+                >
+                  使用用户名登录
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="login-form-link"
+                  onClick={() => setLoginType("email")}
+                >
+                  使用邮箱登录
+                </button>
+              )}
+            </p>
           </div>
 
-          {tipText && (
-            <p className={`mt-4 text-center text-sm ${tipSuccess ? "text-accent font-medium" : "text-red-500"}`}>
-              {tipText}
-            </p>
-          )}
-
-          <p className="mt-6 text-center text-sm">
-            <Link to="/" className="text-gray-500 hover:text-primary">
-              ← 返回门户首页
-            </Link>
-          </p>
-
-          <p className="mt-4 text-center text-sm text-gray-500">
-            {loginType === "email" ? (
-              <button type="button" className="text-primary hover:underline" onClick={() => setLoginType("username")}>
-                使用用户名登录
-              </button>
-            ) : (
-              <button type="button" className="text-primary hover:underline" onClick={() => setLoginType("email")}>
-                使用邮箱登录
-              </button>
-            )}
-          </p>
-        </div>
+          <Link to="/" className="login-back-link">
+            ← 返回门户首页
+          </Link>
+        </section>
       </div>
     </div>
   );
