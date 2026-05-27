@@ -7,7 +7,16 @@ on:
     types: [opened, synchronize, closed]
 
 jobs:
-  call-notify:
-    uses: caixiang2005/schedule-notifier/.github/workflows/notify.yml@main
-    secrets:
-      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 发送飞书通知
+        run: |
+          curl -X POST "${{ secrets.FEISHU_WEBHOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "msg_type": "text",
+            "content": {
+              "text": "📦 仓库：${{ github.repository }}\n👤 操作人：${{ github.actor }}\n🔁 事件：${{ github.event_name }}\n🌿 分支：${{ github.ref_name }}\n🔗 详情：${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+            }
+          }'
