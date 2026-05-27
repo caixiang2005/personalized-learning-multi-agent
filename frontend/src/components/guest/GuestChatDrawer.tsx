@@ -10,11 +10,7 @@ import { Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import AgentAvatar from "../chat/AgentAvatar";
-import {
-  sendGuestMessage,
-  GUEST_MAX_FREE_ROUNDS,
-  getGuestSessionId,
-} from "../../lib/guestChat";
+import { sendGuestMessage, getGuestSessionId } from "../../lib/guestChat";
 import { checkSensitiveInput } from "../../lib/stream";
 
 interface Message {
@@ -35,7 +31,7 @@ const quickPrompts = [
 ];
 
 const WELCOME =
-  "你好！👋 欢迎使用**个性化学习多智能体系统**。\n\n我是学习引导智能体，你可以先免费体验 **3 轮对话**。登录后可构建完整画像并生成多模态学习资源。\n\n**请问你是什么专业的？**";
+  "你好！👋 欢迎使用**个性化学习多智能体系统**。\n\n我是学习引导智能体，可以先和你聊聊学习背景与目标。登录后可构建完整画像并生成多模态学习资源。\n\n**请问你是什么专业的？**";
 
 export default function GuestChatDrawer({ open, onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([
@@ -93,8 +89,6 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
     if (result.trialExhausted) setTrialExhausted(true);
   };
 
-  const roundsLeft = Math.max(0, GUEST_MAX_FREE_ROUNDS - userRounds);
-
   return (
     <>
       <div
@@ -112,9 +106,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
             <AgentAvatar thinking={thinking} />
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">学习引导智能体</p>
-              <p className="text-xs text-gray-500">
-                未登录 · 免费体验 {userRounds}/{GUEST_MAX_FREE_ROUNDS} 轮
-              </p>
+              <p className="text-xs text-gray-500">访客模式 · 学习引导智能体</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="btn-secondary !p-2 rounded-lg" aria-label="关闭">
@@ -131,7 +123,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
 
         {trialExhausted && (
           <div className="mx-4 mt-3 rounded-lg bg-primary/8 border border-primary/20 px-3 py-2 text-xs text-primary">
-            免费体验已用完，登录后可继续使用完整功能。
+            当前体验次数已用完，登录后可继续使用完整功能。
           </div>
         )}
 
@@ -162,7 +154,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
           <div ref={bottomRef} />
         </div>
 
-        {!trialExhausted && roundsLeft > 0 && (
+        {!trialExhausted && (
           <div className="guest-drawer__quick">
             {quickPrompts.map((q) => (
               <button key={q} type="button" className="chip text-xs" onClick={() => send(q)} disabled={thinking}>
@@ -188,9 +180,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !trialExhausted && send()}
-              placeholder={
-                trialExhausted ? "体验次数已用完，请登录" : `输入消息（剩余 ${roundsLeft} 轮）…`
-              }
+              placeholder={trialExhausted ? "请登录后继续使用" : "输入你的学习问题…"}
               disabled={trialExhausted || thinking}
             />
             <button
