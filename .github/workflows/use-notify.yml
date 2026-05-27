@@ -1,0 +1,13 @@
+name: 代码事件通知
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+    types: [opened, synchronize, closed]
+
+jobs:
+  call-notify:
+    uses: caixiang2005/schedule-notifier/.github/workflows/notify.yml@main
+    secrets:
+      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
