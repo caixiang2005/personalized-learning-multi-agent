@@ -7,7 +7,7 @@
  *   - checkSensitiveInput：本地关键词过滤
  *
  * 【待同步后端】
- *   - 流式输出 → lib/api/client.ts 的 streamChat()，对接 POST /api/chat/stream
+ *   - 流式输出 → 对接 POST /api/chat/stream（见 endpoints.ts API.chat.stream）
  *   - 敏感词   → 可选 client.checkSensitiveApi()，对接 POST /api/safety/check
  */
 

@@ -118,7 +118,9 @@ export default function Register() {
                   className="login-glass-input"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="请设置密码"
+                  placeholder="6–64 位密码"
+                  minLength={6}
+                  maxLength={64}
                   required
                 />
               </div>
@@ -150,9 +152,6 @@ export default function Register() {
               </button>
             </form>
           </AuthFormCard>
-          <Link to="/" className="login-back-link">
-            ← 返回门户首页
-          </Link>
         </section>
       </div>
     </div>

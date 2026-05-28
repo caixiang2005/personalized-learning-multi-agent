@@ -1,9 +1,16 @@
 /**
  * @file user.ts
- * @description 用户认证 API（/api/user），响应格式 { code, msg, data }。
+ * @description user-service 用户认证（/api/user），响应 { code, msg, data }。
+ * @see backend/user-service/frontend-handoff.md
  */
 import { API } from "./endpoints";
-import type { ApiResponse, LoginData, RegisterData, UserInfo } from "./endpoints";
+import type {
+  ApiResponse,
+  LoginData,
+  RefreshTokenData,
+  RegisterData,
+  UserInfo,
+} from "./endpoints";
 import { authHeaders, clearTokens, getRefreshToken, getToken, setTokens } from "../auth/token";
 
 export class UserApiError extends Error {
@@ -41,6 +48,16 @@ async function post<T>(url: string, body: unknown, withAuth = false): Promise<T>
 
 async function get<T>(url: string): Promise<T> {
   const res = await fetch(url, { method: "GET", headers: authHeaders() });
+  const json = await parseJson<T>(res);
+  if (json.code !== 200) {
+    throw new UserApiError(json.msg || "请求失败", json.code);
+  }
+  return json.data;
+}
+
+/** 需登录的 POST，无请求体（如 refreshToken） */
+async function postAuth<T>(url: string): Promise<T> {
+  const res = await fetch(url, { method: "POST", headers: authHeaders() });
   const json = await parseJson<T>(res);
   if (json.code !== 200) {
     throw new UserApiError(json.msg || "请求失败", json.code);
@@ -116,7 +133,7 @@ export async function loginByEmail(email: string, password: string): Promise<Log
     if (password !== "123456") throw new UserApiError("邮箱或密码错误", 400);
     return mockPost(() => mockLoginData(email, email.split("@")[0] || "用户"));
   }
-  return post(API.user.loginEmail, { email, password });
+  return post(API.user.login, { email, password });
 }
 
 export async function loginByUsername(username: string, password: string): Promise<LoginData> {
@@ -124,7 +141,7 @@ export async function loginByUsername(username: string, password: string): Promi
     if (password !== "123456") throw new UserApiError("邮箱或密码错误", 400);
     return mockPost(() => mockLoginData("demo@example.com", username));
   }
-  return post(API.user.loginUsername, { username, password });
+  return post(API.user.loginByUsername, { username, password });
 }
 
 export async function loginByCode(email: string, code: string): Promise<LoginData> {
@@ -132,19 +149,20 @@ export async function loginByCode(email: string, code: string): Promise<LoginDat
     if (code !== "123456") throw new UserApiError("验证码错误或已过期", 400);
     return mockPost(() => mockLoginData(email, email.split("@")[0] || "用户"));
   }
-  return post(API.user.loginCode, { email, code });
+  return post(API.user.loginByEmailCode, { email, code });
 }
 
 // ─── 令牌与用户信息 ───────────────────────────────────────────────────
 
-export async function refreshToken(oldToken?: string): Promise<string> {
-  const token = oldToken ?? getToken();
-  if (!token) throw new UserApiError("登录已失效，请重新登录", 401);
+export async function refreshToken(): Promise<string> {
+  if (!getToken()) throw new UserApiError("登录已失效，请重新登录", 401);
   if (USE_MOCK) {
     await mockDelay();
-    return "mock-token-refreshed";
+    const next = "mock-token-refreshed";
+    setTokens(next, getRefreshToken() ?? undefined);
+    return next;
   }
-  const data = await post<{ newToken: string }>(API.user.refreshToken, { oldToken: token });
+  const data = await postAuth<RefreshTokenData>(API.user.refreshToken);
   setTokens(data.newToken, getRefreshToken() ?? undefined);
   return data.newToken;
 }
@@ -158,7 +176,7 @@ export async function fetchUserInfo(): Promise<UserInfo> {
       registerTime: new Date().toISOString(),
     }));
   }
-  return get(API.user.info);
+  return get(API.user.getUserInfo);
 }
 
 /** 登录成功后写入 token 并返回用户信息 */
@@ -182,7 +200,7 @@ export async function resetPassword(body: {
     await mockDelay();
     return;
   }
-  await post(API.user.resetPassword, body);
+  await post(API.user.resetPwd, body);
 }
 
 export function logoutLocal(): void {

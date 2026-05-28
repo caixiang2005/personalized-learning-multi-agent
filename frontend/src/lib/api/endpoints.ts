@@ -1,11 +1,9 @@
 /**
  * @file endpoints.ts
- * @description 后端 API 路径常量（与后端文档对齐时只改本文件）。
+ * @description user-service 路径常量（与 backend/user-service 文档一致）。
  *
- * 【当前】仅作契约占位，页面未发起请求。
- * 【待同步】联调前与后端确认路径、请求体、响应 JSON 是否与 types/index.ts 一致。
- *
- * 对照表见：frontend/待与后端同步清单.md
+ * 对照：backend/user-service/frontend-handoff.md · frontend-api.md
+ * 清单：frontend/待与后端同步清单.md
  */
 
 /** API 根路径，开发环境通过 Vite 代理，生产环境由部署配置注入 */
@@ -22,7 +20,7 @@ export interface UserInfo {
   userId: number;
   email: string;
   username: string;
-  registerTime?: string;
+  registerTime: string | null;
 }
 
 export interface LoginData extends UserInfo {
@@ -32,28 +30,23 @@ export interface LoginData extends UserInfo {
 
 export interface RegisterData extends UserInfo {}
 
+export interface RefreshTokenData {
+  newToken: string;
+}
+
 export const API = {
-  /** 用户认证 user-service：/api/user */
+  /** 用户认证 user-service :8001 · /api/user */
   user: {
     sendRegEmailCode: `${API_BASE}/user/sendRegEmailCode`,
     sendLoginEmailCode: `${API_BASE}/user/sendLoginEmailCode`,
     sendResetEmailCode: `${API_BASE}/user/sendResetEmailCode`,
     register: `${API_BASE}/user/register`,
-    loginEmail: `${API_BASE}/user/login/email`,
-    loginUsername: `${API_BASE}/user/login/username`,
-    loginCode: `${API_BASE}/user/login/code`,
+    login: `${API_BASE}/user/login`,
+    loginByUsername: `${API_BASE}/user/loginByUsername`,
+    loginByEmailCode: `${API_BASE}/user/loginByEmailCode`,
     refreshToken: `${API_BASE}/user/refreshToken`,
-    info: `${API_BASE}/user/info`,
-    resetPassword: `${API_BASE}/user/resetPassword`,
-  },
-
-  /** @deprecated 联调请使用 API.user */
-  auth: {
-    login: `${API_BASE}/auth/login`,
-    loginByCode: `${API_BASE}/auth/login/code`,
-    sendCode: `${API_BASE}/auth/send-code`,
-    refresh: `${API_BASE}/auth/refresh`,
-    logout: `${API_BASE}/auth/logout`,
+    getUserInfo: `${API_BASE}/user/getUserInfo`,
+    resetPwd: `${API_BASE}/user/resetPwd`,
   },
 
   /** 用户与学习画像 */
@@ -74,7 +67,7 @@ export const API = {
     sessions: `${API_BASE}/chat/sessions`,
     /** GET /:sessionId 某会话消息列表 */
     messages: (sessionId: string) => `${API_BASE}/chat/sessions/${sessionId}/messages`,
-    /** POST SSE 流式发送消息，见 client.streamChat */
+    /** POST SSE 流式发送消息 */
     stream: `${API_BASE}/chat/stream`,
     /** POST 消息反馈 { messageId, type: 'useful'|'useless'|'favorite' } */
     feedback: `${API_BASE}/chat/feedback`,
@@ -124,12 +117,6 @@ export const API = {
     unloginChat: `${API_BASE}/agent/unlogin/chat`,
   },
 } as const;
-
-/** 登录响应（示例，与后端对齐后修改） */
-export interface LoginResponse {
-  token: string;
-  user: { id: string; name: string; email: string };
-}
 
 /** 流式对话 chunk（SSE data 行 JSON） */
 export interface StreamChunk {

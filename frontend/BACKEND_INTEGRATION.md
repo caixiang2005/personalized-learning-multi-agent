@@ -10,12 +10,9 @@
 
 | 项目 | 现在 | 联调后 |
 |------|------|--------|
-| 网络请求 | 无（除你手动测 client） | 页面 import `lib/api/client.ts` |
-| 数据从哪来 | `lib/mockData.ts` + 页面内写死 | 各 GET/POST 接口 |
-| 登录 | mockApi，密码 123456 | `loginApi` + token |
-| 对话流式 | `lib/stream.ts` simulateStream | `streamChat` SSE |
-
-`lib/api/client.ts` **已写好但未引用**，避免后端未就绪时 fetch 报错。
+| 用户认证 | `lib/api/user.ts`（已接 user-service） | 同上 |
+| 其它模块 | `lib/mockData.ts` + 页面内写死 | 按 `endpoints.ts` 路径 `fetch` |
+| 对话流式 | `lib/stream.ts` simulateStream | `POST /api/chat/stream` SSE |
 
 ---
 
@@ -25,7 +22,7 @@
 |------|------|
 | 基础路径 | `/api`，通过环境变量 `VITE_API_BASE` 配置 |
 | 认证 | JWT，`Authorization: Bearer <token>`，登录后存 `localStorage.access_token` |
-| 流式对话 | SSE（`text/event-stream`），或 WebSocket，见 `lib/api/client.ts` → `streamChat` |
+| 流式对话 | SSE（`text/event-stream`），对接 `API.chat.stream` |
 | 跨域 | 开发环境 Vite 代理：`vite.config.ts` 中 `/api` → user-service；`/api/agent` → agent-service:8003 |
 
 ### 1.1 未登录 Agent（已对接）
@@ -55,7 +52,9 @@ server: {
 
 | 路由 | 页面文件 | 主要后端依赖 |
 |------|----------|--------------|
-| `/login` | `pages/Login.tsx` | 登录、验证码 |
+| `/login` | `pages/Login.tsx` | user-service 登录（已接） |
+| `/register` | `pages/Register.tsx` | 注册（已接） |
+| `/reset-password` | `pages/ResetPassword.tsx` | 重置密码（已接） |
 | `/home` | `pages/Home.tsx` | 画像初建、路径生成 |
 | `/chat` | `pages/Chat.tsx` | 会话列表、流式消息、附件、反馈 |
 | `/profile` | `pages/Profile.tsx` | 画像查询、手动更新 |
@@ -69,16 +68,26 @@ server: {
 
 ## 3. 接口清单（按模块）
 
-### 3.1 认证 `API.auth`
+### 3.1 用户认证 `API.user`（user-service :8001，**已对接**）
 
-| 方法 | 路径 | 请求体 | 响应 | 前端调用位置 |
-|------|------|--------|------|--------------|
-| POST | `/api/auth/login` | `{ email, password }` | `{ token, user }` | `Login.tsx` → 替换 mockApi |
-| POST | `/api/auth/login/code` | `{ email, code }` | 同上 | `Login.tsx` |
-| POST | `/api/auth/send-code` | `{ email }` | `{ ok }` | `Login.tsx` 获取验证码 |
-| POST | `/api/auth/logout` | - | - | `Settings.tsx` / Navbar 退出 |
+权威文档：`backend/user-service/frontend-handoff.md` · 实现：`lib/api/user.ts`
 
-**联调要点**：登录成功写入 `localStorage.access_token`，`client.ts` 的 `authHeaders()` 自动携带。
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/user/sendRegEmailCode` | 注册发码 |
+| POST | `/api/user/register` | 注册（无 token） |
+| POST | `/api/user/sendLoginEmailCode` | 登录发码 |
+| POST | `/api/user/login` | 邮箱+密码 |
+| POST | `/api/user/loginByUsername` | 用户名+密码 |
+| POST | `/api/user/loginByEmailCode` | 邮箱+验证码 |
+| GET | `/api/user/getUserInfo` | Bearer 鉴权 |
+| POST | `/api/user/refreshToken` | Bearer，无 body |
+| POST | `/api/user/sendResetEmailCode` | 重置发码 |
+| POST | `/api/user/resetPwd` | 重置密码 |
+
+响应壳：`{ code, msg, data }`，`code===200` 为成功。登出无后端接口，前端 `logoutLocal()` 清 token。
+
+> `API.auth`（`/api/auth/*`）已废弃，请勿再对接。
 
 ---
 
@@ -119,7 +128,7 @@ data: {"type":"resource","resource":{...},"progress":30}
 data: {"type":"done"}
 ```
 
-前端实现：`lib/api/client.ts` → `streamChat()`。联调后删除 `lib/stream.ts` 的 `simulateStream` 模拟。
+联调后在页面或新建模块中对接 `POST API.chat.stream`（SSE），替换 `lib/stream.ts` 的 `simulateStream`。
 
 ---
 
@@ -249,7 +258,7 @@ VITE_API_BASE=/api
 
 - 共享类型：`src/types/index.ts`
 - 接口路径：`src/lib/api/endpoints.ts`
-- 请求函数：`src/lib/api/client.ts`
+- 认证：`src/lib/api/user.ts` · 路径：`src/lib/api/endpoints.ts`
 
 后端若提供 OpenAPI，可将类型生成到 `src/types/api.generated.ts` 并与上述文件对齐。
 

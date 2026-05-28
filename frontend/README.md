@@ -1,23 +1,24 @@
 # 智慧学习中心 · 前端
 
-> **当前：** 用户认证已对接 `user-service:8001`（`/api/user`，见下文）；访客 Agent 对接 `agent-service:8003`。其余业务模块仍为 Mock。  
+> **当前：** 用户认证已对接 **user-service:8001**（路径见 `backend/user-service/frontend-handoff.md`）；访客 Agent 对接 **agent-service:8003**。其余业务模块仍为 Mock。  
 > 联调认证时 **不要** 设置 `VITE_USE_MOCK=true`；本地无后端时可开 Mock，密码/验证码为 `123456`。
 
 ## 文档（必读）
 
 | 文档 | 用途 |
 |------|------|
-| **[DESIGN.md](./DESIGN.md)** | 前端视觉规范（颜色、毛玻璃、门户、Do/Don't） |
-| **[AGENTS.md](./AGENTS.md)** | 前端开发说明、Cursor 必读顺序 |
-| **[待与后端同步清单.md](./待与后端同步清单.md)** | Mock / 真实接口对照（推荐先看） |
-| **[BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md)** | 全站 API 路径与联调步骤 |
+| **[DESIGN.md](./DESIGN.md)** | 前端视觉规范 |
+| **[AGENTS.md](./AGENTS.md)** | 前端开发说明 |
+| **[待与后端同步清单.md](./待与后端同步清单.md)** | Mock / 真实接口对照 |
+| **[BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md)** | 全站 API（画像/对话等） |
+| **后端 `backend/user-service/frontend-handoff.md`** | 认证一页纸（权威路径） |
 
 ## 代码里怎么找
 
 - `【当前 Mock】` — 假数据 / 假逻辑
 - `【待同步后端】` — 其它模块尚未接真实接口
-- **`src/lib/api/user.ts`** — 用户认证（已接文档 V1.0）
-- `src/lib/api/client.ts` — 画像/对话等（暂未 import）
+- **`src/lib/api/user.ts`** — 用户认证（user-service）
+- `src/lib/api/endpoints.ts` — `API.user` 路径常量
 
 ## 运行
 
@@ -26,12 +27,14 @@ npm install
 npm run dev
 ```
 
-复制 `frontend/.env.example` 为 `.env.development`：
+**环境变量**：仓库只提交 `.env.example`（模板），不提交 `.env.development`（每人本地配置）。克隆后执行：
 
-```env
-VITE_API_BASE=/api
-# 后端未就绪时：VITE_USE_MOCK=true
+```bash
+copy .env.example .env.development   # Windows
+# cp .env.example .env.development   # macOS/Linux
 ```
+
+默认内容：`VITE_API_BASE=/api`。后端未就绪时可设 `VITE_USE_MOCK=true`（见 `.env.example` 注释）。
 
 ### 开发代理端口（`vite.config.ts`）
 
@@ -40,36 +43,46 @@ VITE_API_BASE=/api
 | `/api/agent` | `http://127.0.0.1:8003` | agent-service |
 | `/api`（含 `/api/user`） | `http://127.0.0.1:8001` | **user-service** |
 
-浏览器请求形如 `http://localhost:5173/api/user/...`，由 Vite 代理到 **8001**。
-
-### 用户认证联调（user-service · 文档 V1.0）
+### 用户认证联调（user-service）
 
 1. 启动后端（端口 **8001**）：
    ```bash
    cd backend/user-service
    uvicorn main:app --reload --host 127.0.0.1 --port 8001
    ```
-2. Swagger：`http://127.0.0.1:8001/docs`
-3. 前端页面：`/login` · `/register` · `/reset-password`
-4. 响应约定：`{ "code": 200, "msg": "...", "data": ... }`；失败时 `code` 为 400/401/500/503，前端展示 `msg`
-5. 登录成功：`data.token` / `data.refreshToken` 写入 `localStorage`；后续请求带 `Authorization: Bearer <token>`
-6. `GET /api/user/info`：前端使用 **GET + Bearer**（请后端按此实现）
+2. Swagger：http://127.0.0.1:8001/docs
+3. 页面：`/login` · `/register` · `/reset-password`
+4. 以响应 **`code === 200`** 判断成功；失败展示 `msg`
+5. 登录成功：保存 `data.token`、`data.refreshToken`；鉴权接口带 `Authorization: Bearer <token>`
+6. 用户信息：**`GET /api/user/getUserInfo`** + Bearer
+7. 刷新 token：**`POST /api/user/refreshToken`** + Bearer（无 body）
 
-封装与路径见 `src/lib/api/endpoints.ts` → `API.user`、`src/lib/api/user.ts`。
+### 认证接口路径一览
+
+| 功能 | 方法 | 路径 |
+|------|------|------|
+| 发注册验证码 | POST | `/api/user/sendRegEmailCode` |
+| 注册 | POST | `/api/user/register` |
+| 发登录验证码 | POST | `/api/user/sendLoginEmailCode` |
+| 邮箱登录 | POST | `/api/user/login` |
+| 用户名登录 | POST | `/api/user/loginByUsername` |
+| 验证码登录 | POST | `/api/user/loginByEmailCode` |
+| 用户信息 | GET | `/api/user/getUserInfo` |
+| 刷新 token | POST | `/api/user/refreshToken` |
+| 发重置验证码 | POST | `/api/user/sendResetEmailCode` |
+| 重置密码 | POST | `/api/user/resetPwd` |
+
+封装：`src/lib/api/user.ts` · 路径：`src/lib/api/endpoints.ts` → `API.user`
 
 ### 未登录 Agent 联调（agent-service）
 
-1. 启动后端（端口 **8003**）：
-   ```bash
-   cd backend/agent-service
-   python main.py
-   ```
-2. 门户 `/` → **AI 助手**；请求 `POST /api/agent/unlogin/chat`
+1. `cd backend/agent-service && python main.py`（**8003**）
+2. 门户 `/` → **AI 助手**；`POST /api/agent/unlogin/chat`
 3. 可设 `VITE_GUEST_CHAT_MOCK=1` 强制 Mock
 
 ## 路由
 
-`/`（门户）· `/login` · `/register` · `/reset-password` · `/home` · `/chat` · `/profile` · `/path` · `/resource/:id` · `/exercise/:id` · `/analytics` · `/settings`
+`/` · `/login` · `/register` · `/reset-password` · `/home` · `/chat` · `/profile` · `/path` · `/resource/:id` · `/exercise/:id` · `/analytics` · `/settings`
 
 ## 开源标注
 
