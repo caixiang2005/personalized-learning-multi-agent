@@ -17,6 +17,9 @@ user-service/
 ├── user-api/                # 用户接口
 │   ├── routes.py            # 发送验证码等
 │   └── schemas.py
+├── service/                 # 交给前端的联调文档（勿写在 frontend 仓库）
+│   ├── frontend-handoff.md  # 一页纸
+│   └── frontend-api.md      # 完整接口
 ├── utils/
 │   ├── redis.py
 │   └── email.py
@@ -45,4 +48,5 @@ cd backend/user-service
 pytest test/ -v
 ```
 
-文档：http://127.0.0.1:8001/docs
+- Swagger：http://127.0.0.1:8001/docs  
+- 前端联调：[service/frontend-handoff.md](./service/frontend-handoff.md) · [service/frontend-api.md](./service/frontend-api.md)
