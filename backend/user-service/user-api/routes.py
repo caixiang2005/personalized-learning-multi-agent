@@ -11,6 +11,7 @@ from utils.auth import (
     reset_password,
     send_login_email_code,
     send_register_email_code,
+    send_reset_email_code,
 )
 
 router = APIRouter(tags=["用户认证"])
@@ -29,6 +30,11 @@ def register(body: RegisterBody):
 @router.post("/api/user/sendLoginEmailCode")
 def send_login_email_code_api(body: EmailBody):
     return send_login_email_code(str(body.email))
+
+
+@router.post("/api/user/sendResetEmailCode")
+def send_reset_email_code_api(body: EmailBody):
+    return send_reset_email_code(str(body.email))
 
 
 @router.post("/api/user/login")
