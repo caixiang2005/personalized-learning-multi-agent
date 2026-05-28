@@ -29,15 +29,15 @@ class CodePurpose(str, Enum):
 _PURPOSE_META: dict[CodePurpose, tuple[str, str]] = {
     CodePurpose.REGISTER: (
         "注册验证码",
-        "你的注册验证码：{code}\n{expire} 分钟内有效，请勿外泄。",
+        "你的注册验证码：{code}\n{expire} 秒内有效，请勿外泄。",
     ),
     CodePurpose.LOGIN: (
         "登录验证码",
-        "你的登录验证码：{code}\n{expire} 分钟内有效，请勿外泄。",
+        "你的登录验证码：{code}\n{expire} 秒内有效，请勿外泄。",
     ),
     CodePurpose.RESET_PASSWORD: (
         "重置密码验证码",
-        "你的重置密码验证码：{code}\n{expire} 分钟内有效，请勿外泄。",
+        "你的重置密码验证码：{code}\n{expire} 秒内有效，请勿外泄。",
     ),
 }
 
@@ -94,7 +94,7 @@ def _send_smtp(to_email: str, code: str, purpose: CodePurpose) -> bool:
         return False
 
     subject, body_tpl = _PURPOSE_META[purpose]
-    body = body_tpl.format(code=code, expire=v["expire_minutes"])
+    body = body_tpl.format(code=code, expire=v["expire_seconds"])
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = str(Header(subject, "utf-8"))
     if from_name:
@@ -126,9 +126,8 @@ def _save_code(email: str, code: str, purpose: CodePurpose) -> bool:
     client = get_redis_client()
     if client is None:
         return False
-    v = get_settings().verification
-    expire_seconds = v["expire_minutes"] * 60
-    resend_seconds = v["resend_interval_seconds"]
+    expire_seconds = get_settings().verification["expire_seconds"]
+    resend_seconds = get_settings().verification["resend_interval_seconds"]
     pipe = client.pipeline()
     pipe.set(_code_key(email, purpose), code, ex=expire_seconds)
     pipe.set(_sent_key(email, purpose), "1", ex=resend_seconds)

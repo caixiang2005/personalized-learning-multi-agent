@@ -12,7 +12,6 @@ settings = get_settings()
 DATABASE_URL = settings.database_url
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
-# expire_on_commit=False：避免 get_db() commit 后访问 ORM 属性触发 DetachedInstanceError（登录等）
 SessionLocal = sessionmaker(
     bind=engine, autoflush=False, autocommit=False, future=True, expire_on_commit=False
 )
@@ -29,7 +28,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     username: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
     user_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    register_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"))
+    register_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP")
+    )
 
 
 @contextmanager
@@ -46,5 +47,5 @@ def get_db():
 
 
 def init_db() -> None:
-    """表由数据库侧维护，不在启动时自动建表。"""
+    """使用 project_db 已有 users 表，不在启动时建表。"""
     pass

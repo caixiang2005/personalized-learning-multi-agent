@@ -19,5 +19,5 @@ from:
 
 verification:
   code_length: 6
-  expire_minutes: 10
+  expire_seconds: 60
   resend_interval_seconds: 60

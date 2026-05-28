@@ -2,7 +2,7 @@ import hashlib
 import secrets
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from utils.database import User, get_db
 from utils.email import CodePurpose, send_verification_code, verify_verification_code
@@ -54,13 +54,13 @@ def _make_auth_payload(user: User) -> dict[str, Any]:
 
 def _get_user_by_email(email: str):
     with get_db() as db:
-        stmt = select(User).where(func.lower(User.email) == email)
+        stmt = select(User).where(User.email == email)
         return db.execute(stmt).scalar_one_or_none()
 
 
 def _get_user_by_username(username: str):
     with get_db() as db:
-        stmt = select(User).where(func.lower(User.username) == username)
+        stmt = select(User).where(User.username == username)
         return db.execute(stmt).scalar_one_or_none()
 
 
