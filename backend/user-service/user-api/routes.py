@@ -1,16 +1,69 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 
-from schemas import EmailBody
-from utils.email import CodePurpose, send_verification_code
+from schemas import EmailBody, LoginBody, LoginCodeBody, LoginUsernameBody, RegisterBody, ResetPwdBody
+from utils.auth import (
+    get_user_info,
+    login_user,
+    login_user_by_code,
+    login_user_by_username,
+    refresh_token,
+    register_user,
+    reset_password,
+    send_login_email_code,
+    send_register_email_code,
+)
 
-router = APIRouter(tags=["邮件验证码"])
+router = APIRouter(tags=["用户认证"])
 
 
 @router.post("/api/user/sendRegEmailCode")
 def send_reg_email_code(body: EmailBody):
-    return send_verification_code(str(body.email), CodePurpose.REGISTER)
+    return send_register_email_code(str(body.email))
+
+
+@router.post("/api/user/register")
+def register(body: RegisterBody):
+    return register_user(str(body.email), body.username, body.password, body.code)
 
 
 @router.post("/api/user/sendLoginEmailCode")
-def send_login_email_code(body: EmailBody):
-    return send_verification_code(str(body.email), CodePurpose.LOGIN)
+def send_login_email_code_api(body: EmailBody):
+    return send_login_email_code(str(body.email))
+
+
+@router.post("/api/user/login")
+def login(body: LoginBody):
+    return login_user(str(body.email), body.password)
+
+
+@router.post("/api/user/loginByUsername")
+def login_by_username(body: LoginUsernameBody):
+    return login_user_by_username(body.username, body.password)
+
+
+@router.post("/api/user/loginByEmailCode")
+def login_by_email_code(body: LoginCodeBody):
+    return login_user_by_code(str(body.email), body.code)
+
+
+@router.post("/api/user/refreshToken")
+def refresh_user_token(authorization: str | None = Header(default=None)):
+    token = ""
+    if authorization:
+        parts = authorization.split(" ", 1)
+        token = parts[1].strip() if len(parts) == 2 and parts[0].lower() == "bearer" else authorization.strip()
+    return refresh_token(token)
+
+
+@router.get("/api/user/getUserInfo")
+def user_info(authorization: str | None = Header(default=None)):
+    token = ""
+    if authorization:
+        parts = authorization.split(" ", 1)
+        token = parts[1].strip() if len(parts) == 2 and parts[0].lower() == "bearer" else authorization.strip()
+    return get_user_info(token)
+
+
+@router.post("/api/user/resetPwd")
+def reset_pwd(body: ResetPwdBody):
+    return reset_password(str(body.email), body.code, body.newPassword)

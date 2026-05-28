@@ -10,6 +10,7 @@ if str(_USER_API_DIR) not in sys.path:
     sys.path.insert(0, str(_USER_API_DIR))
 
 from routes import router as user_router  # noqa: E402
+from utils.database import init_db  # noqa: E402
 
 app = FastAPI(title="用户微服务")
 app.add_middleware(
@@ -26,6 +27,7 @@ app.include_router(user_router)
 def on_startup():
     import utils.redis as redis_module
 
+    init_db()
     redis_module.init_redis()
     redis_module.redis_client = redis_module.get_redis_client()
 
@@ -33,4 +35,4 @@ def on_startup():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="127.0.0.1", port=8001, reload=True)
