@@ -6,6 +6,9 @@
 
 | 文档 | 用途 |
 |------|------|
+| **[DESIGN.md](./DESIGN.md)** | 前端视觉规范（颜色、毛玻璃、门户、Do/Don't） |
+| **[AGENTS.md](./AGENTS.md)** | 前端开发说明、Cursor 必读顺序 |
+| **[docs/design/README.md](./docs/design/README.md)** | 设计规范来源与维护说明 |
 | **[待与后端同步清单.md](./待与后端同步清单.md)** | 什么数据和接口以后要和 backend 对齐（推荐先看） |
 | **[BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md)** | 完整 API 路径、请求体、联调步骤 |
 
@@ -33,7 +36,7 @@ npm run dev
 2. 前端 `vite.config.ts` 已将 `/api/agent` 代理到 `http://127.0.0.1:8003`
 3. 打开门户 `/`，点击 **AI 助手** 或 **咨询助手**，发送消息
 4. 请求体：`{ user_input, session_id }`（session_id 为 UUID v4，页面刷新后重新生成）
-5. 免费 **3 轮**体验，第 4 轮接口返回登录引导；后端不可用时自动降级 Mock（可设 `VITE_GUEST_CHAT_MOCK=1` 强制 Mock）
+5. 免费体验，；后端不可用时自动降级 Mock（可设 `VITE_GUEST_CHAT_MOCK=1` 强制 Mock）
 
 ## 路由
 

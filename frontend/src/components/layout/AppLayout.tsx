@@ -9,10 +9,7 @@ import MobileNav from "./MobileNav";
 
 export default function AppLayout() {
   return (
-    <div className="min-h-screen flex flex-col bg-surface dark:bg-surface-dark relative overflow-x-hidden">
-      <div className="blob-decoration w-[420px] h-[420px] bg-primary/30 -top-32 -right-32" />
-      <div className="blob-decoration w-[320px] h-[320px] bg-accent/25 -bottom-20 -left-20" />
-
+    <div className="app-page-scrim min-h-screen flex flex-col relative overflow-x-hidden">
       <Navbar />
       <main className="flex-1 relative z-[1]">
         <Outlet />

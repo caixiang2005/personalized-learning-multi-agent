@@ -1,6 +1,6 @@
 /**
  * @file ShinyText.tsx
- * @description 光泽扫过文字动效（参考 React Bits shiny-text，项目配色定制）。
+ * @description 品牌渐变标题字（静态色带，无扫光动画）。
  */
 
 import type { ReactNode } from "react";

@@ -5,10 +5,11 @@
  */
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
+import { getToken } from "../lib/auth/token";
 import { useAppStore } from "../store/useAppStore";
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const isLoggedIn = useAppStore((s) => s.isLoggedIn);
-  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (!isLoggedIn || !getToken()) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
