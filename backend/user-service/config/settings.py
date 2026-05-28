@@ -54,9 +54,11 @@ class AppSettings:
     @property
     def verification(self) -> dict:
         v = self._yaml.get("verification") or {}
+        expire_seconds = int(v.get("expire_seconds", 60))
         return {
             "code_length": int(v.get("code_length", 6)),
-            "expire_minutes": int(v.get("expire_minutes", 10)),
+            "expire_seconds": expire_seconds,
+            "expire_minutes": max(expire_seconds // 60, 1),
             "resend_interval_seconds": int(v.get("resend_interval_seconds", 60)),
         }
 
