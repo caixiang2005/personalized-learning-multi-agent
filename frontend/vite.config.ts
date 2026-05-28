@@ -14,8 +14,9 @@ export default defineConfig({
         changeOrigin: true,
       },
       // user-service 等其他接口
+      // user-service
       "/api": {
-        target: "http://localhost:8080",
+        target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
     },

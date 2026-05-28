@@ -14,11 +14,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatMessage, ChatSession, LearningProfile, PathStage } from "../types";
+import type { UserInfo } from "../lib/api/endpoints";
 import { defaultProfile, defaultSessions, defaultPath } from "../lib/mockData";
 
 interface AppState {
-  /** 【当前 Mock】true 即可进系统；联调后应结合 token 是否有效 */
   isLoggedIn: boolean;
+  user: UserInfo | null;
   darkMode: boolean;
   /** 【待同步】GET /api/profile */
   profile: LearningProfile;
@@ -31,6 +32,7 @@ interface AppState {
   profileInitialized: boolean;
   sidebarCollapsed: boolean;
   setLoggedIn: (v: boolean) => void;
+  setUser: (user: UserInfo | null) => void;
   toggleDarkMode: () => void;
   setProfile: (p: Partial<LearningProfile>) => void;
   setProfileInitialized: (v: boolean) => void;
@@ -46,6 +48,7 @@ export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       isLoggedIn: false,
+      user: null,
       darkMode: false,
       profile: defaultProfile,
       sessions: defaultSessions,
@@ -54,6 +57,11 @@ export const useAppStore = create<AppState>()(
       profileInitialized: false,
       sidebarCollapsed: false,
       setLoggedIn: (v) => set({ isLoggedIn: v }),
+      setUser: (user) =>
+        set((s) => ({
+          user,
+          profile: user ? { ...s.profile, name: user.username } : s.profile,
+        })),
       toggleDarkMode: () =>
         set((s) => {
           const next = !s.darkMode;

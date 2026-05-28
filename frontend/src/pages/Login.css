@@ -1,27 +1,13 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-html,
-body,
-#root {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
 .login-page {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   background: linear-gradient(135deg, #1e293b 0%, #2d3748 50%, #134e4a 100%);
   position: relative;
+  z-index: 1;
   padding: 20px;
 }
 
@@ -47,7 +33,7 @@ body,
   backdrop-filter: blur(16px);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 0px 20px;
+  padding: 28px 20px 20px;
   margin: 20px 0;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   z-index: 1;
