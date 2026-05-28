@@ -72,6 +72,13 @@ def send_login_email_code(email: str) -> dict:
     return send_verification_code(email, CodePurpose.LOGIN)
 
 
+def send_reset_email_code(email: str) -> dict:
+    email = _normalize_email(email)
+    if _get_user_by_email(email) is None:
+        return {"code": 400, "msg": "用户不存在", "data": {}}
+    return send_verification_code(email, CodePurpose.RESET_PASSWORD)
+
+
 def register_user(email: str, username: str, password: str, code: str) -> dict:
     email = _normalize_email(email)
     username = _normalize_username(username)
