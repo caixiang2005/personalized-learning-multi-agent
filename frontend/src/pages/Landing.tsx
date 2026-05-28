@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import {
   GraduationCap,
   LogIn,
+  ArrowRight,
   ScanFace,
   Boxes,
   Waypoints,
@@ -26,7 +27,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import ShinyText from "../components/ui/ShinyText";
-import LandingKnowledgeFlow from "../components/landing/LandingKnowledgeFlow";
 import GuestAssistantFab from "../components/guest/GuestAssistantFab";
 import GuestChatDrawer from "../components/guest/GuestChatDrawer";
 
@@ -86,9 +86,7 @@ export default function Landing() {
   const [chatOpen, setChatOpen] = useState(false);
 
   return (
-    <div className="landing-shell">
-      <LandingKnowledgeFlow />
-
+    <div className="landing-shell app-page-scrim">
       <header className="landing-header landing-glass landing-header--bar">
         <div className="landing-header__inner">
           <Link to="/" className="landing-brand">
@@ -129,12 +127,28 @@ export default function Landing() {
         <main className="landing-page">
           <section className="landing-hero landing-enter">
             <div className="landing-hero__main">
+              <p className="landing-hero__tag">高等教育 · 多智能体协同</p>
               <ShinyText as="h1" className="landing-hero__title">
                 AI 驱动的个性化学习平台
               </ShinyText>
               <p className="landing-hero__desc">
                 面向高校与自学场景，通过多智能体协同完成画像构建、资源生成、路径规划与学习评估。登录后进入完整学习系统。
               </p>
+              <div className="landing-hero__actions landing-enter" style={{ animationDelay: "60ms" }}>
+                <Link to="/login" className="landing-btn-glass landing-hero__cta-primary">
+                  <LogIn size={16} strokeWidth={1.75} />
+                  立即登录
+                  <ArrowRight size={16} strokeWidth={1.75} className="landing-hero__cta-arrow" />
+                </Link>
+                <button
+                  type="button"
+                  className="landing-hero__cta-secondary landing-glass"
+                  onClick={() => setChatOpen(true)}
+                >
+                  <MessageSquare size={16} strokeWidth={1.75} />
+                  先体验智能助手
+                </button>
+              </div>
               <p className="landing-hero__fab-hint">
                 <Sparkles size={14} strokeWidth={1.75} />
                 右下角可打开智能助手，先聊聊你的学习方向
@@ -175,8 +189,12 @@ export default function Landing() {
               <span>登录后完整可用</span>
             </div>
             <div className="landing-features">
-              {features.map((f) => (
-                <div key={f.title} className="landing-feature-card landing-glass-card">
+              {features.map((f, i) => (
+                <div
+                  key={f.title}
+                  className="landing-feature-card landing-glass-card landing-enter"
+                  style={{ animationDelay: `${280 + i * 70}ms` }}
+                >
                   <span className={`landing-icon-tone landing-icon-tone--${f.tone}`}>
                     <f.icon size={20} strokeWidth={1.75} />
                   </span>
@@ -195,8 +213,12 @@ export default function Landing() {
           >
             <h2 className="landing-steps__title">使用流程</h2>
             <div className="landing-steps__grid">
-              {steps.map((s) => (
-                <div key={s.num} className="landing-step landing-glass-card">
+              {steps.map((s, i) => (
+                <div
+                  key={s.num}
+                  className="landing-step landing-glass-card landing-enter"
+                  style={{ animationDelay: `${360 + i * 80}ms` }}
+                >
                   <span className="landing-step__num">{s.num}</span>
                   <h3 className="landing-step__title">{s.title}</h3>
                   <p className="landing-step__desc">{s.desc}</p>
@@ -204,6 +226,11 @@ export default function Landing() {
               ))}
             </div>
           </section>
+
+          <p className="landing-scroll-hint landing-enter" style={{ animationDelay: "480ms" }} aria-hidden>
+            <span className="landing-scroll-hint__chevron" />
+            向下了解更多
+          </p>
         </main>
 
         <aside className="landing-side landing-side--right" aria-hidden>

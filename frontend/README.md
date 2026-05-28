@@ -1,19 +1,23 @@
 # 智慧学习中心 · 前端
 
-> **当前：** 未登录访客 Agent 已对接 `agent-service:8003`；其余模块仍为 Mock。登录演示密码/验证码：`123456`。
+> **当前：** 用户认证已对接 `user-service:8001`（`/api/user`，见下文）；访客 Agent 对接 `agent-service:8003`。其余业务模块仍为 Mock。  
+> 联调认证时 **不要** 设置 `VITE_USE_MOCK=true`；本地无后端时可开 Mock，密码/验证码为 `123456`。
 
 ## 文档（必读）
 
 | 文档 | 用途 |
 |------|------|
-| **[待与后端同步清单.md](./待与后端同步清单.md)** | 什么数据和接口以后要和 backend 对齐（推荐先看） |
-| **[BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md)** | 完整 API 路径、请求体、联调步骤 |
+| **[DESIGN.md](./DESIGN.md)** | 前端视觉规范（颜色、毛玻璃、门户、Do/Don't） |
+| **[AGENTS.md](./AGENTS.md)** | 前端开发说明、Cursor 必读顺序 |
+| **[待与后端同步清单.md](./待与后端同步清单.md)** | Mock / 真实接口对照（推荐先看） |
+| **[BACKEND_INTEGRATION.md](./BACKEND_INTEGRATION.md)** | 全站 API 路径与联调步骤 |
 
 ## 代码里怎么找
 
-- `【当前 Mock】` — 现在用的假逻辑
-- `【待同步后端】` — 后端好了要改的地方
-- `src/lib/api/client.ts` — 请求函数已写好，**暂未 import**，联调时再启用
+- `【当前 Mock】` — 假数据 / 假逻辑
+- `【待同步后端】` — 其它模块尚未接真实接口
+- **`src/lib/api/user.ts`** — 用户认证（已接文档 V1.0）
+- `src/lib/api/client.ts` — 画像/对话等（暂未 import）
 
 ## 运行
 
@@ -22,23 +26,51 @@ npm install
 npm run dev
 ```
 
+复制 `frontend/.env.example` 为 `.env.development`：
+
+```env
+VITE_API_BASE=/api
+# 后端未就绪时：VITE_USE_MOCK=true
+```
+
+### 开发代理端口（`vite.config.ts`）
+
+| 路径前缀 | 转发到 | 服务 |
+|----------|--------|------|
+| `/api/agent` | `http://127.0.0.1:8003` | agent-service |
+| `/api`（含 `/api/user`） | `http://127.0.0.1:8001` | **user-service** |
+
+浏览器请求形如 `http://localhost:5173/api/user/...`，由 Vite 代理到 **8001**。
+
+### 用户认证联调（user-service · 文档 V1.0）
+
+1. 启动后端（端口 **8001**）：
+   ```bash
+   cd backend/user-service
+   uvicorn main:app --reload --host 127.0.0.1 --port 8001
+   ```
+2. Swagger：`http://127.0.0.1:8001/docs`
+3. 前端页面：`/login` · `/register` · `/reset-password`
+4. 响应约定：`{ "code": 200, "msg": "...", "data": ... }`；失败时 `code` 为 400/401/500/503，前端展示 `msg`
+5. 登录成功：`data.token` / `data.refreshToken` 写入 `localStorage`；后续请求带 `Authorization: Bearer <token>`
+6. `GET /api/user/info`：前端使用 **GET + Bearer**（请后端按此实现）
+
+封装与路径见 `src/lib/api/endpoints.ts` → `API.user`、`src/lib/api/user.ts`。
+
 ### 未登录 Agent 联调（agent-service）
 
 1. 启动后端（端口 **8003**）：
    ```bash
    cd backend/agent-service
-   # 配置 .env 中的 DEEPSEEK_API_KEY 等
    python main.py
    ```
-2. 前端 `vite.config.ts` 已将 `/api/agent` 代理到 `http://127.0.0.1:8003`
-3. 打开门户 `/`，点击 **AI 助手** 或 **咨询助手**，发送消息
-4. 请求体：`{ user_input, session_id }`（session_id 为 UUID v4，页面刷新后重新生成）
-5. 免费 **3 轮**体验，第 4 轮接口返回登录引导；后端不可用时自动降级 Mock（可设 `VITE_GUEST_CHAT_MOCK=1` 强制 Mock）
+2. 门户 `/` → **AI 助手**；请求 `POST /api/agent/unlogin/chat`
+3. 可设 `VITE_GUEST_CHAT_MOCK=1` 强制 Mock
 
 ## 路由
 
-`/`（门户，未登录）· `/login` · `/home` · `/chat` · `/profile` · `/path` · `/resource/:id` · `/exercise/:id` · `/analytics` · `/settings`
+`/`（门户）· `/login` · `/register` · `/reset-password` · `/home` · `/chat` · `/profile` · `/path` · `/resource/:id` · `/exercise/:id` · `/analytics` · `/settings`
 
 ## 开源标注
 
-- **Flowing Menu** 交互思路参考 [React Bits - Flowing Menu](https://www.reactbits.dev/components/flowing-menu)，已在 `FlowingMenu.tsx` / `FlowingDock.tsx` 中按本项目主题色与竖向 Dock 布局改造，非直接拷贝源码。
+- **Flowing Menu** 参考 [React Bits - Flowing Menu](https://www.reactbits.dev/components/flowing-menu)，见 `FlowingMenu.tsx` / `FlowingDock.tsx`。
