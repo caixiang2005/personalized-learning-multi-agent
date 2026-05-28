@@ -7,6 +7,7 @@
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { BookOpen, LogOut, Settings, Sparkles } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
+import { logoutLocal } from "../../lib/api/user";
 import { useAppStore } from "../../store/useAppStore";
 
 const navItems = [
@@ -19,9 +20,11 @@ const navItems = [
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { setLoggedIn } = useAppStore();
+  const { setLoggedIn, setUser } = useAppStore();
 
   const logout = () => {
+    logoutLocal();
+    setUser(null);
     setLoggedIn(false);
     navigate("/login");
   };

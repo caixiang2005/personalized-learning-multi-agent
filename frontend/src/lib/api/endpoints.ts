@@ -11,18 +11,48 @@
 /** API 根路径，开发环境通过 Vite 代理，生产环境由部署配置注入 */
 export const API_BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
+/** 后端统一响应 */
+export interface ApiResponse<T = unknown> {
+  code: number;
+  msg: string;
+  data: T;
+}
+
+export interface UserInfo {
+  userId: number;
+  email: string;
+  username: string;
+  registerTime?: string;
+}
+
+export interface LoginData extends UserInfo {
+  token: string;
+  refreshToken: string;
+}
+
+export interface RegisterData extends UserInfo {}
+
 export const API = {
-  /** 认证 */
+  /** 用户认证 user-service：/api/user */
+  user: {
+    sendRegEmailCode: `${API_BASE}/user/sendRegEmailCode`,
+    sendLoginEmailCode: `${API_BASE}/user/sendLoginEmailCode`,
+    sendResetEmailCode: `${API_BASE}/user/sendResetEmailCode`,
+    register: `${API_BASE}/user/register`,
+    loginEmail: `${API_BASE}/user/login/email`,
+    loginUsername: `${API_BASE}/user/login/username`,
+    loginCode: `${API_BASE}/user/login/code`,
+    refreshToken: `${API_BASE}/user/refreshToken`,
+    info: `${API_BASE}/user/info`,
+    resetPassword: `${API_BASE}/user/resetPassword`,
+  },
+
+  /** @deprecated 联调请使用 API.user */
   auth: {
-    /** POST { email, password } → { token, user } */
     login: `${API_BASE}/auth/login`,
-    /** POST { email, code } */
     loginByCode: `${API_BASE}/auth/login/code`,
-    /** POST { email } */
     sendCode: `${API_BASE}/auth/send-code`,
-    /** POST 刷新 token */
     refresh: `${API_BASE}/auth/refresh`,
-    /** POST 退出 */
     logout: `${API_BASE}/auth/logout`,
   },
 
