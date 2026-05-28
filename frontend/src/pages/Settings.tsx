@@ -11,7 +11,6 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, Moon, Sun, User } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import { useAppStore } from "../store/useAppStore";
-// import { logout } from "../lib/api/client";
 
 export default function Settings() {
   const navigate = useNavigate();

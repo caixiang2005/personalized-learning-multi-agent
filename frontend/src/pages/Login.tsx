@@ -1,6 +1,6 @@
 /**
  * @file Login.tsx
- * @description 登录页：对接 /api/user 邮箱/用户名 + 密码或验证码。
+ * @description 登录页：user-service login / loginByUsername / loginByEmailCode。
  */
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -260,10 +260,6 @@ export default function Login() {
               )}
             </div>
           </AuthFormCard>
-
-          <Link to="/" className="login-back-link">
-            ← 返回门户首页
-          </Link>
         </section>
       </div>
     </div>

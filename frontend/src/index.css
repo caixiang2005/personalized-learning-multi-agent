@@ -2238,16 +2238,6 @@ a {
     color: #93c5fd;
   }
 
-  .login-back-link {
-    font-size: 0.8125rem;
-    color: var(--landing-text-secondary, #5c5c5c);
-    transition: color 0.2s ease;
-  }
-
-  .login-back-link:hover {
-    color: #165dff;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .login-shell__glow {
       animation: none;

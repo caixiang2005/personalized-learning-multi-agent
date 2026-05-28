@@ -133,6 +133,9 @@ export default function ResetPassword() {
                   className="login-glass-input"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="6–64 位新密码"
+                  minLength={6}
+                  maxLength={64}
                   required
                 />
               </div>
@@ -144,6 +147,8 @@ export default function ResetPassword() {
                   className="login-glass-input"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={6}
+                  maxLength={64}
                   required
                 />
               </div>
@@ -152,9 +157,6 @@ export default function ResetPassword() {
               </button>
             </form>
           </AuthFormCard>
-          <Link to="/" className="login-back-link">
-            ← 返回门户首页
-          </Link>
         </section>
       </div>
     </div>

@@ -15,7 +15,6 @@ import { ArrowLeft, CheckCircle } from "lucide-react";
 import PageHeader from "../components/ui/PageHeader";
 import { findResourceById } from "../lib/resources";
 import { useAppStore } from "../store/useAppStore";
-// import { fetchExercise, submitExercise } from "../lib/api/client";
 
 /** 演示题目，联调后由 fetchExercise 返回 */
 const mockQuestions = [
