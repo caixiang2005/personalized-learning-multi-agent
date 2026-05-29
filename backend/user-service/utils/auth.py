@@ -1,11 +1,14 @@
 import hashlib
 import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
 
 from utils.database import User, get_db
 from utils.email import CodePurpose, send_verification_code, verify_verification_code
+
+BEIJING_TZ = timezone(timedelta(hours=8))
 
 
 _ACCESS_TOKENS: dict[str, int] = {}
@@ -32,12 +35,27 @@ def _new_token() -> str:
     return secrets.token_urlsafe(24)
 
 
+def _beijing_now() -> datetime:
+    """返回无时区的北京时间（与库中 timestamp without time zone 一致）。"""
+    return datetime.now(BEIJING_TZ).replace(tzinfo=None)
+
+
+def _format_register_time(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        aware = dt.replace(tzinfo=BEIJING_TZ)
+    else:
+        aware = dt.astimezone(BEIJING_TZ)
+    return aware.isoformat(timespec="seconds")
+
+
 def _user_payload(user: User) -> dict[str, Any]:
     return {
         "userId": user.user_id,
         "email": user.email,
         "username": user.username,
-        "registerTime": user.register_time.isoformat() if user.register_time else None,
+        "registerTime": _format_register_time(user.register_time),
     }
 
 
@@ -90,7 +108,12 @@ def register_user(email: str, username: str, password: str, code: str) -> dict:
         return {"code": 400, "msg": "验证码错误或已过期", "data": {}}
 
     with get_db() as db:
-        user = User(email=email, username=username, user_password=_hash_password(password))
+        user = User(
+            email=email,
+            username=username,
+            user_password=_hash_password(password),
+            register_time=_beijing_now(),
+        )
         db.add(user)
         db.flush()
         return {"code": 200, "msg": "注册成功", "data": _user_payload(user)}

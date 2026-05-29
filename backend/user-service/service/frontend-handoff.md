@@ -57,6 +57,7 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8001
 - 请求/响应 **camelCase**：`userId`、`registerTime`、`newPassword`
 - 邮箱、用户名服务端会 **转小写**
 - 密码规则 6–64 位；库存 **SHA256 十六进制**（非 bcrypt）
+- `registerTime`：北京时间（`Asia/Shanghai`），ISO 8601 带偏移，如 `2026-05-28T21:30:00+08:00`
 
 ---
 
@@ -124,7 +125,7 @@ POST sendRegEmailCode → POST register → POST login（注册不返回 token�
 | Redis | 验证码 |
 | SMTP | 发邮件 |
 
-字段：`user_id`, `email`, `username`, `user_password`, `register_time`。
+字段：`user_id`, `email`, `username`, `user_password`, `register_time`（**`timestamp without time zone`，存北京时间字面量**）。
 
 ---
 
