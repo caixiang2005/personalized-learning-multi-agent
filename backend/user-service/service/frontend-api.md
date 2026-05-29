@@ -46,6 +46,7 @@ interface ApiResponse<T = unknown> {
 - Token 存服务端内存，**重启服务后失效**
 - 刷新返回 `data.newToken`，旧 access token 作废
 - 邮箱、用户名入库/查询前转**小写**
+- `registerTime`：北京时间 `Asia/Shanghai`，格式如 `2026-05-28T21:30:00+08:00`
 
 ---
 
@@ -56,7 +57,7 @@ export interface UserInfo {
   userId: number;
   email: string;
   username: string;
-  registerTime: string | null;
+  registerTime: string | null; // 北京时间 ISO 8601，如 2026-05-28T21:30:00+08:00
 }
 
 export interface LoginData extends UserInfo {
