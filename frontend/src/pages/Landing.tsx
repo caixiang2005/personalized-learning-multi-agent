@@ -23,12 +23,20 @@ import {
   BrainCircuit,
   Network,
   Signpost,
-  Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import ShinyText from "../components/ui/ShinyText";
+import ParticleText from "../components/ui/ParticleText";
 import GuestAssistantFab from "../components/guest/GuestAssistantFab";
 import GuestChatDrawer from "../components/guest/GuestChatDrawer";
+import LandingReveal from "../components/landing/LandingReveal";
+import LandingMarquee from "../components/landing/LandingMarquee";
+import LandingFaq from "../components/landing/LandingFaq";
+import LandingMotionLayer from "../components/landing/LandingMotionLayer";
+import LandingTiltCard from "../components/landing/LandingTiltCard";
+import LandingCountUp from "../components/landing/LandingCountUp";
+import { useLandingHeaderScrolled } from "../hooks/useLandingHeaderScrolled";
+import { useLandingScroll } from "../hooks/useLandingScroll";
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
 
 const stats = [
   { value: "6 维", label: "学习画像" },
@@ -84,10 +92,24 @@ const steps = [
 
 export default function Landing() {
   const [chatOpen, setChatOpen] = useState(false);
+  const [statsActive, setStatsActive] = useState(false);
+  const headerScrolled = useLandingHeaderScrolled();
+  const { scrollY, progress } = useLandingScroll();
+  const reducedMotion = usePrefersReducedMotion();
+
+  const heroMainStyle = reducedMotion
+    ? undefined
+    : { transform: `translate3d(0, ${scrollY * 0.1}px, 0)` };
+  const heroCardStyle = reducedMotion
+    ? undefined
+    : { transform: `translate3d(0, ${scrollY * -0.06}px, 0)` };
 
   return (
     <div className="landing-shell app-page-scrim">
-      <header className="landing-header landing-glass landing-header--bar">
+      <LandingMotionLayer scrollY={scrollY} progress={progress} />
+      <header
+        className={`landing-header landing-glass landing-header--bar${headerScrolled ? " landing-header--scrolled" : ""}`}
+      >
         <div className="landing-header__inner">
           <Link to="/" className="landing-brand">
             <span className="landing-brand__icon">
@@ -125,17 +147,26 @@ export default function Landing() {
         </aside>
 
         <main className="landing-page">
-          <section className="landing-hero landing-enter">
-            <div className="landing-hero__main">
-              <p className="landing-hero__tag">高等教育 · 多智能体协同</p>
-              <ShinyText as="h1" className="landing-hero__title">
-                AI 驱动的个性化学习平台
-              </ShinyText>
+          <LandingReveal as="section" className="landing-hero landing-hero--motion">
+            <div className="landing-hero__main landing-hero__parallax" style={heroMainStyle}>
+              <ParticleText
+                text="AI 驱动的个性化学习平台"
+                className="landing-hero__title landing-hero__title--particle"
+                textAlign="left"
+                assemble
+                assembleOrigin="left"
+                assembleDuration={1800}
+                fontSize={40}
+                particleGap={2}
+                particleSize={1.5}
+                mouseRadius={120}
+                mouseStrength={4.5}
+              />
               <p className="landing-hero__desc">
                 面向高校与自学场景，通过多智能体协同完成画像构建、资源生成、路径规划与学习评估。登录后进入完整学习系统。
               </p>
-              <div className="landing-hero__actions landing-enter" style={{ animationDelay: "60ms" }}>
-                <Link to="/login" className="landing-btn-glass landing-hero__cta-primary">
+              <div className="landing-hero__actions">
+                <Link to="/login" className="landing-btn-glass landing-hero__cta-primary landing-hero__cta-shimmer">
                   <LogIn size={16} strokeWidth={1.75} />
                   立即登录
                   <ArrowRight size={16} strokeWidth={1.75} className="landing-hero__cta-arrow" />
@@ -149,52 +180,62 @@ export default function Landing() {
                   先体验智能助手
                 </button>
               </div>
-              <p className="landing-hero__fab-hint">
-                <Sparkles size={14} strokeWidth={1.75} />
-                右下角可打开智能助手，先聊聊你的学习方向
-              </p>
             </div>
 
-            <div className="landing-hero__card landing-glass landing-glass--accent landing-float">
-              <p className="landing-hero__card-label">登录后可使用</p>
-              <ul className="landing-hero__card-list">
-                <li>
-                  <MessageSquare size={16} strokeWidth={1.75} /> 多轮学习对话与画像构建
-                </li>
-                <li>
-                  <BookOpen size={16} strokeWidth={1.75} /> 文档 / 导图 / 题库等资源生成
-                </li>
-                <li>
-                  <Route size={16} strokeWidth={1.75} /> 阶段性学习路径推送
-                </li>
-              </ul>
+            <div className="landing-hero__parallax" style={heroCardStyle}>
+              <LandingTiltCard
+                className="landing-hero__card landing-glass landing-glass--accent landing-float"
+                intensity={5}
+              >
+                <p className="landing-hero__card-label">登录后可使用</p>
+                <ul className="landing-hero__card-list">
+                  <li>
+                    <MessageSquare size={16} strokeWidth={1.75} /> 多轮学习对话与画像构建
+                  </li>
+                  <li>
+                    <BookOpen size={16} strokeWidth={1.75} /> 文档 / 导图 / 题库等资源生成
+                  </li>
+                  <li>
+                    <Route size={16} strokeWidth={1.75} /> 阶段性学习路径推送
+                  </li>
+                </ul>
+              </LandingTiltCard>
             </div>
-          </section>
+          </LandingReveal>
 
-          <div className="landing-stats landing-enter" style={{ animationDelay: "120ms" }}>
+          <LandingReveal
+            className="landing-stats"
+            delay={80}
+            stagger
+            onVisible={() => setStatsActive(true)}
+          >
             {stats.map((s) => (
-              <div key={s.label} className="landing-stat landing-glass-card">
-                <span className="landing-stat__value shiny-text-subtle">{s.value}</span>
+              <LandingTiltCard key={s.label} className="landing-stat landing-glass-card" intensity={6}>
+                <LandingCountUp
+                  value={s.value}
+                  active={statsActive}
+                  className="landing-stat__value shiny-text-subtle"
+                />
                 <span className="landing-stat__label">{s.label}</span>
-              </div>
+              </LandingTiltCard>
             ))}
-          </div>
+          </LandingReveal>
 
-          <section
-            className="landing-panel landing-section-frame landing-enter"
-            style={{ animationDelay: "200ms" }}
+          <LandingMarquee title="资源类型" items={sideResources} />
+
+          <LandingReveal
+            as="section"
+            className="landing-panel landing-section-frame landing-reveal--cards"
+            delay={100}
+            stagger
           >
             <div className="landing-panel__head">
               <h2>平台能力</h2>
               <span>登录后完整可用</span>
             </div>
             <div className="landing-features">
-              {features.map((f, i) => (
-                <div
-                  key={f.title}
-                  className="landing-feature-card landing-glass-card landing-enter"
-                  style={{ animationDelay: `${280 + i * 70}ms` }}
-                >
+              {features.map((f) => (
+                <LandingTiltCard key={f.title} className="landing-feature-card landing-glass-card" intensity={6}>
                   <span className={`landing-icon-tone landing-icon-tone--${f.tone}`}>
                     <f.icon size={20} strokeWidth={1.75} />
                   </span>
@@ -202,35 +243,30 @@ export default function Landing() {
                     <h3 className="landing-feature-card__title">{f.title}</h3>
                     <p className="landing-feature-card__desc">{f.desc}</p>
                   </div>
-                </div>
+                </LandingTiltCard>
               ))}
             </div>
-          </section>
+          </LandingReveal>
 
-          <section
-            className="landing-steps landing-section-frame landing-enter"
-            style={{ animationDelay: "280ms" }}
+          <LandingReveal
+            as="section"
+            className="landing-steps landing-section-frame landing-reveal--cards"
+            delay={140}
+            stagger
           >
             <h2 className="landing-steps__title">使用流程</h2>
             <div className="landing-steps__grid">
-              {steps.map((s, i) => (
-                <div
-                  key={s.num}
-                  className="landing-step landing-glass-card landing-enter"
-                  style={{ animationDelay: `${360 + i * 80}ms` }}
-                >
+              {steps.map((s) => (
+                <LandingTiltCard key={s.num} className="landing-step landing-glass-card" intensity={6}>
                   <span className="landing-step__num">{s.num}</span>
                   <h3 className="landing-step__title">{s.title}</h3>
                   <p className="landing-step__desc">{s.desc}</p>
-                </div>
+                </LandingTiltCard>
               ))}
             </div>
-          </section>
+          </LandingReveal>
 
-          <p className="landing-scroll-hint landing-enter" style={{ animationDelay: "480ms" }} aria-hidden>
-            <span className="landing-scroll-hint__chevron" />
-            向下了解更多
-          </p>
+          <LandingFaq />
         </main>
 
         <aside className="landing-side landing-side--right" aria-hidden>

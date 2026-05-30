@@ -20,6 +20,7 @@ import ResourceDetail from "./pages/ResourceDetail";
 import ExercisePage from "./pages/ExercisePage";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/resource/:id" element={<ResourceDetail />} />
           <Route path="/exercise/:id" element={<ExercisePage />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/account" element={<Account />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<NotFound />} />
