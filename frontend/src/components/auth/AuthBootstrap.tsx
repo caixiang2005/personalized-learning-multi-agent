@@ -29,7 +29,10 @@ export default function AuthBootstrap({ children }: { children: ReactNode }) {
         if (e instanceof UserApiError && e.code === 401) {
           logoutLocal();
         }
-        if (!cancelled) setLoggedIn(false);
+        if (!cancelled) {
+          setUser(null);
+          setLoggedIn(false);
+        }
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -43,7 +46,7 @@ export default function AuthBootstrap({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="login-shell flex items-center justify-center min-h-screen">
+      <div className="app-page-scrim flex items-center justify-center min-h-screen">
         <p className="text-sm text-gray-500">加载中…</p>
       </div>
     );

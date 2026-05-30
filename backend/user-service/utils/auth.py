@@ -1,5 +1,6 @@
 import hashlib
 import secrets
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
@@ -90,7 +91,12 @@ def register_user(email: str, username: str, password: str, code: str) -> dict:
         return {"code": 400, "msg": "验证码错误或已过期", "data": {}}
 
     with get_db() as db:
-        user = User(email=email, username=username, user_password=_hash_password(password))
+        user = User(
+            email=email,
+            username=username,
+            user_password=_hash_password(password),
+            register_time=datetime.now(timezone.utc),
+        )
         db.add(user)
         db.flush()
         return {"code": 200, "msg": "注册成功", "data": _user_payload(user)}

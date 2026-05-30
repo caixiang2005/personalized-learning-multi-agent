@@ -47,6 +47,12 @@ export const API = {
     refreshToken: `${API_BASE}/user/refreshToken`,
     getUserInfo: `${API_BASE}/user/getUserInfo`,
     resetPwd: `${API_BASE}/user/resetPwd`,
+    /** GET 个人信息（资料 + 学习背景） */
+    profile: `${API_BASE}/user/profile`,
+    /** PUT 更新个人信息 */
+    update: `${API_BASE}/user/update`,
+    /** GET 统计概览 */
+    stats: `${API_BASE}/user/stats`,
   },
 
   /** 用户与学习画像 */
