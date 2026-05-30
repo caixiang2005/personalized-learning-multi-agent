@@ -68,7 +68,7 @@ export default function Register() {
   const tipSuccess = tipText.includes("成功");
 
   return (
-    <div className="login-shell">
+    <div className="login-shell app-page-scrim">
       <div className="login-shell__glow" aria-hidden />
       <div className="login-layout">
         <AuthBrandPanel />
