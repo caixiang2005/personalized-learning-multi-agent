@@ -6,6 +6,7 @@ import {
   MessageSquare,
   BrainCircuit,
 } from "lucide-react";
+import AuthSpiralText from "./AuthSpiralText";
 
 const features = [
   { icon: MessageSquare, text: "对话式学习引导" },
@@ -17,9 +18,12 @@ const features = [
 export default function AuthBrandPanel() {
   return (
     <section className="login-brand landing-glass landing-enter">
-      <span className="login-brand__icon">
-        <GraduationCap size={22} strokeWidth={2} />
-      </span>
+      <div className="login-brand__emblem">
+        <AuthSpiralText className="login-brand__spiral" />
+        <span className="login-brand__icon">
+          <GraduationCap size={22} strokeWidth={2} />
+        </span>
+      </div>
       <h1 className="login-brand__title">智慧学习中心</h1>
       <p className="login-brand__sub">高等教育个性化学习平台</p>
       <ul className="login-brand__list">
