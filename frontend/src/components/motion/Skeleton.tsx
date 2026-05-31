@@ -19,19 +19,9 @@ export function SkeletonBlock({ className = "" }: Props) {
 
 export function AccountPageSkeleton() {
   return (
-    <div className="account-shell page-container max-w-5xl space-y-6" aria-busy aria-label="加载中">
-      <SkeletonBlock className="h-8 w-48" />
-      <SkeletonBlock className="h-4 w-72 max-w-full" />
-      <SkeletonBlock className="h-36 w-full rounded-[0.625rem]" />
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <SkeletonBlock key={i} className="h-24 rounded-[0.625rem]" />
-        ))}
-      </div>
-      <div className="grid lg:grid-cols-[1.65fr_1fr] gap-4">
-        <SkeletonBlock className="h-96 rounded-[0.625rem]" />
-        <SkeletonBlock className="h-72 rounded-[0.625rem]" />
-      </div>
+    <div className="account-home" aria-busy aria-label="加载中">
+      <SkeletonBlock className="h-36 w-full rounded-[0.625rem] mb-4" />
+      <SkeletonBlock className="h-64 w-full rounded-[0.625rem]" />
     </div>
   );
 }

@@ -1,14 +1,8 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Brain, Route, Settings, Shield } from "lucide-react";
+import { ArrowRight, Shield } from "lucide-react";
 import FadeInView from "../../components/motion/FadeInView";
 import HoverLift from "../../components/motion/HoverLift";
 import type { UserProfileDto } from "../../types/account";
-
-const quickLinks = [
-  { to: "/profile", label: "学习画像", desc: "6 维度动态分析", icon: Brain, tone: "green" as const },
-  { to: "/path", label: "学习路径", desc: "阶段与资源进度", icon: Route, tone: "blue" as const },
-  { to: "/settings", label: "偏好设置", desc: "主题与账号安全", icon: Settings, tone: "purple" as const },
-];
 
 type Props = {
   profile: UserProfileDto;
@@ -17,12 +11,12 @@ type Props = {
 export default function AccountSidebar({ profile }: Props) {
   return (
     <aside className="account-grid__side">
-      <FadeInView delay={0.15}>
+      <FadeInView delay={0.14}>
         <HoverLift className="account-side-card section-card">
           <section>
             <h3 className="account-side-card__title">
               <Shield size={17} strokeWidth={1.75} className="text-primary" />
-              账号信息
+              账号与安全
             </h3>
             <dl className="account-dl">
               <div>
@@ -30,16 +24,8 @@ export default function AccountSidebar({ profile }: Props) {
                 <dd>{profile.userId || "—"}</dd>
               </div>
               <div>
-                <dt>登录邮箱</dt>
-                <dd>{profile.email}</dd>
-              </div>
-              <div>
-                <dt>用户名</dt>
-                <dd>{profile.username}</dd>
-              </div>
-              <div>
-                <dt>画像更新</dt>
-                <dd>{profile.updatedAt}</dd>
+                <dt>资料更新</dt>
+                <dd>{profile.updatedAt || "—"}</dd>
               </div>
             </dl>
             <Link to="/reset-password" className="account-link-row">
@@ -50,27 +36,12 @@ export default function AccountSidebar({ profile }: Props) {
         </HoverLift>
       </FadeInView>
 
-      <FadeInView delay={0.19}>
-        <section className="account-side-card section-card">
-          <h3 className="account-side-card__title">快捷入口</h3>
-          <ul className="account-quick-links">
-            {quickLinks.map((item) => (
-              <li key={item.to}>
-                <HoverLift as="div">
-                  <Link to={item.to} className="account-quick-link">
-                    <span className={`landing-icon-tone landing-icon-tone--${item.tone} landing-icon-tone--sm`}>
-                      <item.icon size={16} strokeWidth={1.75} />
-                    </span>
-                    <span className="account-quick-link__text">
-                      <span className="account-quick-link__label">{item.label}</span>
-                      <span className="account-quick-link__desc">{item.desc}</span>
-                    </span>
-                    <ArrowRight size={15} strokeWidth={1.75} className="account-quick-link__arrow" />
-                  </Link>
-                </HoverLift>
-              </li>
-            ))}
-          </ul>
+      <FadeInView delay={0.17}>
+        <section className="account-side-card section-card account-side-card--muted">
+          <h3 className="account-side-card__title">说明</h3>
+          <p className="account-side-card__note">
+            用户名注册后不可更改。如需更换绑定邮箱或注销账号，请联系管理员或等待后续版本支持。
+          </p>
         </section>
       </FadeInView>
     </aside>

@@ -17,19 +17,14 @@ import {
   MessageSquare,
   Route,
   BookOpen,
-  GitBranch,
-  ListChecks,
-  Clapperboard,
   BrainCircuit,
   Network,
   Signpost,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import ParticleText from "../components/ui/ParticleText";
 import GuestAssistantFab from "../components/guest/GuestAssistantFab";
 import GuestChatDrawer from "../components/guest/GuestChatDrawer";
 import LandingReveal from "../components/landing/LandingReveal";
-import LandingMarquee from "../components/landing/LandingMarquee";
 import LandingFaq from "../components/landing/LandingFaq";
 import LandingMotionLayer from "../components/landing/LandingMotionLayer";
 import LandingTiltCard from "../components/landing/LandingTiltCard";
@@ -48,13 +43,6 @@ const sideAgents: { icon: LucideIcon; label: string; desc: string }[] = [
   { icon: BrainCircuit, label: "画像智能体", desc: "对话抽取学习特征" },
   { icon: Network, label: "资源智能体", desc: "协同生成学习内容" },
   { icon: Signpost, label: "路径智能体", desc: "按进度推送路径" },
-];
-
-const sideResources: { icon: LucideIcon; label: string }[] = [
-  { icon: BookOpen, label: "精讲文档" },
-  { icon: GitBranch, label: "思维导图" },
-  { icon: ListChecks, label: "专项题库" },
-  { icon: Clapperboard, label: "视频讲解" },
 ];
 
 const features = [
@@ -149,19 +137,9 @@ export default function Landing() {
         <main className="landing-page">
           <LandingReveal as="section" className="landing-hero landing-hero--motion">
             <div className="landing-hero__main landing-hero__parallax" style={heroMainStyle}>
-              <ParticleText
-                text="AI 驱动的个性化学习平台"
-                className="landing-hero__title landing-hero__title--particle"
-                textAlign="left"
-                assemble
-                assembleOrigin="left"
-                assembleDuration={1800}
-                fontSize={40}
-                particleGap={2}
-                particleSize={1.5}
-                mouseRadius={120}
-                mouseStrength={4.5}
-              />
+              <h1 className="landing-hero__title landing-hero__title--plain">
+                AI 驱动的个性化学习平台
+              </h1>
               <p className="landing-hero__desc">
                 面向高校与自学场景，通过多智能体协同完成画像构建、资源生成、路径规划与学习评估。登录后进入完整学习系统。
               </p>
@@ -221,8 +199,6 @@ export default function Landing() {
             ))}
           </LandingReveal>
 
-          <LandingMarquee title="资源类型" items={sideResources} />
-
           <LandingReveal
             as="section"
             className="landing-panel landing-section-frame landing-reveal--cards"
@@ -268,16 +244,6 @@ export default function Landing() {
 
           <LandingFaq />
         </main>
-
-        <aside className="landing-side landing-side--right" aria-hidden>
-          <p className="landing-side__title">资源类型</p>
-          {sideResources.map((r, i) => (
-            <div key={r.label} className="landing-side-tag landing-glass landing-enter" style={{ animationDelay: `${i * 60}ms` }}>
-              <r.icon size={14} strokeWidth={1.75} />
-              {r.label}
-            </div>
-          ))}
-        </aside>
       </div>
 
       <GuestAssistantFab onClick={() => setChatOpen(true)} active={chatOpen} />

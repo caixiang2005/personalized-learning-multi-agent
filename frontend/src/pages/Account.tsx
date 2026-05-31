@@ -1,27 +1,19 @@
 /**
  * @file Account.tsx
- * @description 个人信息页：Framer Motion 动效 + REST 接口预留。
+ * @description 个人中心主页：侧栏导航 + 资料卡片 + 编辑表单。
  * @route /account
- *
- * 接口（RESTful，前缀 /api）：
- *   GET    /api/user/profile  — 用户资料与学习背景
- *   PUT    /api/user/update   — 更新资料
- *   GET    /api/user/stats    — 统计概览
- *   DELETE /api/user/profile  — 注销（预留）
- *
- * 实现：hooks/useAccountPage.ts · lib/api/account.ts · types/account.ts
  */
-import PageHeader from "../components/ui/PageHeader";
-import FadeInView from "../components/motion/FadeInView";
+import { useState } from "react";
+import AccountCenterLayout from "../components/account/AccountCenterLayout";
 import MotionModal from "../components/motion/MotionModal";
 import { AccountPageSkeleton } from "../components/motion/Skeleton";
 import { useAccountPage } from "../hooks/useAccountPage";
 import AccountFormPanel from "./account/AccountFormPanel";
-import AccountHero from "./account/AccountHero";
-import AccountSidebar from "./account/AccountSidebar";
-import AccountStatsGrid from "./account/AccountStatsGrid";
+import AccountOverviewPanel from "./account/AccountOverviewPanel";
+import AccountProfileHeader from "./account/AccountProfileHeader";
 
 export default function Account() {
+  const [editing, setEditing] = useState(false);
   const {
     profile,
     stats,
@@ -38,41 +30,47 @@ export default function Account() {
 
   const handleSave = async () => {
     const ok = await save();
-    if (ok) setSaveSuccess(true);
+    if (ok) {
+      setSaveSuccess(true);
+      setEditing(false);
+    }
   };
 
-  if (loading || !profile || !stats) {
-    return <AccountPageSkeleton />;
+  if (loading || !profile) {
+    return (
+      <AccountCenterLayout>
+        <AccountPageSkeleton />
+      </AccountCenterLayout>
+    );
   }
 
   return (
-    <div className="account-shell page-container max-w-5xl">
-      <FadeInView>
-        <PageHeader
-          title="个人信息"
-          subtitle="管理账号资料与学习背景，画像与路径将据此个性化推荐"
-          badge="账号中心"
+    <AccountCenterLayout>
+      <div className="account-home">
+        <AccountProfileHeader
+          profile={profile}
+          editing={editing}
+          onEdit={() => setEditing((v) => !v)}
         />
-      </FadeInView>
 
-      <AccountHero profile={profile} />
-      <AccountStatsGrid stats={stats} ready={!loading} />
+        {editing && (
+          <AccountFormPanel
+            profile={profile}
+            form={form}
+            dirty={dirty}
+            saving={saving}
+            error={error}
+            onChange={patchForm}
+            onSubmit={handleSave}
+          />
+        )}
 
-      <div className="account-grid">
-        <AccountFormPanel
-          form={form}
-          dirty={dirty}
-          saving={saving}
-          error={error}
-          onChange={patchForm}
-          onSubmit={handleSave}
-        />
-        <AccountSidebar profile={profile} />
+        <AccountOverviewPanel profile={profile} stats={stats} />
       </div>
 
       <MotionModal open={saveSuccess} onClose={() => setSaveSuccess(false)} title="保存成功">
         <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-          学习背景已更新，系统将据此优化画像与路径推荐。
+          个人资料已更新。
         </p>
         <button
           type="button"
@@ -82,6 +80,6 @@ export default function Account() {
           知道了
         </button>
       </MotionModal>
-    </div>
+    </AccountCenterLayout>
   );
 }
