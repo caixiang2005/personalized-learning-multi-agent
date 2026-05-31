@@ -25,7 +25,7 @@ const faqs = [
 ];
 
 export default function LandingFaq() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <LandingReveal as="section" className="landing-faq landing-section-frame" delay={120}>

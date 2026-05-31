@@ -1,5 +1,6 @@
-import { Calendar, Mail, User } from "lucide-react";
+import { Calendar, Mail } from "lucide-react";
 import FadeInView from "../../components/motion/FadeInView";
+import UserAvatar from "../../components/account/UserAvatar";
 import type { UserProfileDto } from "../../types/account";
 
 function formatDate(raw: string | null) {
@@ -9,31 +10,27 @@ function formatDate(raw: string | null) {
   return d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
 }
 
-function avatarInitial(name: string, username: string) {
-  return (name || username || "学").trim().charAt(0).toUpperCase();
-}
-
 type Props = {
   profile: UserProfileDto;
 };
 
 export default function AccountHero({ profile }: Props) {
   return (
-    <FadeInView parallax={6}>
+    <FadeInView parallax={4}>
       <section className="account-hero landing-glass-card">
         <div className="account-hero__main">
-          <div className="account-avatar" aria-hidden>
-            {avatarInitial(profile.displayName, profile.username)}
-          </div>
+          <UserAvatar
+            userId={profile.userId}
+            displayName={profile.displayName}
+            username={profile.username}
+            size="lg"
+          />
           <div className="account-hero__info">
-            <h2 className="account-hero__name">{profile.displayName}</h2>
+            <h1 className="account-hero__name">{profile.displayName || profile.username}</h1>
+            <p className="account-hero__username">@{profile.username}</p>
             <p className="account-hero__meta">
               <Mail size={14} strokeWidth={1.75} />
               {profile.email}
-            </p>
-            <p className="account-hero__meta">
-              <User size={14} strokeWidth={1.75} />
-              @{profile.username}
             </p>
             <p className="account-hero__meta">
               <Calendar size={14} strokeWidth={1.75} />
@@ -41,10 +38,7 @@ export default function AccountHero({ profile }: Props) {
             </p>
           </div>
         </div>
-        <div className="account-hero__chips">
-          <span className="account-chip">{profile.major}</span>
-          <span className="account-chip account-chip--accent">{profile.goal}</span>
-        </div>
+        <p className="account-hero__avatar-tip">默认头像为昵称首字母，头像上传功能预留中</p>
       </section>
     </FadeInView>
   );

@@ -2,12 +2,7 @@
  * 个人信息页数据 Hook（useState + useEffect）
  */
 import { useCallback, useEffect, useState } from "react";
-import {
-  ensureAccountMockSeed,
-  getUserProfile,
-  getUserStats,
-  updateUserProfile,
-} from "../lib/api/account";
+import { ensureAccountMockSeed, getUserProfile, getUserStats, updateUserProfile } from "../lib/api/account";
 import { ApiClientError } from "../lib/api/client";
 import type { UpdateUserProfileDto, UserProfileDto, UserStatsDto } from "../types/account";
 

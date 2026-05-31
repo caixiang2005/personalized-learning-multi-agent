@@ -34,6 +34,14 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route
+          path="/account"
+          element={
+            <ProtectedRoute>
+              <Account />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           element={
             <ProtectedRoute>
               <AppLayout />
@@ -47,7 +55,6 @@ export default function App() {
           <Route path="/resource/:id" element={<ResourceDetail />} />
           <Route path="/exercise/:id" element={<ExercisePage />} />
           <Route path="/analytics" element={<Analytics />} />
-          <Route path="/account" element={<Account />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
         <Route path="*" element={<NotFound />} />

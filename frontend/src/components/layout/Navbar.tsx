@@ -1,13 +1,12 @@
 /**
  * @file Navbar.tsx
- * @description 顶部导航：品牌、页面链接、学习中心、主题、设置、退出。
+ * @description 顶部导航：品牌、页面链接、用户悬停下拉菜单。
  */
 
-import { NavLink, Link, useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, LogOut, User } from "lucide-react";
+import { NavLink, Link } from "react-router-dom";
+import { BookOpen, GraduationCap } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
-import { logoutLocal } from "../../lib/api/user";
-import { useAppStore } from "../../store/useAppStore";
+import UserMenuDropdown from "./UserMenuDropdown";
 import { useLandingHeaderScrolled } from "../../hooks/useLandingHeaderScrolled";
 
 const navItems = [
@@ -19,16 +18,7 @@ const navItems = [
 ];
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const { setLoggedIn, setUser } = useAppStore();
   const headerScrolled = useLandingHeaderScrolled();
-
-  const logout = () => {
-    logoutLocal();
-    setUser(null);
-    setLoggedIn(false);
-    navigate("/login");
-  };
 
   return (
     <header
@@ -63,12 +53,7 @@ export default function Navbar() {
             学习中心
           </Link>
           <ThemeToggle />
-          <Link to="/account" className="app-navbar__icon-btn" aria-label="个人信息">
-            <User size={18} strokeWidth={1.75} />
-          </Link>
-          <button type="button" onClick={logout} className="app-navbar__icon-btn app-navbar__icon-btn--danger" aria-label="退出">
-            <LogOut size={18} strokeWidth={1.75} />
-          </button>
+          <UserMenuDropdown />
         </div>
       </div>
     </header>

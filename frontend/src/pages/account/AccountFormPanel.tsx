@@ -1,9 +1,11 @@
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Lock, Save } from "lucide-react";
 import { motion } from "framer-motion";
 import FadeInView from "../../components/motion/FadeInView";
 import type { AccountFormState } from "../../hooks/useAccountPage";
+import type { UserProfileDto } from "../../types/account";
 
 type Props = {
+  profile: UserProfileDto;
   form: AccountFormState;
   dirty: boolean;
   saving: boolean;
@@ -13,6 +15,7 @@ type Props = {
 };
 
 export default function AccountFormPanel({
+  profile,
   form,
   dirty,
   saving,
@@ -21,7 +24,7 @@ export default function AccountFormPanel({
   error,
 }: Props) {
   return (
-    <FadeInView delay={0.12} className="account-grid__main">
+    <FadeInView delay={0.1} className="account-grid__main">
       <motion.form
         className="account-form section-card"
         onSubmit={(e) => {
@@ -32,11 +35,41 @@ export default function AccountFormPanel({
         noValidate
       >
         <div className="account-form__head">
-          <h3 className="account-form__title">学习背景</h3>
-          <p className="account-form__desc">用于首页引导、画像生成与路径规划</p>
+          <h2 className="account-form__title">编辑资料</h2>
+          <p className="account-form__desc">修改后将同步至学习画像与推荐（接口：PUT /api/user/update）</p>
         </div>
 
         <div className="account-fields">
+          <div className="account-field">
+            <label htmlFor="account-username">
+              用户名
+              <span className="account-field__hint">
+                <Lock size={12} strokeWidth={1.75} />
+                不可修改
+              </span>
+            </label>
+            <input
+              id="account-username"
+              type="text"
+              className="input-field input-field--readonly"
+              value={profile.username}
+              readOnly
+              aria-readonly="true"
+            />
+          </div>
+
+          <div className="account-field">
+            <label htmlFor="account-email">登录邮箱</label>
+            <input
+              id="account-email"
+              type="email"
+              className="input-field input-field--readonly"
+              value={profile.email}
+              readOnly
+              aria-readonly="true"
+            />
+          </div>
+
           <div className="account-field">
             <label htmlFor="account-name">显示昵称</label>
             <input
@@ -47,8 +80,17 @@ export default function AccountFormPanel({
               onChange={(e) => onChange({ displayName: e.target.value })}
               autoComplete="nickname"
               maxLength={32}
+              placeholder="在平台内展示的名称"
             />
           </div>
+        </div>
+
+        <div className="account-form__section">
+          <h3 className="account-form__subtitle">学习背景（可选）</h3>
+          <p className="account-form__desc">完善后有助于生成更贴合的路径与资源</p>
+        </div>
+
+        <div className="account-fields">
           <div className="account-field">
             <label htmlFor="account-major">专业 / 课程方向</label>
             <input
@@ -80,7 +122,7 @@ export default function AccountFormPanel({
               className="input-field account-field__textarea"
               value={form.level}
               onChange={(e) => onChange({ level: e.target.value })}
-              placeholder="例：学过一半，薄弱点：二叉树、图算法，偏好视频学习"
+              placeholder="例：学过一半，薄弱点：二叉树、图算法"
               rows={3}
               maxLength={200}
             />
