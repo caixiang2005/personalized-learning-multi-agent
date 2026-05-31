@@ -21,6 +21,7 @@ import ExercisePage from "./pages/ExercisePage";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Account from "./pages/Account";
+import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -33,6 +34,14 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route
+          path="/account/security"
+          element={
+            <ProtectedRoute>
+              <AccountSecurity />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/account"
           element={

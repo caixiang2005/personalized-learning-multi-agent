@@ -7,6 +7,7 @@ import {
   BrainCircuit,
 } from "lucide-react";
 import AuthSpiralText from "./AuthSpiralText";
+import AuthFeatureMagnetList from "./AuthFeatureMagnetList";
 
 const features = [
   { icon: MessageSquare, text: "对话式学习引导" },
@@ -26,16 +27,7 @@ export default function AuthBrandPanel() {
       </div>
       <h1 className="login-brand__title">智慧学习中心</h1>
       <p className="login-brand__sub">高等教育个性化学习平台</p>
-      <ul className="login-brand__list">
-        {features.map((f) => (
-          <li key={f.text} className="login-brand__item">
-            <span className="landing-icon-glass landing-icon-glass--sm">
-              <f.icon size={16} strokeWidth={1.75} />
-            </span>
-            {f.text}
-          </li>
-        ))}
-      </ul>
+      <AuthFeatureMagnetList features={features} />
       <p className="mt-8 text-xs text-gray-400 flex items-center gap-1.5">
         <ScanFace size={14} strokeWidth={1.75} />
         对话式 · 多模态 · 自适应学习

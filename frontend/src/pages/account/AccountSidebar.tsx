@@ -28,7 +28,7 @@ export default function AccountSidebar({ profile }: Props) {
                 <dd>{profile.updatedAt || "—"}</dd>
               </div>
             </dl>
-            <Link to="/reset-password" className="account-link-row">
+            <Link to="/account/security" className="account-link-row">
               修改密码
               <ArrowRight size={15} strokeWidth={1.75} />
             </Link>
