@@ -21,10 +21,12 @@ export default function PageHeader({ title, subtitle, badge, action }: Props) {
             {badge}
           </span>
         )}
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
+        <h1 className="text-2xl md:text-3xl font-bold text-[#312E81] dark:text-indigo-100 tracking-tight">
           {title}
         </h1>
-        {subtitle && <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm md:text-base">{subtitle}</p>}
+        {subtitle && (
+          <p className="mt-2 text-[#6366A0] dark:text-indigo-300/80 text-sm md:text-base">{subtitle}</p>
+        )}
       </div>
       {action}
     </div>

@@ -21,7 +21,7 @@ type SeaBook = {
   baseH: number;
 };
 
-const TINTS: Record<
+const TINTS_LIGHT: Record<
   BookTint,
   { cover: string; spine: string; edge: string; page: string }
 > = {
@@ -42,6 +42,34 @@ const TINTS: Record<
     spine: "rgba(67, 56, 202, 0.58)",
     edge: "rgba(255, 255, 255, 0.5)",
     page: "rgba(255, 255, 255, 0.38)",
+  },
+};
+
+/** 暗色：更亮、偏靛紫/青绿荧光，避免发灰发脏 */
+const TINTS_DARK: Record<
+  BookTint,
+  { cover: string; spine: string; edge: string; page: string; glow: string }
+> = {
+  blue: {
+    cover: "rgba(129, 140, 248, 0.62)",
+    spine: "rgba(99, 102, 241, 0.92)",
+    edge: "rgba(224, 231, 255, 0.52)",
+    page: "rgba(199, 210, 254, 0.32)",
+    glow: "rgba(129, 140, 248, 0.45)",
+  },
+  green: {
+    cover: "rgba(52, 211, 153, 0.55)",
+    spine: "rgba(34, 197, 94, 0.88)",
+    edge: "rgba(209, 250, 229, 0.48)",
+    page: "rgba(167, 243, 208, 0.26)",
+    glow: "rgba(52, 211, 153, 0.4)",
+  },
+  violet: {
+    cover: "rgba(167, 139, 250, 0.58)",
+    spine: "rgba(139, 92, 246, 0.85)",
+    edge: "rgba(233, 213, 255, 0.45)",
+    page: "rgba(221, 214, 254, 0.28)",
+    glow: "rgba(167, 139, 250, 0.38)",
   },
 };
 
@@ -77,9 +105,10 @@ function drawSeaBook(
   h: number,
   rot: number,
   tint: BookTint,
-  alpha: number
+  alpha: number,
+  isDark: boolean
 ) {
-  const c = TINTS[tint];
+  const c = isDark ? TINTS_DARK[tint] : TINTS_LIGHT[tint];
   const spineW = Math.max(3, w * 0.14);
   const r = Math.min(3, w * 0.08);
 
@@ -88,8 +117,14 @@ function drawSeaBook(
   ctx.rotate(rot);
   ctx.globalAlpha = alpha;
 
+  // 日间：书页在封面后侧微露；暗色若用同样大偏移会在深底上像「叠了第二本书」
   ctx.fillStyle = c.page;
-  ctx.fillRect(w * 0.08, -h / 2 + r * 0.5, w * 0.88, h - r);
+  if (isDark) {
+    const pageW = Math.max(2, w * 0.06);
+    ctx.fillRect(w / 2 - pageW - 0.5, -h / 2 + r * 0.45, pageW, h - r * 0.85);
+  } else {
+    ctx.fillRect(w * 0.08, -h / 2 + r * 0.5, w * 0.88, h - r);
+  }
 
   ctx.fillStyle = c.cover;
   if (typeof ctx.roundRect === "function") {
@@ -103,11 +138,11 @@ function drawSeaBook(
   ctx.fillStyle = c.spine;
   ctx.fillRect(-w / 2, -h / 2 + r * 0.35, spineW, h - r * 0.7);
 
-  ctx.fillStyle = `rgba(255, 255, 255, ${0.18 * alpha})`;
+  ctx.fillStyle = `rgba(255, 255, 255, ${(isDark ? 0.22 : 0.18) * alpha})`;
   ctx.fillRect(-w / 2 + spineW + 2, -h / 2 + h * 0.18, w * 0.55, h * 0.08);
 
   ctx.strokeStyle = c.edge;
-  ctx.lineWidth = 0.85;
+  ctx.lineWidth = isDark ? 1 : 0.85;
   if (typeof ctx.roundRect === "function") {
     ctx.beginPath();
     ctx.roundRect(-w / 2 + 0.5, -h / 2 + 0.5, w - 1, h - 1, Math.max(0, r - 0.5));
@@ -119,7 +154,24 @@ function drawSeaBook(
   ctx.restore();
 }
 
-function drawSeaAmbience(ctx: CanvasRenderingContext2D, w: number, h: number) {
+function drawSeaAmbience(ctx: CanvasRenderingContext2D, w: number, h: number, isDark: boolean) {
+  if (isDark) {
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "rgba(79, 70, 229, 0.1)");
+    g.addColorStop(0.45, "rgba(34, 197, 94, 0.05)");
+    g.addColorStop(1, "rgba(30, 27, 75, 0.08)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    const mist = ctx.createRadialGradient(w * 0.5, h * 0.35, 0, w * 0.5, h * 0.35, Math.min(w, h) * 0.55);
+    mist.addColorStop(0, "rgba(129, 140, 248, 0.08)");
+    mist.addColorStop(0.5, "rgba(30, 27, 75, 0.04)");
+    mist.addColorStop(1, "transparent");
+    ctx.fillStyle = mist;
+    ctx.fillRect(0, 0, w, h);
+    return;
+  }
+
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, "rgba(22, 93, 255, 0.07)");
   g.addColorStop(0.45, "rgba(54, 211, 153, 0.04)");
@@ -210,9 +262,10 @@ export default function BookSeaBackground() {
       const w = window.innerWidth;
       const h = window.innerHeight;
       const t = time * 0.001;
+      const isDark = document.documentElement.classList.contains("dark");
 
       ctx.clearRect(0, 0, w, h);
-      drawSeaAmbience(ctx, w, h);
+      drawSeaAmbience(ctx, w, h, isDark);
 
       if (!reducedMotionLocal) {
         mouseRef.current.x += (targetMouseRef.current.x - mouseRef.current.x) * MOUSE_LERP;
@@ -241,7 +294,7 @@ export default function BookSeaBackground() {
         const tilt = reducedMotionLocal ? 0 : mouseRef.current.x * 0.035 * depthMul;
         const alpha = 0.22 + book.depth * 0.34;
 
-        drawSeaBook(ctx, cx, cy, bw, bh, book.rot + tilt, book.tint, alpha);
+        drawSeaBook(ctx, cx, cy, bw, bh, book.rot + tilt, book.tint, alpha, isDark);
       }
 
       rafRef.current = requestAnimationFrame(drawFrame);

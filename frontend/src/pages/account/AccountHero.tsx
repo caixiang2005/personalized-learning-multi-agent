@@ -1,7 +1,7 @@
 import { Calendar, Mail } from "lucide-react";
 import FadeInView from "../../components/motion/FadeInView";
 import UserAvatar from "../../components/account/UserAvatar";
-import type { UserProfileDto } from "../../types/account";
+import type { AccountProfileView } from "../../types/account";
 
 function formatDate(raw: string | null) {
   if (!raw) return "—";
@@ -11,7 +11,7 @@ function formatDate(raw: string | null) {
 }
 
 type Props = {
-  profile: UserProfileDto;
+  profile: AccountProfileView;
 };
 
 export default function AccountHero({ profile }: Props) {
@@ -21,12 +21,12 @@ export default function AccountHero({ profile }: Props) {
         <div className="account-hero__main">
           <UserAvatar
             userId={profile.userId}
-            displayName={profile.displayName}
+            displayName={profile.nickname ?? profile.username}
             username={profile.username}
             size="lg"
           />
           <div className="account-hero__info">
-            <h1 className="account-hero__name">{profile.displayName || profile.username}</h1>
+            <h1 className="account-hero__name">{profile.nickname || profile.username}</h1>
             <p className="account-hero__username">@{profile.username}</p>
             <p className="account-hero__meta">
               <Mail size={14} strokeWidth={1.75} />

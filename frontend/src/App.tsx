@@ -4,6 +4,7 @@
  * @backend 无
  */
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import AppMeshBackground from "./components/background/AppMeshBackground";
 import BookSeaBackground from "./components/background/BookSeaBackground";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
@@ -28,6 +29,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthBootstrap>
+        <AppMeshBackground />
         <BookSeaBackground />
         <Routes>
         <Route path="/" element={<Landing />} />

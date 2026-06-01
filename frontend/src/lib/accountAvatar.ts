@@ -1,9 +1,9 @@
-/** 根据 userId 生成稳定头像底色 */
+/** 根据 userId 生成稳定头像底色（V2 indigo/green） */
 const AVATAR_GRADIENTS = [
-  "linear-gradient(135deg, #165dff, #36d399)",
-  "linear-gradient(135deg, #6366f1, #165dff)",
-  "linear-gradient(135deg, #0ea5e9, #36d399)",
-  "linear-gradient(135deg, #8b5cf6, #165dff)",
+  "linear-gradient(135deg, #4f46e5, #22c55e)",
+  "linear-gradient(135deg, #6366f1, #4f46e5)",
+  "linear-gradient(135deg, #818cf8, #22c55e)",
+  "linear-gradient(135deg, #7c3aed, #6366f1)",
 ];
 
 export function avatarInitial(displayName: string, username: string) {

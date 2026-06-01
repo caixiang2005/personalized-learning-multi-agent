@@ -1,21 +1,22 @@
 /**
- * 设计 token（与 DESIGN.md、index.css @theme 对齐）
- * 供 TS 内联样式或图表等无法使用 Tailwind 的场景。
+ * V2 设计 token（UI/UX Pro Max · Claymorphism）
+ * 全局 Source of Truth：design-system/智慧学习中心/MASTER.md
  */
 export const colors = {
-  primary: "#165DFF",
-  accent: "#36D399",
-  surface: "#F9FAFB",
-  textPrimary: "#1D2129",
-  textSecondary: "#4E5969",
-  textMuted: "#86909C",
-  border: "#E5E7EB",
+  primary: "#4F46E5",
+  secondary: "#818CF8",
+  accent: "#22C55E",
+  surface: "#EEF2FF",
+  text: "#312E81",
+  textSecondary: "#4338CA",
+  textMuted: "#6366A0",
+  border: "#C7D2FE",
 } as const;
 
 export const radius = {
-  sm: "0.5rem",
-  md: "0.625rem",
-  lg: "0.75rem",
+  sm: "0.625rem",
+  md: "1rem",
+  lg: "1.25rem",
 } as const;
 
-export const brandGradient = `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`;
+export const brandGradient = `linear-gradient(135deg, ${colors.primary}, ${colors.secondary}, ${colors.accent})`;

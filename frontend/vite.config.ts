@@ -13,8 +13,12 @@ export default defineConfig({
         target: "http://127.0.0.1:8003",
         changeOrigin: true,
       },
+      // user-service 静态头像
+      "/static": {
+        target: "http://127.0.0.1:8001",
+        changeOrigin: true,
+      },
       // user-service 等其他接口
-      // user-service
       "/api": {
         target: "http://127.0.0.1:8001",
         changeOrigin: true,

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import FadeInView from "../../components/motion/FadeInView";
-import type { UserProfileDto, UserStatsDto } from "../../types/account";
+import type { AccountProfileView, UserStatsDto } from "../../types/account";
 
 type Props = {
-  profile: UserProfileDto;
+  profile: AccountProfileView;
   stats?: UserStatsDto | null;
 };
 
@@ -81,8 +81,12 @@ export default function AccountOverviewPanel({ profile, stats }: Props) {
                 <p className="account-overview__stat-label">历史会话</p>
               </div>
               <div className="account-overview__stat">
-                <p className="account-overview__stat-value">{profile.updatedAt || "—"}</p>
-                <p className="account-overview__stat-label">资料更新</p>
+                <p className="account-overview__stat-value">
+                  {profile.lastLoginTime
+                    ? new Date(profile.lastLoginTime).toLocaleDateString("zh-CN")
+                    : "—"}
+                </p>
+                <p className="account-overview__stat-label">最近登录</p>
               </div>
               <div className="account-overview__stat">
                 <p className="account-overview__stat-value">—</p>
