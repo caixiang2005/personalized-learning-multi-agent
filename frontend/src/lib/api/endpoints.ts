@@ -47,11 +47,13 @@ export const API = {
     refreshToken: `${API_BASE}/user/refreshToken`,
     getUserInfo: `${API_BASE}/user/getUserInfo`,
     resetPwd: `${API_BASE}/user/resetPwd`,
-    /** GET 个人信息（资料 + 学习背景） */
-    profile: `${API_BASE}/user/profile`,
-    /** PUT 更新个人信息 */
-    update: `${API_BASE}/user/update`,
-    /** GET 统计概览 */
+    /** GET 个人资料（user_info 表） */
+    getProfile: `${API_BASE}/user/getProfile`,
+    /** POST 修改个人资料（部分更新） */
+    updateProfile: `${API_BASE}/user/updateProfile`,
+    /** POST 上传头像 multipart file */
+    uploadAvatar: `${API_BASE}/user/uploadAvatar`,
+    /** GET 统计概览（可选，未实现时前端 mock） */
     stats: `${API_BASE}/user/stats`,
   },
 

@@ -21,8 +21,8 @@ import { useLandingScroll } from "../hooks/useLandingScroll";
 import { simulateStream } from "../lib/stream";
 
 const flowingItems = [
-  { link: "/path", text: "学习路径", image: "linear-gradient(135deg, #165dff, #4f8cff)" },
-  { link: "/profile", text: "学习画像", image: "linear-gradient(135deg, #36d399, #6ee7b7)" },
+  { link: "/path", text: "学习路径", image: "linear-gradient(135deg, #4f46e5, #818cf8)" },
+  { link: "/profile", text: "学习画像", image: "linear-gradient(135deg, #22c55e, #6ee7b7)" },
   { link: "/chat", text: "学习对话", image: "linear-gradient(135deg, #6366f1, #a78bfa)" },
   { link: "/analytics", text: "效果评估", image: "linear-gradient(135deg, #f59e0b, #fbbf24)" },
 ];
@@ -79,7 +79,7 @@ export default function Home() {
       </LandingReveal>
 
       <LandingReveal delay={60}>
-        <LandingTiltCard className="home-onboard landing-section-frame" intensity={4}>
+        <LandingTiltCard className="home-onboard landing-glass-card" intensity={4}>
           <div className="home-onboard__inner">
             <div className="flex gap-4 mb-5">
               <AgentAvatar thinking={thinking} done={showReply && !thinking} />
@@ -158,11 +158,11 @@ export default function Home() {
         <FlowingMenu
           variant="stack"
           items={flowingItems}
-          textColor="var(--landing-text, #1d2129)"
+          textColor="var(--landing-text)"
           bgColor="transparent"
-          marqueeBgColor="#165dff"
+          marqueeBgColor="var(--color-primary, #4f46e5)"
           marqueeTextColor="#ffffff"
-          borderColor="rgba(22, 93, 255, 0.12)"
+          borderColor="var(--glass-card-border, rgba(199, 210, 254, 0.55))"
           className="home-flowing__menu"
         />
       </LandingReveal>

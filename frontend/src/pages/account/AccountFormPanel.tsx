@@ -2,10 +2,10 @@ import { Loader2, Lock, Save } from "lucide-react";
 import { motion } from "framer-motion";
 import FadeInView from "../../components/motion/FadeInView";
 import type { AccountFormState } from "../../hooks/useAccountPage";
-import type { UserProfileDto } from "../../types/account";
+import type { AccountProfileView } from "../../types/account";
 
 type Props = {
-  profile: UserProfileDto;
+  profile: AccountProfileView;
   form: AccountFormState;
   dirty: boolean;
   saving: boolean;
@@ -36,7 +36,7 @@ export default function AccountFormPanel({
       >
         <div className="account-form__head">
           <h2 className="account-form__title">编辑资料</h2>
-          <p className="account-form__desc">修改后将同步至学习画像与推荐（接口：PUT /api/user/update）</p>
+          <p className="account-form__desc">修改后将同步至 user_info（接口：POST /api/user/updateProfile）</p>
         </div>
 
         <div className="account-fields">
@@ -71,23 +71,18 @@ export default function AccountFormPanel({
           </div>
 
           <div className="account-field">
-            <label htmlFor="account-name">显示昵称</label>
+            <label htmlFor="account-name">昵称</label>
             <input
               id="account-name"
               type="text"
               className="input-field"
-              value={form.displayName}
-              onChange={(e) => onChange({ displayName: e.target.value })}
+              value={form.nickname}
+              onChange={(e) => onChange({ nickname: e.target.value })}
               autoComplete="nickname"
               maxLength={32}
               placeholder="在平台内展示的名称"
             />
           </div>
-        </div>
-
-        <div className="account-form__section">
-          <h3 className="account-form__subtitle">学习背景（可选）</h3>
-          <p className="account-form__desc">完善后有助于生成更贴合的路径与资源</p>
         </div>
 
         <div className="account-fields">
@@ -99,32 +94,20 @@ export default function AccountFormPanel({
               className="input-field"
               value={form.major}
               onChange={(e) => onChange({ major: e.target.value })}
-              placeholder="例：计算机科学与技术 - 数据结构"
-              maxLength={80}
+              placeholder="例：计算机科学"
+              maxLength={32}
             />
           </div>
           <div className="account-field">
-            <label htmlFor="account-goal">学习目标</label>
-            <input
-              id="account-goal"
-              type="text"
-              className="input-field"
-              value={form.goal}
-              onChange={(e) => onChange({ goal: e.target.value })}
-              placeholder="例：期末考 85 分以上"
-              maxLength={60}
-            />
-          </div>
-          <div className="account-field">
-            <label htmlFor="account-level">当前水平与薄弱点</label>
+            <label htmlFor="account-signature">个性签名</label>
             <textarea
-              id="account-level"
+              id="account-signature"
               className="input-field account-field__textarea"
-              value={form.level}
-              onChange={(e) => onChange({ level: e.target.value })}
-              placeholder="例：学过一半，薄弱点：二叉树、图算法"
+              value={form.signature}
+              onChange={(e) => onChange({ signature: e.target.value })}
+              placeholder="写一句介绍自己的话…"
               rows={3}
-              maxLength={200}
+              maxLength={100}
             />
           </div>
         </div>

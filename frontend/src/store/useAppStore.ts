@@ -16,6 +16,7 @@ import { persist } from "zustand/middleware";
 import type { ChatMessage, ChatSession, LearningProfile, PathStage } from "../types";
 import type { UserInfo } from "../lib/api/endpoints";
 import { defaultProfile, defaultSessions, defaultPath } from "../lib/mockData";
+import { applyTheme, THEME_STORAGE_KEY } from "../lib/theme";
 
 interface AppState {
   isLoggedIn: boolean;
@@ -65,7 +66,7 @@ export const useAppStore = create<AppState>()(
       toggleDarkMode: () =>
         set((s) => {
           const next = !s.darkMode;
-          document.documentElement.classList.toggle("dark", next);
+          applyTheme(next);
           return { darkMode: next };
         }),
       setProfile: (p) => set((s) => ({ profile: { ...s.profile, ...p } })),
@@ -95,7 +96,7 @@ export const useAppStore = create<AppState>()(
         })),
     }),
     {
-      name: "learn-platform-store",
+      name: THEME_STORAGE_KEY,
       partialize: (s) => ({
         isLoggedIn: s.isLoggedIn,
         darkMode: s.darkMode,
@@ -103,6 +104,13 @@ export const useAppStore = create<AppState>()(
         profileInitialized: s.profileInitialized,
         pathStages: s.pathStages,
       }),
+      onRehydrateStorage: () => (state, error) => {
+        if (!error && state) applyTheme(state.darkMode);
+      },
     }
   )
 );
+
+useAppStore.persist.onFinishHydration(() => {
+  applyTheme(useAppStore.getState().darkMode);
+});

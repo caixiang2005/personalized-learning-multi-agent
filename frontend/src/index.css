@@ -3,19 +3,20 @@
  * 无后端依赖
  */
 @import "tailwindcss";
+@import "./styles/design-system.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #165dff;
-  --color-accent: #36d399;
-  --color-surface: #f9fafb;
-  --color-surface-dark: #111827;
+  --color-primary: #4f46e5;
+  --color-accent: #22c55e;
+  --color-surface: #eef2ff;
+  --color-surface-dark: #1e1b4b;
 
-  --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", sans-serif;
 
-  --shadow-card: 0 4px 24px rgba(22, 93, 255, 0.08);
-  --shadow-card-hover: 0 8px 32px rgba(22, 93, 255, 0.15);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 6px 0 rgba(79, 70, 229, 0.06), 0 12px 24px rgba(79, 70, 229, 0.08);
+  --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 8px 0 rgba(79, 70, 229, 0.08), 0 16px 32px rgba(79, 70, 229, 0.12);
 
   --animate-fade-in: fade-in 0.4s ease-out;
   --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
@@ -53,71 +54,86 @@
 }
 
 :root {
-  --color-primary: #165dff;
-  --color-accent: #36d399;
-  --color-surface: #f9fafb;
-  --color-border: #e5e7eb;
-  /* 毛玻璃层级（与 DESIGN.md / landing-glass 对齐） */
-  --glass: rgba(255, 255, 255, 0.52);
-  --glass-border: rgba(255, 255, 255, 0.72);
-  --glass-card-bg: rgba(255, 255, 255, 0.36);
-  --glass-card-border: rgba(255, 255, 255, 0.92);
-  --glass-blur: 20px;
-  --glass-blur-card: 24px;
-  /* 认证 / 按钮强调色毛玻璃（与品牌图标一致） */
-  --glass-accent-bg: linear-gradient(
-    135deg,
-    rgba(22, 93, 255, 0.78) 0%,
-    rgba(54, 211, 153, 0.72) 100%
-  );
-  --glass-accent-border: rgba(255, 255, 255, 0.48);
+  --color-primary: #4f46e5;
+  --color-accent: #22c55e;
+  --color-surface: #eef2ff;
+  --color-border: #c7d2fe;
+  --ds-text: #312e81;
+  --ds-text-secondary: #4338ca;
+  --ds-text-muted: #6366a0;
+  --glass: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(199, 210, 254, 0.9);
+  --glass-card-bg: #ffffff;
+  --glass-card-border: rgba(199, 210, 254, 0.85);
+  --glass-blur: 12px;
+  --glass-blur-card: 0px;
+  --glass-accent-bg: linear-gradient(135deg, #4f46e5 0%, #6366f1 55%, #22c55e 100%);
+  --glass-accent-border: rgba(255, 255, 255, 0.35);
   --glass-accent-shadow:
-    0 4px 14px rgba(22, 93, 255, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -1px 0 rgba(22, 93, 255, 0.12);
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 6px 0 rgba(79, 70, 229, 0.06),
+    0 12px 24px rgba(79, 70, 229, 0.08);
   --glass-accent-shadow-hover:
-    0 6px 20px rgba(22, 93, 255, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    inset 0 -1px 0 rgba(22, 93, 255, 0.14);
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 8px 0 rgba(79, 70, 229, 0.08),
+    0 16px 32px rgba(79, 70, 229, 0.12);
   --glass-auth-blur: blur(10px) saturate(1.35);
-  /* 输入框 / 次级按钮 / Tab 底 */
-  --glass-control-bg: rgba(255, 255, 255, 0.36);
-  --glass-control-border: rgba(255, 255, 255, 0.55);
-  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  --glass-control-bg-hover: rgba(255, 255, 255, 0.44);
-  --glass-control-bg-focus: rgba(255, 255, 255, 0.48);
-  --glass-control-focus-ring: 0 0 0 3px rgba(22, 93, 255, 0.12);
-  --glass-control-elevated: rgba(255, 255, 255, 0.52);
+  --glass-control-bg: #ffffff;
+  --glass-control-border: rgba(199, 210, 254, 0.9);
+  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-control-bg-hover: #f5f7ff;
+  --glass-control-bg-focus: #ffffff;
+  --glass-control-focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.18);
+  --glass-control-elevated: #ffffff;
+  --landing-text: var(--ds-text);
+  --landing-text-secondary: var(--ds-text-secondary);
+  --landing-text-muted: var(--ds-text-muted);
+  --landing-text-faint: #a5b4fc;
+  --ds-radius-sm: 0.625rem;
+  --ds-radius-md: 1rem;
+  --ds-radius-lg: 1.25rem;
+  --ds-clay-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 6px 0 rgba(79, 70, 229, 0.06),
+    0 12px 24px rgba(79, 70, 229, 0.08);
+  --ds-clay-shadow-hover:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 8px 0 rgba(79, 70, 229, 0.08),
+    0 16px 32px rgba(79, 70, 229, 0.12);
+  --ds-clay-press: 0 2px 0 rgba(79, 70, 229, 0.12);
 }
 
 .dark {
-  --color-surface: #111827;
-  --color-border: #374151;
-  --glass: rgba(17, 24, 39, 0.58);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-card-bg: rgba(17, 24, 39, 0.42);
-  --glass-card-border: rgba(255, 255, 255, 0.18);
-  --glass-accent-bg: linear-gradient(
-    135deg,
-    rgba(22, 93, 255, 0.62) 0%,
-    rgba(54, 211, 153, 0.52) 100%
-  );
-  --glass-accent-border: rgba(255, 255, 255, 0.22);
+  --color-surface: #1e1b4b;
+  --color-border: #4338ca;
+  --ds-text: #e0e7ff;
+  --ds-text-secondary: #c7d2fe;
+  --ds-text-muted: #a5b4fc;
+  --glass: rgba(30, 27, 75, 0.92);
+  --glass-border: rgba(99, 102, 241, 0.35);
+  --glass-card-bg: rgba(30, 27, 75, 0.95);
+  --glass-card-border: rgba(129, 140, 248, 0.35);
+  --glass-accent-bg: linear-gradient(135deg, #4338ca 0%, #6366f1 55%, #16a34a 100%);
+  --glass-accent-border: rgba(255, 255, 255, 0.2);
   --glass-accent-shadow:
-    0 4px 16px rgba(22, 93, 255, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 6px 0 rgba(0, 0, 0, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.25);
   --glass-accent-shadow-hover:
-    0 6px 22px rgba(22, 93, 255, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.14);
-  --glass-control-bg: rgba(255, 255, 255, 0.08);
-  --glass-control-border: rgba(255, 255, 255, 0.18);
-  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --glass-control-bg-hover: rgba(255, 255, 255, 0.12);
-  --glass-control-bg-focus: rgba(255, 255, 255, 0.14);
-  --glass-control-focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.18);
-  --glass-control-elevated: rgba(255, 255, 255, 0.14);
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 8px 0 rgba(0, 0, 0, 0.22),
+    0 16px 32px rgba(0, 0, 0, 0.3);
+  --glass-control-bg: rgba(49, 46, 129, 0.6);
+  --glass-control-border: rgba(129, 140, 248, 0.4);
+  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --glass-control-bg-hover: rgba(67, 56, 202, 0.5);
+  --glass-control-bg-focus: rgba(49, 46, 129, 0.7);
+  --glass-control-focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.25);
+  --glass-control-elevated: rgba(49, 46, 129, 0.75);
+  --landing-text: #e0e7ff;
+  --landing-text-secondary: #c7d2fe;
+  --landing-text-muted: #a5b4fc;
+  --landing-text-faint: #818cf8;
 }
 
 html,
@@ -595,6 +611,13 @@ a {
     box-shadow: var(--glass-accent-shadow-hover);
   }
 
+  /* 抽屉打开时隐藏 FAB，避免叠在落地页卡片上 */
+  .guest-fab--active {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .guest-fab__ring {
     position: absolute;
     top: 0;
@@ -756,8 +779,13 @@ a {
   .dark .book-sea__veil,
   .dark .landing-knowledge-flow__veil {
     background:
-      radial-gradient(ellipse 48% 40% at 50% 38%, rgba(15, 20, 25, 0.22) 0%, rgba(15, 20, 25, 0.4) 55%, rgba(15, 20, 25, 0.52) 100%),
-      linear-gradient(180deg, rgba(15, 20, 25, 0.24) 0%, rgba(15, 20, 25, 0.45) 100%);
+      radial-gradient(
+        ellipse 52% 44% at 50% 38%,
+        rgba(79, 70, 229, 0.07) 0%,
+        rgba(15, 23, 42, 0.1) 55%,
+        rgba(15, 23, 42, 0.18) 100%
+      ),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.06) 0%, rgba(15, 23, 42, 0.14) 100%);
   }
 
   /* 各页半透明衬底：透出书海且保证正文可读 */
@@ -788,6 +816,7 @@ a {
     background-size: 220% 100%;
     -webkit-background-clip: text;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     color: transparent;
     animation: shiny-flow 7s ease-in-out infinite alternate;
   }
@@ -795,15 +824,18 @@ a {
   .dark .shiny-text {
     background: linear-gradient(
       105deg,
-      #f3f4f6 0%,
-      #e5e7eb 12%,
-      #93c5fd 32%,
-      #60a5fa 48%,
-      #38bdf8 62%,
-      #22d3ee 78%,
-      #7dd3fc 100%
+      #e0e7ff 0%,
+      #c7d2fe 16%,
+      #818cf8 38%,
+      #38bdf8 58%,
+      #22d3ee 72%,
+      #34d399 100%
     );
     background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
 
   @keyframes shiny-flow {
@@ -1239,11 +1271,12 @@ a {
       background-size: 100% 100%;
       -webkit-background-clip: text;
       background-clip: text;
+      -webkit-text-fill-color: transparent;
       color: transparent;
     }
 
     .dark .shiny-text {
-      background: linear-gradient(105deg, #f3f4f6 0%, #60a5fa 48%, #38bdf8 100%);
+      background: linear-gradient(105deg, #e0e7ff 0%, #818cf8 48%, #34d399 100%);
       background-size: 100% 100%;
     }
 
@@ -1384,7 +1417,7 @@ a {
 
   @media (min-width: 1280px) {
     .landing-layout {
-      grid-template-columns: 12rem minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) 12rem;
       gap: 1.5rem;
       padding: 0 1.5rem 2.5rem;
     }
@@ -2150,13 +2183,15 @@ a {
   }
 
   .dark .home-shell {
-    --landing-text: #f0f0f0;
-    --landing-text-secondary: #b8b8b8;
-    --landing-text-muted: #8f8f8f;
-    --landing-text-faint: #6b6b6b;
+    --landing-text: #e0e7ff;
+    --landing-text-secondary: #c7d2fe;
+    --landing-text-muted: #a5b4fc;
+    --landing-text-faint: #818cf8;
   }
 
   .home-hero {
+    position: relative;
+    z-index: 1;
     text-align: center;
     margin-bottom: 1.5rem;
   }
@@ -2183,6 +2218,11 @@ a {
   .home-onboard {
     padding: 0;
     margin-bottom: 1.25rem;
+  }
+
+  /* 与 Clay 单卡一致，避免日间 landing-section-frame 双层描边 */
+  .home-onboard.landing-glass-card {
+    overflow: hidden;
   }
 
   .home-onboard__inner {
@@ -2229,7 +2269,11 @@ a {
     height: 0.375rem;
     margin-top: 0.45rem;
     border-radius: 9999px;
-    background: #165dff;
+    background: var(--color-primary, #4f46e5);
+  }
+
+  .dark .home-onboard__tips li::before {
+    background: #818cf8;
   }
 
   .home-onboard__muted {
@@ -2250,6 +2294,15 @@ a {
 
   .home-flowing__menu {
     border-radius: 0 0 10px 10px;
+  }
+
+  .home-flowing__menu .menu__item-link,
+  .home-flowing__menu .menu__item-btn {
+    color: var(--landing-text, var(--ds-text, #1d2129));
+  }
+
+  .dark .home-flowing__menu .menu__item {
+    border-color: rgba(129, 140, 248, 0.22);
   }
 
   @media (min-width: 768px) {
@@ -3979,6 +4032,111 @@ a {
     margin-top: 0.25rem;
     font-size: 0.8125rem;
     color: #86909c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+
+  @media (min-width: 480px) {
+    .personal-info__email {
+      justify-content: flex-start;
+    }
+  }
+
+  .personal-info__username {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    color: #a8abb2;
+  }
+
+  .dark .personal-info__username {
+    color: #9ca3af;
+  }
+
+  .personal-info__avatar-hint {
+    margin-top: 0.875rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #86909c;
+  }
+
+  .personal-info__avatar-ring--clay {
+    background: var(--glass-card-bg, rgba(255, 255, 255, 0.9));
+    border: 3px solid var(--glass-card-border, rgba(199, 210, 254, 0.55));
+    box-shadow: var(--ds-clay-shadow, 0 4px 18px rgba(79, 70, 229, 0.12));
+  }
+
+  .personal-info__readonly {
+    margin-bottom: 1rem;
+  }
+
+  .personal-info__section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1d2129;
+    margin-bottom: 1rem;
+  }
+
+  .dark .personal-info__section-title {
+    color: #f3f4f6;
+  }
+
+  .personal-info__meta-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.875rem 1.25rem;
+    margin: 0;
+  }
+
+  @media (min-width: 520px) {
+    .personal-info__meta-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .personal-info__meta-item {
+    min-width: 0;
+  }
+
+  .personal-info__meta-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #86909c;
+    margin-bottom: 0.25rem;
+  }
+
+  .dark .personal-info__meta-label {
+    color: #9ca3af;
+  }
+
+  .personal-info__meta-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1d2129;
+    word-break: break-word;
+  }
+
+  .dark .personal-info__meta-value {
+    color: #e5e7eb;
+  }
+
+  .personal-info__field-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 480px) {
+    .personal-info__field-row {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   .personal-info__form {

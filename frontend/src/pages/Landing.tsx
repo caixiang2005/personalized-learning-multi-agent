@@ -119,21 +119,6 @@ export default function Landing() {
       </header>
 
       <div className="landing-layout">
-        <aside className="landing-side landing-side--left" aria-hidden>
-          <p className="landing-side__title">多智能体</p>
-          {sideAgents.map((a, i) => (
-            <div key={a.label} className="landing-side-chip landing-glass landing-enter" style={{ animationDelay: `${i * 80}ms` }}>
-              <span className="landing-icon-glass landing-icon-glass--sm">
-                <a.icon size={17} strokeWidth={1.75} />
-              </span>
-              <div>
-                <p className="landing-side-chip__label">{a.label}</p>
-                <p className="landing-side-chip__desc">{a.desc}</p>
-              </div>
-            </div>
-          ))}
-        </aside>
-
         <main className="landing-page">
           <LandingReveal as="section" className="landing-hero landing-hero--motion">
             <div className="landing-hero__main landing-hero__parallax" style={heroMainStyle}>
@@ -244,9 +229,28 @@ export default function Landing() {
 
           <LandingFaq />
         </main>
+
+        <aside className="landing-side landing-side--right" aria-label="多智能体能力">
+          <p className="landing-side__title">多智能体</p>
+          {sideAgents.map((a, i) => (
+            <div
+              key={a.label}
+              className="landing-side-chip landing-glass landing-enter"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <span className="landing-icon-glass landing-icon-glass--sm">
+                <a.icon size={17} strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="landing-side-chip__label">{a.label}</p>
+                <p className="landing-side-chip__desc">{a.desc}</p>
+              </div>
+            </div>
+          ))}
+        </aside>
       </div>
 
-      <GuestAssistantFab onClick={() => setChatOpen(true)} active={chatOpen} />
+      <GuestAssistantFab onClick={() => setChatOpen((open) => !open)} active={chatOpen} />
       <GuestChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
