@@ -15,12 +15,16 @@ user-service/
 │   ├── .env                 # 数据库等敏感项（勿提交）
 │   └── settings.yaml        # 邮件/Redis/验证码（勿提交）
 ├── user-api/                # 用户接口
-│   ├── routes.py            # 发送验证码等
+│   ├── user_login_api.py    # 注册、登录等路由
 │   └── schemas.py
 ├── service/                 # 交给前端的联调文档（勿写在 frontend 仓库）
-│   ├── frontend-handoff.md  # 一页纸
-│   └── frontend-api.md      # 完整接口
+│   ├── user-info-handoff.md # 个人信息一页纸
+│   ├── user-info-api.md     # 个人信息完整接口
+│   ├── frontend-handoff.md  # 登录注册一页纸（若有）
+│   └── frontend-api.md      # 登录注册完整接口（若有）
 ├── utils/
+│   ├── user_login.py        # 注册、登录业务逻辑
+│   ├── database.py
 │   ├── redis.py
 │   └── email.py
 ├── test/                    # pytest 测试
@@ -49,4 +53,4 @@ pytest test/ -v
 ```
 
 - Swagger：http://127.0.0.1:8001/docs  
-- 前端联调：[service/frontend-handoff.md](./service/frontend-handoff.md) · [service/frontend-api.md](./service/frontend-api.md)
+- 前端联调：[service/user-info-handoff.md](./service/user-info-handoff.md) · [service/user-info-api.md](./service/user-info-api.md)

@@ -3,13 +3,16 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 # user-api 目录名含连字符，加入 sys.path 后按模块导入
-_USER_API_DIR = Path(__file__).resolve().parent / "user-api"
+_SERVICE_ROOT = Path(__file__).resolve().parent
+_USER_API_DIR = _SERVICE_ROOT / "user-api"
 if str(_USER_API_DIR) not in sys.path:
     sys.path.insert(0, str(_USER_API_DIR))
 
-from routes import router as user_router  # noqa: E402
+from user_login_api import router as user_router  # noqa: E402
+from user_info_api import router as profile_router  # noqa: E402
 from utils.database import init_db  # noqa: E402
 
 app = FastAPI(title="用户微服务")
@@ -21,6 +24,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(user_router)
+app.include_router(profile_router)
+app.mount("/static", StaticFiles(directory=str(_SERVICE_ROOT / "static")), name="static")
 
 
 @app.on_event("startup")
