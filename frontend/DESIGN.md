@@ -120,6 +120,9 @@
 | 遨游书海（全站） | `src/components/background/BookSeaBackground.tsx`（`App.tsx` 挂载） |
 | 页面衬底 | `.app-page-scrim` in `src/index.css` |
 | 登录页 | `src/pages/Login.tsx` |
+| 个人信息页 | `src/pages/PersonalInfo.tsx`（`/account`） |
+| 统一 UI 组件 | `src/components/ui/DsCard.tsx`、`DsButton.tsx`、`DsField.tsx` |
+| TS 设计 token | `src/lib/designTokens.ts` |
 
 改 UI 时**只改必要文件**，保持与本文一致；若需新 token，同步更新 `@theme` 与 `:root`。
 

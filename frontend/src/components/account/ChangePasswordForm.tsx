@@ -178,7 +178,7 @@ export default function ChangePasswordForm({
             </div>
             <button
               type="button"
-              className={`shrink-0 rounded-md border border-[#0d9488]/30 px-3 font-medium text-[#0d9488] hover:bg-[#0d9488]/5 disabled:opacity-50 cursor-pointer ${compact ? "text-xs py-2" : "text-sm py-2.5"}`}
+              className="btn-secondary shrink-0 px-3 font-medium disabled:opacity-50 cursor-pointer"
               onClick={getCode}
               disabled={countdown > 0 || loading}
             >
@@ -191,7 +191,7 @@ export default function ChangePasswordForm({
           <button
             type="submit"
             disabled={loading}
-            className={`min-w-[5.5rem] rounded-md bg-[#0d9488] px-6 font-medium text-white hover:bg-[#0f766e] disabled:opacity-60 cursor-pointer ${compact ? "py-2 text-xs" : "py-2.5 text-sm"}`}
+            className={`btn-primary min-w-[5.5rem] px-6 cursor-pointer ${compact ? "!py-2 !text-xs" : ""}`}
           >
             {loading ? "提交中…" : "确定"}
           </button>
@@ -199,7 +199,7 @@ export default function ChangePasswordForm({
             <button
               type="button"
               onClick={onCancel}
-              className={`min-w-[5.5rem] rounded-md border border-[#0d9488] bg-white px-6 font-medium text-[#0d9488] hover:bg-[#0d9488]/5 cursor-pointer dark:bg-transparent ${compact ? "py-2 text-xs" : "py-2.5 text-sm"}`}
+              className={`btn-secondary min-w-[5.5rem] px-6 cursor-pointer ${compact ? "!py-2 !text-xs" : ""}`}
             >
               取消
             </button>
@@ -283,5 +283,5 @@ function IconInput({
 }
 
 function inputCls(compact?: boolean) {
-  return `w-full rounded-md border border-gray-200 bg-white py-2 pr-3 text-gray-900 outline-none transition focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/15 dark:border-gray-600 dark:bg-gray-900/50 dark:text-gray-100 ${compact ? "text-xs py-2" : "text-sm py-2.5"}`;
+  return `input-field ${compact ? "!py-2 !text-xs" : ""}`;
 }

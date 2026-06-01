@@ -136,9 +136,9 @@ function drawSeaAmbience(ctx: CanvasRenderingContext2D, w: number, h: number) {
 }
 
 /** 鼠标视差参数 */
-const HOVER_FACTOR = 1.35;
+const HOVER_FACTOR = 1.30;
 const MOUSE_LERP = 0.1;
-const PARALLAX_BASE = 0.06;
+const PARALLAX_BASE = 0.05;
 
 export default function BookSeaBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);

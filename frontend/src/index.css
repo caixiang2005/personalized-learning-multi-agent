@@ -3828,6 +3828,248 @@ a {
     padding: 1.25rem 1.25rem 2.5rem;
   }
 
+  /* 个人信息页（DESIGN.md 统一规范） */
+  .personal-info {
+    max-width: 36rem;
+    margin: 0 auto;
+    animation: fade-in 0.4s ease-out;
+  }
+
+  .personal-info--loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 16rem;
+  }
+
+  .personal-info__header {
+    margin-bottom: 1.25rem;
+  }
+
+  .personal-info__eyebrow {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: 0.375rem;
+  }
+
+  .personal-info__title {
+    font-size: clamp(1.375rem, 3vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #1d2129;
+    line-height: 1.3;
+  }
+
+  .dark .personal-info__title {
+    color: #f3f4f6;
+  }
+
+  .personal-info__sub {
+    margin-top: 0.375rem;
+    font-size: 0.875rem;
+    color: #86909c;
+    line-height: 1.6;
+  }
+
+  .dark .personal-info__sub {
+    color: #9ca3af;
+  }
+
+  .personal-info__avatar-card {
+    margin-bottom: 1rem;
+  }
+
+  .personal-info__avatar-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  @media (min-width: 480px) {
+    .personal-info__avatar-wrap {
+      flex-direction: row;
+      align-items: center;
+    }
+  }
+
+  .personal-info__avatar-btn {
+    position: relative;
+    flex-shrink: 0;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    padding: 0;
+    border-radius: 9999px;
+  }
+
+  .personal-info__avatar-btn:focus-visible {
+    outline: 2px solid rgba(22, 93, 255, 0.45);
+    outline-offset: 4px;
+  }
+
+  .personal-info__avatar-ring {
+    width: 5.5rem;
+    height: 5.5rem;
+    padding: 3px;
+    border-radius: 9999px;
+    box-shadow: 0 4px 18px rgba(22, 93, 255, 0.2);
+  }
+
+  .personal-info__avatar-img,
+  .personal-info__avatar-fallback {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    border-radius: 9999px;
+    object-fit: cover;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #165dff, #36d399);
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .personal-info__avatar-camera {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    width: 2rem;
+    height: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: var(--glass-accent-bg);
+    border: 1px solid var(--glass-accent-border);
+    color: #fff;
+    box-shadow: var(--glass-accent-shadow);
+    transition: transform 0.2s ease;
+  }
+
+  .personal-info__avatar-btn:hover .personal-info__avatar-camera {
+    transform: scale(1.05);
+  }
+
+  .personal-info__avatar-meta {
+    text-align: center;
+  }
+
+  @media (min-width: 480px) {
+    .personal-info__avatar-meta {
+      text-align: left;
+    }
+  }
+
+  .personal-info__name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1d2129;
+  }
+
+  .dark .personal-info__name {
+    color: #f3f4f6;
+  }
+
+  .personal-info__email {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    color: #86909c;
+  }
+
+  .personal-info__form {
+    margin-bottom: 1rem;
+  }
+
+  .personal-info__status {
+    border-radius: 0.625rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .personal-info__status--ok {
+    background: rgba(54, 211, 153, 0.12);
+    color: #0f766e;
+  }
+
+  .dark .personal-info__status--ok {
+    background: rgba(54, 211, 153, 0.15);
+    color: #6ee7b7;
+  }
+
+  .personal-info__status--error {
+    background: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+  }
+
+  .personal-info__actions {
+    margin-bottom: 1rem;
+  }
+
+  .personal-info__action-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.875rem 1.25rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid rgba(22, 93, 255, 0.06);
+  }
+
+  .personal-info__action-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .personal-info__action-row:hover {
+    background: rgba(22, 93, 255, 0.04);
+  }
+
+  .dark .personal-info__action-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .personal-info__action-row:focus-visible {
+    outline: 2px solid rgba(22, 93, 255, 0.35);
+    outline-offset: -2px;
+  }
+
+  .personal-info__action-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+  }
+
+  .personal-info__panel {
+    border-top: 1px solid rgba(22, 93, 255, 0.06);
+    padding: 1rem 1.25rem 1.25rem;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .personal-info__panel {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .personal-info__logout {
+    margin-bottom: 1rem;
+  }
+
+  .personal-info__foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: #86909c;
+  }
+
   .account-shell--standalone {
     max-width: 48rem;
     margin: 0 auto;
