@@ -42,5 +42,8 @@ Thumbs.db
 logs/
 *.log
 
+# user-service 用户上传静态资源（头像等）
+backend/user-service/static/
+
 # github 目录（workflow 若已跟踪则保持；新文件默认忽略）
 .github/

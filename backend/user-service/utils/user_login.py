@@ -5,7 +5,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from utils.database import User, get_db
+from utils.database import User, UserProfile, get_db
 from utils.email import CodePurpose, send_verification_code, verify_verification_code
 
 BEIJING_TZ = timezone(timedelta(hours=8))
@@ -70,6 +70,19 @@ def _make_auth_payload(user: User) -> dict[str, Any]:
     return payload
 
 
+def _record_last_login(user_id: int) -> None:
+    """登录成功时更新 user_info.last_login_time（北京时间）。"""
+    with get_db() as db:
+        profile = db.get(UserProfile, user_id)
+        if profile is not None:
+            profile.last_login_time = _beijing_now()
+
+
+def _login_success(user: User) -> dict:
+    _record_last_login(user.user_id)
+    return {"code": 200, "msg": "登录成功", "data": _make_auth_payload(user)}
+
+
 def _get_user_by_email(email: str):
     with get_db() as db:
         stmt = select(User).where(User.email == email)
@@ -124,7 +137,7 @@ def login_user(email: str, password: str) -> dict:
     user = _get_user_by_email(email)
     if user is None or not _verify_password(password, user.user_password):
         return {"code": 400, "msg": "邮箱或密码错误", "data": {}}
-    return {"code": 200, "msg": "登录成功", "data": _make_auth_payload(user)}
+    return _login_success(user)
 
 
 def login_user_by_username(username: str, password: str) -> dict:
@@ -132,7 +145,7 @@ def login_user_by_username(username: str, password: str) -> dict:
     user = _get_user_by_username(username)
     if user is None or not _verify_password(password, user.user_password):
         return {"code": 400, "msg": "用户名或密码错误", "data": {}}
-    return {"code": 200, "msg": "登录成功", "data": _make_auth_payload(user)}
+    return _login_success(user)
 
 
 def login_user_by_code(email: str, code: str) -> dict:
@@ -142,7 +155,7 @@ def login_user_by_code(email: str, code: str) -> dict:
         return {"code": 400, "msg": "用户不存在", "data": {}}
     if not verify_verification_code(email, code, CodePurpose.LOGIN):
         return {"code": 400, "msg": "验证码错误", "data": {}}
-    return {"code": 200, "msg": "登录成功", "data": _make_auth_payload(user)}
+    return _login_success(user)
 
 
 def refresh_token(old_token: str) -> dict:
@@ -157,8 +170,14 @@ def refresh_token(old_token: str) -> dict:
     return {"code": 200, "msg": "令牌刷新成功", "data": {"newToken": payload["token"]}}
 
 
+def resolve_user_id_from_token(token: str) -> int | None:
+    if not token:
+        return None
+    return _ACCESS_TOKENS.get(token)
+
+
 def get_user_info(token: str) -> dict:
-    user_id = _ACCESS_TOKENS.get(token)
+    user_id = resolve_user_id_from_token(token)
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
     with get_db() as db:
