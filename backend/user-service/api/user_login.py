@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header
 
-from schemas import EmailBody, LoginBody, LoginCodeBody, LoginUsernameBody, RegisterBody, ResetPwdBody
+from api.schemas import EmailBody, LoginBody, LoginCodeBody, LoginUsernameBody, RegisterBody, ResetPwdBody
 from utils.user_login import (
     get_user_info,
     login_user,

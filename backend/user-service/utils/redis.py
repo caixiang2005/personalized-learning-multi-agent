@@ -4,6 +4,7 @@ import redis
 from redis.exceptions import ConnectionError, TimeoutError
 
 from config import get_settings
+from error.logger import log_error
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,11 @@ def init_redis() -> bool:
         msg = "警告：Redis 连接失败，验证码功能将不可用"
         logger.warning("%s (%s)", msg, exc)
         print(msg)
+        log_error(
+            error_type="RedisConnectionError",
+            message=msg,
+            detail=str(exc),
+        )
         return False
 
 
