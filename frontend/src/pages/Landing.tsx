@@ -123,10 +123,10 @@ export default function Landing() {
           <LandingReveal as="section" className="landing-hero landing-hero--motion">
             <div className="landing-hero__main landing-hero__parallax" style={heroMainStyle}>
               <h1 className="landing-hero__title landing-hero__title--plain">
-                AI 驱动的个性化学习平台
+                高等教育 · 个性化学习多智能体系统
               </h1>
               <p className="landing-hero__desc">
-                面向高校与自学场景，通过多智能体协同完成画像构建、资源生成、路径规划与学习评估。登录后进入完整学习系统。
+                专业学术科技风 AI 教育平台：对话式 6 维画像、五类资源协同生成、智能路径推送与学习效果评估。
               </p>
               <div className="landing-hero__actions">
                 <Link to="/login" className="landing-btn-glass landing-hero__cta-primary landing-hero__cta-shimmer">

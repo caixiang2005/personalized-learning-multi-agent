@@ -83,7 +83,7 @@ export async function updateAccountProfile(body: UpdateProfileBody): Promise<Acc
 
   const res = await apiClient.post("/user/updateProfile", body);
   const updated = unwrap<UserProfileData>(res);
-  syncLearningProfileStore(updated);
+  syncAccountToStore(updated);
   return mergeWithUserInfo(updated);
 }
 
@@ -91,13 +91,16 @@ export async function updateAccountProfile(body: UpdateProfileBody): Promise<Acc
 export async function uploadAccountAvatar(file: File): Promise<string> {
   if (USE_MOCK) {
     await mockDelay(800);
-    return `/static/avatar/${useAppStore.getState().user?.userId ?? 1}.jpg`;
+    const url = `/static/avatar/${useAppStore.getState().user?.userId ?? 1}.jpg`;
+    useAppStore.getState().setUserAvatar(url, true);
+    return url;
   }
 
   const formData = new FormData();
   formData.append("file", file);
   const res = await apiClient.post("/user/uploadAvatar", formData);
   const data = unwrap<{ avatarUrl: string }>(res);
+  useAppStore.getState().setUserAvatar(data.avatarUrl, true);
   return data.avatarUrl;
 }
 
@@ -115,11 +118,23 @@ export async function getUserStats(): Promise<UserStatsDto> {
   }
 }
 
-function syncLearningProfileStore(data: UserProfileData) {
-  useAppStore.getState().setProfile({
+function syncAccountToStore(data: UserProfileData, bumpAvatar = false) {
+  const store = useAppStore.getState();
+  store.setProfile({
     name: data.nickname ?? data.username,
     major: data.major ?? "",
   });
+  store.setUserAvatar(data.avatarUrl, bumpAvatar);
+}
+
+/** 登录后拉取个人信息（含头像）写入全局 store */
+export async function hydrateAccountProfile(): Promise<void> {
+  try {
+    const profile = await getAccountProfile();
+    syncAccountToStore(profile);
+  } catch {
+    /* 未登录或接口不可用时保留首字母占位 */
+  }
 }
 
 /** @deprecated 保留兼容 import */

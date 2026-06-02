@@ -23,6 +23,14 @@ export const defaultProfile: LearningProfile = {
   level: "学过一半，薄弱点：二叉树、图算法",
   updatedAt: "2026-05-22",
   healthScore: 78,
+  learnerDimensions: [
+    { key: "knowledge", label: "知识掌握", value: 72, level: "medium", source: "对话 + 练习综合", trendDelta: 5 },
+    { key: "exercises", label: "习题完成", value: 68, level: "medium", source: "本周完成 34/50 题", trendDelta: 8 },
+    { key: "focus", label: "专注度", value: 75, level: "medium", source: "平均单次 52 分钟", trendDelta: 3 },
+    { key: "weakpoints", label: "薄弱点改善", value: 58, level: "medium", source: "二叉树、图仍待加强", trendDelta: 12 },
+    { key: "efficiency", label: "学习效率", value: 70, level: "medium", source: "单位时间掌握 1.2 知识点", trendDelta: 4 },
+    { key: "trend", label: "提升趋势", value: 82, level: "strong", source: "近 7 日综合上升", trendDelta: 6 },
+  ],
   dimensions: [
     { key: "stack", label: "栈与队列", value: 72, level: "medium", source: "基于最近 3 次练习" },
     { key: "tree", label: "二叉树", value: 38, level: "weak", source: "错题集中 12 道" },

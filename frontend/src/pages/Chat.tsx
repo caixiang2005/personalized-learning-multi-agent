@@ -31,6 +31,8 @@ import {
 import MessageBubble from "../components/chat/MessageBubble";
 import { MessageSkeleton } from "../components/ui/Skeleton";
 import PageHeader from "../components/ui/PageHeader";
+import StreamProgress from "../components/scholar/StreamProgress";
+import ResourceTypeStrip from "../components/scholar/ResourceTypeStrip";
 import { useAppStore } from "../store/useAppStore";
 import { simulateStream, checkSensitiveInput } from "../lib/stream";
 import type { ChatMessage } from "../types";
@@ -213,7 +215,10 @@ export default function Chat() {
 
       <div className="flex-1 flex flex-col min-w-0 relative">
         <div className="hidden lg:block px-4 pt-4 max-w-3xl mx-auto w-full">
-          <PageHeader title="学习对话" subtitle="画像构建 · 资源生成 · 答疑辅导" badge="核心功能" />
+          <PageHeader title="学习对话" subtitle="流式输出 · 卡片式多模态资源 · 智能辅导" badge="核心功能" />
+          <div className="mb-4">
+            <ResourceTypeStrip />
+          </div>
         </div>
 
         <button
@@ -239,13 +244,10 @@ export default function Chat() {
           ))}
           {loading && <MessageSkeleton />}
           {genProgress !== null && (
-            <div className="section-card mb-4 !p-4">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">多模态资源生成中</p>
-              <div className="progress-bar h-2">
-                <div className="progress-bar-fill" style={{ width: `${genProgress}%` }} />
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                思维导图 {Math.min(genProgress, 30)}% → 练习题 {Math.min(genProgress, 70)}% → 完成 {genProgress}%
+            <div className="scholar-card mb-4 p-4">
+              <StreamProgress progress={genProgress} label="多智能体协同生成资源" />
+              <p className="text-xs text-[var(--scholar-text-muted)] mt-2">
+                导图 → 题库 → 文档 · 当前 {genProgress}%
               </p>
             </div>
           )}

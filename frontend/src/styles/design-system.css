@@ -10,11 +10,11 @@
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: linear-gradient(160deg, #eef2ff 0%, #faf5ff 45%, #ecfdf5 100%);
+  background: linear-gradient(165deg, #f4f7f9 0%, #e8f2f5 42%, #f5f0e8 100%);
 }
 
 .dark .app-mesh {
-  background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #134e4a 100%);
+  background: linear-gradient(160deg, #0c1219 0%, #0f1a22 48%, #121a18 100%);
 }
 
 .app-mesh__orb {
@@ -22,7 +22,7 @@
   border-radius: 9999px;
   filter: blur(60px);
   opacity: 0.55;
-  animation: mesh-float 18s ease-in-out infinite;
+  animation: scholar-mesh-drift 18s ease-in-out infinite;
 }
 
 .app-mesh__orb--static {
@@ -34,7 +34,7 @@
   height: min(42vw, 28rem);
   top: -8%;
   right: -6%;
-  background: #818cf8;
+  background: #1496a9;
 }
 
 .app-mesh__orb--2 {
@@ -42,7 +42,7 @@
   height: min(36vw, 22rem);
   bottom: 8%;
   left: -8%;
-  background: #22c55e;
+  background: #14b8a6;
   animation-delay: -6s;
 }
 
@@ -51,7 +51,7 @@
   height: min(28vw, 16rem);
   top: 42%;
   left: 38%;
-  background: #c4b5fd;
+  background: #e8a849;
   animation-delay: -12s;
   opacity: 0.35;
 }
@@ -84,7 +84,7 @@
 
 /* —— 页面衬底（半透明，透出书海） —— */
 .app-page-scrim {
-  background: rgba(238, 242, 255, 0.46) !important;
+  background: rgba(237, 242, 246, 0.46) !important;
   backdrop-filter: none;
 }
 
@@ -170,7 +170,7 @@
 }
 
 .landing-brand__icon {
-  background: linear-gradient(135deg, #4f46e5, #22c55e) !important;
+  background: linear-gradient(135deg, #0b6e83, #14b8a6) !important;
   border-radius: var(--ds-radius-sm) !important;
   border: 3px solid rgba(255, 255, 255, 0.35) !important;
   box-shadow: var(--ds-clay-shadow) !important;
@@ -271,7 +271,7 @@
 
 .gradient-text,
 .gradient-hero {
-  background: linear-gradient(135deg, #4f46e5, #818cf8, #22c55e) !important;
+  background: linear-gradient(135deg, #0b6e83, #1496a9, #c27803) !important;
 }
 
 .gradient-text {
@@ -281,7 +281,7 @@
 }
 
 .progress-bar-fill {
-  background: linear-gradient(90deg, #4f46e5, #22c55e) !important;
+  background: linear-gradient(90deg, #0b6e83, #14b8a6) !important;
 }
 
 .icon-box {

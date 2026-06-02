@@ -5,7 +5,6 @@
  */
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import AppMeshBackground from "./components/background/AppMeshBackground";
-import BookSeaBackground from "./components/background/BookSeaBackground";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import Landing from "./pages/Landing";
@@ -16,6 +15,8 @@ import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
+import Scan from "./pages/Scan";
+import DailyPlan from "./pages/DailyPlan";
 import LearningPath from "./pages/LearningPath";
 import ResourceDetail from "./pages/ResourceDetail";
 import ExercisePage from "./pages/ExercisePage";
@@ -30,7 +31,6 @@ export default function App() {
     <BrowserRouter>
       <AuthBootstrap>
         <AppMeshBackground />
-        <BookSeaBackground />
         <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -62,6 +62,8 @@ export default function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/scan" element={<Scan />} />
+          <Route path="/plan" element={<DailyPlan />} />
           <Route path="/path" element={<LearningPath />} />
           <Route path="/resource/:id" element={<ResourceDetail />} />
           <Route path="/exercise/:id" element={<ExercisePage />} />

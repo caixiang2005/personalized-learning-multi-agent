@@ -8,6 +8,7 @@ import AuthBrandPanel from "../components/auth/AuthBrandPanel";
 import { AuthFormCard, AuthModeTabs } from "../components/auth/AuthFormCard";
 import { useAppStore } from "../store/useAppStore";
 import type { UserInfo } from "../lib/api/endpoints";
+import { hydrateAccountProfile } from "../lib/api/account";
 import {
   loginByCode,
   loginByEmail,
@@ -53,6 +54,7 @@ export default function Login() {
   const afterLogin = (data: UserInfo) => {
     setUser(data);
     setLoggedIn(true);
+    void hydrateAccountProfile();
     setTipText("登录成功，正在进入学习中心…");
     setTimeout(() => navigate("/home"), 600);
   };
@@ -109,7 +111,7 @@ export default function Login() {
   const tipSuccess = tipText.includes("成功");
 
   return (
-    <div className="login-shell app-page-scrim">
+    <div className="login-shell scholar-auth-shell app-page-scrim">
       <div className="login-shell__glow" aria-hidden />
 
       <div className="login-layout">

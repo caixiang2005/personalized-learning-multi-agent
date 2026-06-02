@@ -10,6 +10,7 @@ import {
 } from "../lib/api/account";
 import { validateAvatarFile } from "../lib/avatar";
 import { ApiClientError } from "../lib/api/client";
+import { useAppStore } from "../store/useAppStore";
 import type { AccountProfileView, UpdateProfileBody, UserStatsDto } from "../types/account";
 
 export type AccountFormState = {
@@ -101,6 +102,7 @@ export function useAccountPage() {
       setProfile(profileData);
       setStats(statsData);
       setForm(toForm(profileData));
+      useAppStore.getState().setUserAvatar(profileData.avatarUrl);
     } catch (e) {
       setError(e instanceof ApiClientError ? e.message : "加载失败");
     } finally {

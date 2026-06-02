@@ -32,8 +32,12 @@ interface AppState {
   pathStages: PathStage[];
   profileInitialized: boolean;
   sidebarCollapsed: boolean;
+  /** GET getProfile · avatarUrl */
+  userAvatarUrl: string | null;
+  avatarCacheVersion: number;
   setLoggedIn: (v: boolean) => void;
   setUser: (user: UserInfo | null) => void;
+  setUserAvatar: (url: string | null, bumpVersion?: boolean) => void;
   toggleDarkMode: () => void;
   setProfile: (p: Partial<LearningProfile>) => void;
   setProfileInitialized: (v: boolean) => void;
@@ -57,11 +61,19 @@ export const useAppStore = create<AppState>()(
       pathStages: defaultPath,
       profileInitialized: false,
       sidebarCollapsed: false,
+      userAvatarUrl: null,
+      avatarCacheVersion: 0,
       setLoggedIn: (v) => set({ isLoggedIn: v }),
       setUser: (user) =>
         set((s) => ({
           user,
           profile: user ? { ...s.profile, name: user.username } : s.profile,
+          userAvatarUrl: user ? s.userAvatarUrl : null,
+        })),
+      setUserAvatar: (url, bumpVersion = false) =>
+        set((s) => ({
+          userAvatarUrl: url,
+          avatarCacheVersion: bumpVersion ? s.avatarCacheVersion + 1 : s.avatarCacheVersion,
         })),
       toggleDarkMode: () =>
         set((s) => {
@@ -103,6 +115,7 @@ export const useAppStore = create<AppState>()(
         profile: s.profile,
         profileInitialized: s.profileInitialized,
         pathStages: s.pathStages,
+        userAvatarUrl: s.userAvatarUrl,
       }),
       onRehydrateStorage: () => (state, error) => {
         if (!error && state) applyTheme(state.darkMode);
