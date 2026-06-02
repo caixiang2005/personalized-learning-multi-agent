@@ -9,6 +9,7 @@ import {
   uploadAccountAvatar,
 } from "../lib/api/account";
 import { validateAvatarFile } from "../lib/avatar";
+import { genderFromFormValue, genderToFormValue } from "../lib/gender";
 import { ApiClientError } from "../lib/api/client";
 import { useAppStore } from "../store/useAppStore";
 import type { AccountProfileView, UpdateProfileBody, UserStatsDto } from "../types/account";
@@ -26,7 +27,7 @@ function toForm(profile: AccountProfileView): AccountFormState {
   return {
     nickname: profile.nickname ?? "",
     phoneNumber: profile.phoneNumber ?? "",
-    gender: profile.gender == null ? "" : String(profile.gender),
+    gender: genderToFormValue(profile.gender),
     birthday: profile.birthday ?? "",
     signature: profile.signature ?? "",
     major: profile.major ?? "",
@@ -49,7 +50,7 @@ function buildUpdateBody(
     body.phoneNumber = phone || null;
   }
 
-  const genderNum = form.gender === "" ? null : Number(form.gender);
+  const genderNum = genderFromFormValue(form.gender);
   if (genderNum !== profile.gender) {
     body.gender = genderNum;
   }
