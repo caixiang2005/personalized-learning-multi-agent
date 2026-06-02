@@ -29,13 +29,7 @@ import { logoutLocal } from "../lib/api/user";
 import { useAccountPage } from "../hooks/useAccountPage";
 import { useAppStore } from "../store/useAppStore";
 
-const GENDER_OPTIONS = [
-  { value: "", label: "未设置" },
-  { value: "0", label: "未知" },
-  { value: "1", label: "男" },
-  { value: "2", label: "女" },
-] as const;
-
+import { GENDER_OPTIONS, genderLabel } from "../lib/gender";
 function maskPhone(phone: string) {
   if (phone.length < 7) return phone;
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
@@ -185,6 +179,7 @@ export default function PersonalInfo() {
           <dl className="personal-info__meta-grid">
             <MetaItem label="用户名" value={profile.username} />
             <MetaItem label="登录邮箱" value={profile.email} />
+            <MetaItem label="性别" value={genderLabel(profile.gender)} />
             <MetaItem
               label="注册时间"
               value={formatRegisterDate(profile.registerTime)}
@@ -228,6 +223,7 @@ export default function PersonalInfo() {
                 label="性别"
                 value={form.gender}
                 onChange={(e) => patchForm({ gender: e.target.value })}
+                hint={`当前：${genderLabel(profile.gender)} · 数据库存 0/1/2 编码`}
               >
                 {GENDER_OPTIONS.map((o) => (
                   <option key={o.value || "unset"} value={o.value}>
