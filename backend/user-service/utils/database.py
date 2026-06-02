@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Integer, SmallInteger, String, create_engine, event
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, Integer, SmallInteger, String, Text, create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 from config import get_settings
@@ -55,6 +55,20 @@ class UserProfile(Base):
     nickname: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
 
+class ErrorLog(Base):
+    __tablename__ = "error_logs"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    service: Mapped[str] = mapped_column(String(50), nullable=False, default="user-service")
+    session_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    error_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    is_sent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    sent_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
+
+
 @contextmanager
 def get_db():
     db = SessionLocal()
@@ -69,5 +83,5 @@ def get_db():
 
 
 def init_db() -> None:
-    """使用 project_db 已有 users、user_info 表，不在启动时建表。"""
+    """使用 project_db 已有 users、user_info、error_logs 表，不在启动时建表。"""
     pass

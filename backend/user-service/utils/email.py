@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 from email_validator import EmailNotValidError, validate_email
 
 from config import get_settings
+from error.logger import capture_exception, log_error
 from utils.redis import get_redis_client, is_redis_available
 
 _REDIS_UNAVAILABLE = {
@@ -91,6 +92,11 @@ def _send_smtp(to_email: str, code: str, purpose: CodePurpose) -> bool:
     from_name = settings.mail_from_name()
 
     if not all([host, port, username, password, from_address]):
+        log_error(
+            error_type="SMTPConfigError",
+            message="SMTP 配置不完整，无法发送验证码邮件",
+            session_id=to_email,
+        )
         return False
 
     subject, body_tpl = _PURPOSE_META[purpose]
@@ -116,36 +122,56 @@ def _send_smtp(to_email: str, code: str, purpose: CodePurpose) -> bool:
         return True
     except smtplib.SMTPException as exc:
         logger.error("SMTP 发送失败: %s", exc)
+        capture_exception(exc, session_id=to_email, context=f"SMTP send {purpose.value}")
         return False
     except OSError as exc:
         logger.error("SMTP 网络错误: %s", exc)
+        capture_exception(exc, session_id=to_email, context=f"SMTP network {purpose.value}")
         return False
 
 
 def _save_code(email: str, code: str, purpose: CodePurpose) -> bool:
     client = get_redis_client()
     if client is None:
+        log_error(
+            error_type="RedisError",
+            message="验证码写入失败：Redis 不可用",
+            session_id=email,
+        )
         return False
     expire_seconds = get_settings().verification["expire_seconds"]
     resend_seconds = get_settings().verification["resend_interval_seconds"]
-    pipe = client.pipeline()
-    pipe.set(_code_key(email, purpose), code, ex=expire_seconds)
-    pipe.set(_sent_key(email, purpose), "1", ex=resend_seconds)
-    pipe.execute()
-    return True
+    try:
+        pipe = client.pipeline()
+        pipe.set(_code_key(email, purpose), code, ex=expire_seconds)
+        pipe.set(_sent_key(email, purpose), "1", ex=resend_seconds)
+        pipe.execute()
+        return True
+    except (ConnectionError, TimeoutError, OSError) as exc:
+        capture_exception(exc, session_id=email, context="Redis save_code")
+        return False
 
 
 def verify_verification_code(email: str, code: str, purpose: CodePurpose) -> bool:
     client = get_redis_client()
     if client is None:
+        log_error(
+            error_type="RedisError",
+            message="验证码校验失败：Redis 不可用",
+            session_id=email,
+        )
         return False
     key = _code_key(email, purpose)
-    stored = client.get(key)
-    if not stored or stored != str(code).strip():
+    try:
+        stored = client.get(key)
+        if not stored or stored != str(code).strip():
+            return False
+        client.delete(key)
+        client.delete(_sent_key(email, purpose))
+        return True
+    except (ConnectionError, TimeoutError, OSError) as exc:
+        capture_exception(exc, session_id=email, context="Redis verify_code")
         return False
-    client.delete(key)
-    client.delete(_sent_key(email, purpose))
-    return True
 
 
 def send_verification_code(email: str, purpose: CodePurpose) -> dict:
@@ -158,6 +184,11 @@ def send_verification_code(email: str, purpose: CodePurpose) -> dict:
         return {"code": 400, "msg": "邮箱格式错误", "data": {}}
 
     if not is_redis_available():
+        log_error(
+            error_type="RedisUnavailable",
+            message="Redis 未连接，验证码功能暂不可用",
+            session_id=email,
+        )
         return _REDIS_UNAVAILABLE.copy()
 
     if not _can_resend(email, purpose):
