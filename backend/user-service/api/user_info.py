@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, Header, UploadFile
 
-from schemas import UpdateProfileBody
+from api.schemas import UpdateProfileBody
 from utils.user_info import get_user_profile, update_user_profile, upload_user_avatar
 
 router = APIRouter(tags=["个人信息"])

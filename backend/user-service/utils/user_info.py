@@ -3,6 +3,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from error.logger import capture_exception
 from utils.database import User, UserProfile, get_db
 from utils.user_login import _format_register_time, resolve_user_id_from_token
 
@@ -112,7 +113,8 @@ def upload_user_avatar(token: str, content_type: str, data: bytes) -> dict:
             target.write_bytes(data)
             profile.avatar_url = avatar_url
             db.flush()
-    except OSError:
+    except OSError as exc:
+        capture_exception(exc, session_id=str(user_id), context="upload_user_avatar")
         return {"code": 500, "msg": "头像保存失败", "data": {}}
 
     if old_url and old_url != avatar_url:

@@ -1,7 +1,7 @@
 # 个人信息接口 · 前端联调一页纸
 
 > **服务**：`backend/user-service` · **端口**：`8001`  
-> **实现文件**：`user-api/user_info_api.py` · **详细文档**：[user-info-api.md](./user-info-api.md)
+> **实现文件**：`api/user_info.py` · **详细文档**：[user-info-api.md](./user-info-api.md)
 
 ---
 
