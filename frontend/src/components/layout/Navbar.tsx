@@ -12,6 +12,8 @@ import { useLandingHeaderScrolled } from "../../hooks/useLandingHeaderScrolled";
 const navItems = [
   { to: "/home", label: "首页" },
   { to: "/chat", label: "学习对话" },
+  { to: "/scan", label: "拍照搜题" },
+  { to: "/plan", label: "日计划" },
   { to: "/profile", label: "学习画像" },
   { to: "/path", label: "学习路径" },
   { to: "/analytics", label: "效果评估" },
@@ -22,7 +24,7 @@ export default function Navbar() {
 
   return (
     <header
-      className={`app-navbar landing-header landing-glass landing-header--bar${headerScrolled ? " landing-header--scrolled" : ""}`}
+      className={`scholar-navbar app-navbar landing-header landing-glass landing-header--bar${headerScrolled ? " landing-header--scrolled" : ""}`}
     >
       <div className="landing-header__inner app-navbar__inner">
         <Link to="/home" className="landing-brand">

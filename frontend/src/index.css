@@ -3,20 +3,24 @@
  * 无后端依赖
  */
 @import "tailwindcss";
+@import "./styles/scholar-tokens.css";
 @import "./styles/design-system.css";
+@import "./styles/scholar-design-system.css";
+@import "./styles/scholar-motion.css";
+@import "./styles/scholar-auth.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #4f46e5;
-  --color-accent: #22c55e;
-  --color-surface: #eef2ff;
-  --color-surface-dark: #1e1b4b;
+  --color-primary: #0b6e83;
+  --color-accent: #c27803;
+  --color-surface: #edf2f6;
+  --color-surface-dark: #0c1219;
 
   --font-sans: "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", sans-serif;
 
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 6px 0 rgba(79, 70, 229, 0.06), 0 12px 24px rgba(79, 70, 229, 0.08);
-  --shadow-card-hover: 0 1px 0 rgba(255, 255, 255, 0.95) inset, 0 8px 0 rgba(79, 70, 229, 0.08), 0 16px 32px rgba(79, 70, 229, 0.12);
+  --shadow-card: 0 1px 3px rgb(12 18 34 / 6%), 0 1px 2px rgb(12 18 34 / 4%);
+  --shadow-card-hover: 0 8px 32px rgb(11 110 131 / 14%);
 
   --animate-fade-in: fade-in 0.4s ease-out;
   --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
@@ -54,86 +58,11 @@
 }
 
 :root {
-  --color-primary: #4f46e5;
-  --color-accent: #22c55e;
-  --color-surface: #eef2ff;
-  --color-border: #c7d2fe;
-  --ds-text: #312e81;
-  --ds-text-secondary: #4338ca;
-  --ds-text-muted: #6366a0;
-  --glass: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(199, 210, 254, 0.9);
-  --glass-card-bg: #ffffff;
-  --glass-card-border: rgba(199, 210, 254, 0.85);
-  --glass-blur: 12px;
-  --glass-blur-card: 0px;
-  --glass-accent-bg: linear-gradient(135deg, #4f46e5 0%, #6366f1 55%, #22c55e 100%);
-  --glass-accent-border: rgba(255, 255, 255, 0.35);
-  --glass-accent-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 6px 0 rgba(79, 70, 229, 0.06),
-    0 12px 24px rgba(79, 70, 229, 0.08);
-  --glass-accent-shadow-hover:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 8px 0 rgba(79, 70, 229, 0.08),
-    0 16px 32px rgba(79, 70, 229, 0.12);
-  --glass-auth-blur: blur(10px) saturate(1.35);
-  --glass-control-bg: #ffffff;
-  --glass-control-border: rgba(199, 210, 254, 0.9);
-  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --glass-control-bg-hover: #f5f7ff;
-  --glass-control-bg-focus: #ffffff;
-  --glass-control-focus-ring: 0 0 0 3px rgba(79, 70, 229, 0.18);
-  --glass-control-elevated: #ffffff;
-  --landing-text: var(--ds-text);
-  --landing-text-secondary: var(--ds-text-secondary);
-  --landing-text-muted: var(--ds-text-muted);
-  --landing-text-faint: #a5b4fc;
-  --ds-radius-sm: 0.625rem;
-  --ds-radius-md: 1rem;
-  --ds-radius-lg: 1.25rem;
-  --ds-clay-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 6px 0 rgba(79, 70, 229, 0.06),
-    0 12px 24px rgba(79, 70, 229, 0.08);
-  --ds-clay-shadow-hover:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
-    0 8px 0 rgba(79, 70, 229, 0.08),
-    0 16px 32px rgba(79, 70, 229, 0.12);
-  --ds-clay-press: 0 2px 0 rgba(79, 70, 229, 0.12);
+  /* canonical tokens → scholar-tokens.css */
 }
 
 .dark {
-  --color-surface: #1e1b4b;
-  --color-border: #4338ca;
-  --ds-text: #e0e7ff;
-  --ds-text-secondary: #c7d2fe;
-  --ds-text-muted: #a5b4fc;
-  --glass: rgba(30, 27, 75, 0.92);
-  --glass-border: rgba(99, 102, 241, 0.35);
-  --glass-card-bg: rgba(30, 27, 75, 0.95);
-  --glass-card-border: rgba(129, 140, 248, 0.35);
-  --glass-accent-bg: linear-gradient(135deg, #4338ca 0%, #6366f1 55%, #16a34a 100%);
-  --glass-accent-border: rgba(255, 255, 255, 0.2);
-  --glass-accent-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.06) inset,
-    0 6px 0 rgba(0, 0, 0, 0.2),
-    0 12px 24px rgba(0, 0, 0, 0.25);
-  --glass-accent-shadow-hover:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 8px 0 rgba(0, 0, 0, 0.22),
-    0 16px 32px rgba(0, 0, 0, 0.3);
-  --glass-control-bg: rgba(49, 46, 129, 0.6);
-  --glass-control-border: rgba(129, 140, 248, 0.4);
-  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  --glass-control-bg-hover: rgba(67, 56, 202, 0.5);
-  --glass-control-bg-focus: rgba(49, 46, 129, 0.7);
-  --glass-control-focus-ring: 0 0 0 3px rgba(129, 140, 248, 0.25);
-  --glass-control-elevated: rgba(49, 46, 129, 0.75);
-  --landing-text: #e0e7ff;
-  --landing-text-secondary: #c7d2fe;
-  --landing-text-muted: #a5b4fc;
-  --landing-text-faint: #818cf8;
+  /* canonical tokens → scholar-tokens.css */
 }
 
 html,
@@ -147,7 +76,7 @@ body,
 
 body {
   background-color: var(--color-surface);
-  color: #1d2129;
+  color: var(--ds-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -4247,7 +4176,20 @@ a {
     border-radius: 0.625rem;
     font-weight: 600;
     color: #fff;
-    box-shadow: 0 4px 14px rgba(22, 93, 255, 0.22);
+    box-shadow: 0 4px 14px rgb(11 110 131 / 22%);
+  }
+
+  .user-avatar--photo {
+    overflow: hidden;
+    padding: 0;
+    background: var(--scholar-border) !important;
+  }
+
+  .user-avatar__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .user-avatar--md {

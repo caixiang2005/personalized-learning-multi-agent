@@ -9,7 +9,8 @@
 
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Download, ShieldCheck } from "lucide-react";
-import PageHeader from "../components/ui/PageHeader";
+import ScholarPageShell from "../components/scholar/ScholarPageShell";
+import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
 import MarkdownContent from "../components/ui/MarkdownContent";
 import { useAppStore } from "../store/useAppStore";
 import { findResourceById, findTopicNameByResourceId } from "../lib/resources";
@@ -53,15 +54,15 @@ export default function ResourceDetail() {
     `## ${resource.title}\n\n${resource.description}\n\n### 知识要点\n\n1. 核心概念梳理\n2. 典型例题分析\n3. 易错点提醒\n\n> 参考资料：课程讲义第 3 章`;
 
   return (
-    <div className="page-container max-w-4xl">
+    <ScholarPageShell maxWidth="4xl">
       <button type="button" onClick={() => navigate(-1)} className="btn-secondary mb-4 text-sm">
         <ArrowLeft size={16} /> 返回
       </button>
 
-      <PageHeader
+      <ScholarPageHeader
+        badge="资源详情"
         title={resource.title}
         subtitle={`${topicName} · ${typeLabel[resource.type] ?? resource.type}`}
-        badge="资源详情"
         action={
           <button type="button" className="btn-secondary">
             <Download size={16} /> 导出
@@ -110,6 +111,6 @@ export default function ResourceDetail() {
           回到学习路径
         </Link>
       </div>
-    </div>
+    </ScholarPageShell>
   );
 }

@@ -1,0 +1,143 @@
+/**
+ * Scholar · 高级动效（尊重 prefers-reduced-motion）
+ */
+
+@keyframes scholar-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scholar-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes scholar-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes scholar-pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--scholar-primary) 28%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--scholar-primary) 0%, transparent);
+  }
+}
+
+@keyframes scholar-mesh-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(2.5%, -2%) scale(1.05);
+  }
+  66% {
+    transform: translate(-1.5%, 2.5%) scale(0.97);
+  }
+}
+
+@keyframes scholar-grid-pan {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(32px, 32px);
+  }
+}
+
+.scholar-page {
+  animation: scholar-page-in 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scholar-stagger > * {
+  animation: scholar-stagger-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.scholar-stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.scholar-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.scholar-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.scholar-stagger > *:nth-child(4) { animation-delay: 0.16s; }
+.scholar-stagger > *:nth-child(5) { animation-delay: 0.2s; }
+.scholar-stagger > *:nth-child(6) { animation-delay: 0.24s; }
+
+.scholar-card--interactive {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.3s ease;
+}
+
+.scholar-card--interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--scholar-shadow-elevated);
+  border-color: color-mix(in srgb, var(--scholar-primary) 30%, var(--scholar-border)) !important;
+}
+
+.scholar-gradient-text {
+  background: linear-gradient(
+    105deg,
+    var(--scholar-text) 0%,
+    var(--scholar-primary) 42%,
+    var(--scholar-accent) 88%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: scholar-shimmer 8s ease-in-out infinite;
+}
+
+.scholar-badge-live {
+  animation: scholar-pulse-ring 2.4s ease-in-out infinite;
+}
+
+.app-mesh__grid {
+  position: absolute;
+  inset: -32px;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--scholar-primary) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--scholar-primary) 8%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 72%);
+  animation: scholar-grid-pan 48s linear infinite;
+}
+
+.dark .app-mesh__grid {
+  opacity: 0.18;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scholar-page,
+  .scholar-stagger > *,
+  .scholar-gradient-text,
+  .scholar-badge-live,
+  .app-mesh__grid,
+  .app-mesh__orb:not(.app-mesh__orb--static) {
+    animation: none !important;
+  }
+
+  .scholar-card--interactive:hover {
+    transform: none;
+  }
+}

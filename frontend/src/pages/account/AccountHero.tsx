@@ -12,9 +12,10 @@ function formatDate(raw: string | null) {
 
 type Props = {
   profile: AccountProfileView;
+  avatarVersion?: number;
 };
 
-export default function AccountHero({ profile }: Props) {
+export default function AccountHero({ profile, avatarVersion = 0 }: Props) {
   return (
     <FadeInView parallax={4}>
       <section className="account-hero landing-glass-card">
@@ -23,6 +24,8 @@ export default function AccountHero({ profile }: Props) {
             userId={profile.userId}
             displayName={profile.nickname ?? profile.username}
             username={profile.username}
+            avatarUrl={profile.avatarUrl}
+            avatarVersion={avatarVersion}
             size="lg"
           />
           <div className="account-hero__info">
@@ -38,7 +41,7 @@ export default function AccountHero({ profile }: Props) {
             </p>
           </div>
         </div>
-        <p className="account-hero__avatar-tip">默认头像为昵称首字母，头像上传功能预留中</p>
+        <p className="account-hero__avatar-tip">点击个人信息页可上传或更换头像</p>
       </section>
     </FadeInView>
   );

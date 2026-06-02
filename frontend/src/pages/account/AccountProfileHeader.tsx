@@ -13,9 +13,10 @@ type Props = {
   profile: AccountProfileView;
   editing: boolean;
   onEdit: () => void;
+  avatarVersion?: number;
 };
 
-export default function AccountProfileHeader({ profile, editing, onEdit }: Props) {
+export default function AccountProfileHeader({ profile, editing, onEdit, avatarVersion = 0 }: Props) {
   const educationHint = profile.major?.trim()
     ? profile.major
     : profile.signature?.trim()
@@ -29,6 +30,8 @@ export default function AccountProfileHeader({ profile, editing, onEdit }: Props
           userId={profile.userId}
           displayName={profile.nickname ?? profile.username}
           username={profile.username}
+          avatarUrl={profile.avatarUrl}
+          avatarVersion={avatarVersion}
           size="lg"
         />
         <div className="account-profile-head__info">

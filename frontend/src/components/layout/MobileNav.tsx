@@ -4,14 +4,15 @@
  * @backend 无
  */
 import { NavLink } from "react-router-dom";
-import { Home, MessageSquare, Brain, Route, BarChart3 } from "lucide-react";
+import { Home, MessageSquare, Brain, Camera, CalendarCheck, Route } from "lucide-react";
 
 const items = [
   { to: "/home", label: "首页", icon: Home },
   { to: "/chat", label: "对话", icon: MessageSquare },
+  { to: "/scan", label: "搜题", icon: Camera },
+  { to: "/plan", label: "计划", icon: CalendarCheck },
   { to: "/profile", label: "画像", icon: Brain },
   { to: "/path", label: "路径", icon: Route },
-  { to: "/analytics", label: "评估", icon: BarChart3 },
 ];
 
 export default function MobileNav() {
