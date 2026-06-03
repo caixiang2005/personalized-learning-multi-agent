@@ -33,6 +33,10 @@ dist-ssr/
 .DS_Store
 Thumbs.db
 
+
+# 知识库爬取内容（运行脚本自动生成，不上传原始数据）
+knowledge/
+
 # 临时与备份
 *.bak
 *.swp
