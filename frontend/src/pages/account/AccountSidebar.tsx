@@ -2,10 +2,10 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Shield } from "lucide-react";
 import FadeInView from "../../components/motion/FadeInView";
 import HoverLift from "../../components/motion/HoverLift";
-import type { UserProfileDto } from "../../types/account";
+import type { AccountProfileView } from "../../types/account";
 
 type Props = {
-  profile: UserProfileDto;
+  profile: AccountProfileView;
 };
 
 export default function AccountSidebar({ profile }: Props) {
@@ -24,8 +24,12 @@ export default function AccountSidebar({ profile }: Props) {
                 <dd>{profile.userId || "—"}</dd>
               </div>
               <div>
-                <dt>资料更新</dt>
-                <dd>{profile.updatedAt || "—"}</dd>
+                <dt>最近登录</dt>
+                <dd>
+                  {profile.lastLoginTime
+                    ? new Date(profile.lastLoginTime).toLocaleString("zh-CN")
+                    : "—"}
+                </dd>
               </div>
             </dl>
             <Link to="/account/security" className="account-link-row">

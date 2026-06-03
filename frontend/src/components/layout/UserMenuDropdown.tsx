@@ -37,6 +37,8 @@ export default function UserMenuDropdown() {
   const toggleDarkMode = useAppStore((s) => s.toggleDarkMode);
   const setLoggedIn = useAppStore((s) => s.setLoggedIn);
   const setUser = useAppStore((s) => s.setUser);
+  const userAvatarUrl = useAppStore((s) => s.userAvatarUrl);
+  const avatarCacheVersion = useAppStore((s) => s.avatarCacheVersion);
 
   const userId = user?.userId ?? 1;
   const username = user?.username ?? "用户";
@@ -89,6 +91,8 @@ export default function UserMenuDropdown() {
           userId={userId}
           displayName={displayName}
           username={username}
+          avatarUrl={userAvatarUrl}
+          avatarVersion={avatarCacheVersion}
           size="md"
           className="h-full! w-full! rounded-lg! text-sm! shadow-none!"
         />
@@ -99,12 +103,14 @@ export default function UserMenuDropdown() {
           className="absolute right-0 top-[calc(100%+0.5rem)] z-80 w-78 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-2xl border border-white/60 bg-white/95 shadow-xl backdrop-blur-xl animate-[fade-in_0.2s_ease-out] dark:border-gray-700/60 dark:bg-gray-900/95"
           role="menu"
         >
-          <div className="relative px-4 pb-3 pt-12 text-center">
+          <div className="relative px-4 pb-3 pt-20 text-center">
             <div className="absolute left-1/2 top-3 -translate-x-1/2">
               <UserAvatar
                 userId={userId}
                 displayName={displayName}
                 username={username}
+                avatarUrl={userAvatarUrl}
+                avatarVersion={avatarCacheVersion}
                 size="lg"
                 className="h-14! w-14! rounded-full! text-lg! ring-4 ring-white dark:ring-gray-900 shadow-md"
               />

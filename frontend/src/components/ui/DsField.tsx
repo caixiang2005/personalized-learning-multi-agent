@@ -1,4 +1,9 @@
-import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
+import type {
+  InputHTMLAttributes,
+  ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
+} from "react";
 
 type BaseProps = {
   label: string;
@@ -30,6 +35,18 @@ export function DsInput({ label, hint, required, className = "", ...props }: Inp
   return (
     <Shell label={label} hint={hint} required={required}>
       <input className={`input-field ${className}`.trim()} {...props} />
+    </Shell>
+  );
+}
+
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & BaseProps;
+
+export function DsSelect({ label, hint, required, className = "", children, ...props }: SelectProps) {
+  return (
+    <Shell label={label} hint={hint} required={required}>
+      <select className={`input-field ${className}`.trim()} {...props}>
+        {children}
+      </select>
     </Shell>
   );
 }

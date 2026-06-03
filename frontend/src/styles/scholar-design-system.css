@@ -1,0 +1,384 @@
+/**
+ * Scholar · 青墨学术设计系统（全站统一，无渐变紫）
+ */
+
+/* —— 页面衬底 —— */
+.app-page-scrim {
+  background: color-mix(in srgb, var(--scholar-surface) 90%, transparent) !important;
+  backdrop-filter: blur(10px) saturate(1.05);
+}
+
+.dark .app-page-scrim {
+  background: color-mix(in srgb, var(--scholar-surface-dark) 94%, transparent) !important;
+}
+
+/* —— 顶栏 —— */
+.scholar-navbar,
+.app-navbar.landing-header--bar,
+.landing-header--bar {
+  border-bottom: 1px solid var(--scholar-border) !important;
+  background: color-mix(in srgb, var(--scholar-card) 88%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(1.15) !important;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.65) inset !important;
+}
+
+.dark .scholar-navbar,
+.dark .app-navbar.landing-header--bar,
+.dark .landing-header--bar {
+  border-bottom-color: rgb(61 79 97 / 0.5) !important;
+  background: color-mix(in srgb, var(--scholar-card) 92%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.nav-link {
+  border-radius: 8px !important;
+  padding: 0.5rem 0.875rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: var(--scholar-text-secondary) !important;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease !important;
+}
+
+.nav-link:hover {
+  background: color-mix(in srgb, var(--scholar-primary) 10%, transparent) !important;
+  color: var(--scholar-primary) !important;
+}
+
+.nav-link-active {
+  background: color-mix(in srgb, var(--scholar-primary) 14%, transparent) !important;
+  color: var(--scholar-primary) !important;
+  font-weight: 600 !important;
+}
+
+/* —— 卡片 —— */
+.section-card,
+.landing-glass-card,
+.landing-glass,
+.landing-stat,
+.landing-feature-card,
+.landing-step,
+.landing-faq__item,
+.scholar-card {
+  background: var(--scholar-card) !important;
+  border: 1px solid var(--scholar-border) !important;
+  border-radius: var(--scholar-radius-md) !important;
+  box-shadow: var(--scholar-shadow-card) !important;
+  backdrop-filter: none !important;
+}
+
+.section-card,
+.scholar-card {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.3s ease;
+}
+
+.section-card:hover,
+.scholar-card:hover {
+  border-color: color-mix(in srgb, var(--scholar-primary) 22%, var(--scholar-border)) !important;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--scholar-shadow-elevated) !important;
+}
+
+.dark .section-card,
+.dark .landing-glass-card,
+.dark .scholar-card {
+  background: var(--scholar-card) !important;
+  border-color: rgb(61 79 97 / 0.55) !important;
+}
+
+/* —— 按钮 —— */
+.btn-primary,
+.landing-btn-glass.landing-hero__cta-primary {
+  background: linear-gradient(145deg, var(--scholar-primary), var(--scholar-primary-light)) !important;
+  border: 1px solid color-mix(in srgb, var(--scholar-primary) 50%, transparent) !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgb(11 110 131 / 22%) !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgb(11 110 131 / 28%) !important;
+}
+
+.btn-secondary {
+  border: 1px solid var(--scholar-border) !important;
+  border-radius: 10px !important;
+  background: var(--scholar-card) !important;
+  color: var(--scholar-text-secondary) !important;
+  transition: border-color 0.2s ease, background 0.2s ease !important;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--scholar-primary) !important;
+  color: var(--scholar-primary) !important;
+}
+
+.input-field {
+  border: 1px solid var(--scholar-border) !important;
+  border-radius: 10px !important;
+  background: var(--scholar-card) !important;
+  color: var(--scholar-text) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.input-field:focus {
+  border-color: var(--scholar-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--scholar-primary) 16%, transparent) !important;
+}
+
+.chip {
+  border: 1px solid var(--scholar-border) !important;
+  background: var(--scholar-card) !important;
+  color: var(--scholar-text-secondary) !important;
+  border-radius: 9999px !important;
+  font-size: 0.8125rem !important;
+  transition: all 0.22s ease !important;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--scholar-primary) !important;
+  color: var(--scholar-primary) !important;
+  background: color-mix(in srgb, var(--scholar-primary) 7%, var(--scholar-card)) !important;
+}
+
+/* —— 进度条 / 渐变 —— */
+.progress-bar-fill,
+.gradient-hero {
+  background: linear-gradient(90deg, var(--scholar-primary), var(--scholar-accent-cool)) !important;
+}
+
+.glass-panel {
+  background: color-mix(in srgb, var(--scholar-card) 85%, transparent) !important;
+  border: 1px solid var(--scholar-border) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
+/* —— 页头 —— */
+.scholar-page-header {
+  margin-bottom: 1.5rem;
+}
+
+.scholar-page-header__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--scholar-primary);
+  background: color-mix(in srgb, var(--scholar-primary) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--scholar-primary) 22%, transparent);
+  margin-bottom: 0.5rem;
+}
+
+.scholar-page-header__title {
+  font-size: clamp(1.375rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--scholar-text);
+  line-height: 1.25;
+}
+
+.scholar-page-header__sub {
+  margin-top: 0.375rem;
+  font-size: 0.9375rem;
+  color: var(--scholar-text-secondary);
+  max-width: 40rem;
+  line-height: 1.6;
+}
+
+/* —— 能力矩阵 —— */
+.scholar-cap-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+  .scholar-cap-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .scholar-cap-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.scholar-cap-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.125rem 1.25rem;
+  border-radius: var(--scholar-radius-md);
+  border: 1px solid var(--scholar-border);
+  background: var(--scholar-card);
+  box-shadow: var(--scholar-shadow-card);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scholar-cap-card:hover {
+  border-color: color-mix(in srgb, var(--scholar-primary) 35%, var(--scholar-border));
+  box-shadow: var(--scholar-shadow-elevated);
+  transform: translateY(-4px);
+}
+
+.scholar-cap-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--scholar-primary) 12%, transparent);
+  color: var(--scholar-primary);
+  transition: transform 0.3s ease;
+}
+
+.scholar-cap-card:hover .scholar-cap-card__icon {
+  transform: scale(1.06) rotate(-2deg);
+}
+
+.scholar-cap-card__title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--scholar-text);
+}
+
+.scholar-cap-card__desc {
+  font-size: 0.8125rem;
+  color: var(--scholar-text-muted);
+  line-height: 1.55;
+}
+
+/* —— 流式进度 —— */
+.scholar-stream-bar {
+  height: 3px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--scholar-primary) 14%, transparent);
+  overflow: hidden;
+}
+
+.scholar-stream-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--scholar-primary), var(--scholar-accent-cool), var(--scholar-accent));
+  background-size: 200% 100%;
+  animation: scholar-shimmer 3s ease-in-out infinite;
+  transition: width 0.35s ease;
+}
+
+.scholar-stream-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--scholar-text-muted);
+  margin-top: 0.5rem;
+}
+
+/* —— 资源类型（非紫色） —— */
+.scholar-resource-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--scholar-border);
+  background: var(--scholar-card);
+  color: var(--scholar-text-secondary);
+}
+
+.scholar-resource-pill--document { color: #0B6E83; border-color: #A8D4DE; background: #E8F4F7; }
+.scholar-resource-pill--mindmap { color: #047857; border-color: #A7F3D0; background: #ECFDF5; }
+.scholar-resource-pill--exercise { color: #B45309; border-color: #FCD34D; background: #FFFBEB; }
+.scholar-resource-pill--video { color: #BE123C; border-color: #FECDD3; background: #FFF1F2; }
+.scholar-resource-pill--practice { color: #0369A1; border-color: #BAE6FD; background: #F0F9FF; }
+
+.dark .scholar-resource-pill--document { background: rgb(11 110 131 / 15%); border-color: rgb(11 110 131 / 35%); color: #5ECADB; }
+.dark .scholar-resource-pill--mindmap { background: rgb(4 120 87 / 15%); border-color: rgb(4 120 87 / 35%); color: #6EE7B7; }
+.dark .scholar-resource-pill--exercise { background: rgb(180 83 9 / 15%); border-color: rgb(180 83 9 / 35%); color: #FBBF24; }
+
+/* —— 门户 / Landing 去紫 —— */
+.landing-brand__icon {
+  background: linear-gradient(145deg, var(--scholar-primary), var(--scholar-primary-light)) !important;
+  border: 1px solid color-mix(in srgb, var(--scholar-primary) 40%, transparent) !important;
+  box-shadow: 0 4px 14px rgb(11 110 131 / 22%) !important;
+}
+
+.landing-hero__title--plain,
+.landing-hero__title {
+  color: var(--scholar-text) !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+}
+
+.shiny-text,
+.landing-stat__value {
+  background: linear-gradient(
+    105deg,
+    var(--scholar-text) 0%,
+    var(--scholar-primary) 45%,
+    var(--scholar-accent) 90%
+  ) !important;
+  background-size: 200% auto !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+.landing-icon-tone--blue { background: color-mix(in srgb, var(--scholar-primary) 12%, transparent) !important; color: var(--scholar-primary) !important; }
+.landing-icon-tone--green { background: color-mix(in srgb, var(--scholar-accent-cool) 12%, transparent) !important; color: var(--scholar-accent-cool) !important; }
+.landing-icon-tone--purple { background: color-mix(in srgb, var(--scholar-accent) 12%, transparent) !important; color: var(--scholar-accent) !important; }
+.landing-icon-tone--orange { background: color-mix(in srgb, #BE123C 10%, transparent) !important; color: #BE123C !important; }
+
+.landing-scroll-progress {
+  background: linear-gradient(90deg, var(--scholar-primary), var(--scholar-accent-cool)) !important;
+  box-shadow: 0 0 10px rgb(11 110 131 / 35%) !important;
+}
+
+/* —— 移动端底栏 —— */
+.md\:hidden.fixed.bottom-0 {
+  background: color-mix(in srgb, var(--scholar-card) 92%, transparent) !important;
+  border-top: 1px solid var(--scholar-border) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+/* —— 覆盖 index.css 遗留品牌蓝 —— */
+.login-form-link,
+.login-card-foot a,
+.landing-nav__link:hover,
+.landing-footer a:hover {
+  color: var(--scholar-primary) !important;
+}
+
+.landing-btn-glass,
+.landing-hero__cta-primary {
+  background: linear-gradient(135deg, var(--scholar-primary), var(--scholar-primary-light)) !important;
+}
+
+.landing-scroll-progress,
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--scholar-primary), var(--scholar-accent-cool)) !important;
+}

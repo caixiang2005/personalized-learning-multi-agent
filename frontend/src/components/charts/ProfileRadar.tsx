@@ -40,13 +40,13 @@ export default function ProfileRadar({ dimensions }: { dimensions: ProfileDimens
   return (
     <ResponsiveContainer width="100%" height={300}>
       <RadarChart data={data} cx="50%" cy="50%" outerRadius="78%">
-        <PolarGrid stroke="#e5e7eb" gridType="polygon" />
-        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#6b7280" }} />
+        <PolarGrid stroke="var(--scholar-border)" gridType="polygon" />
+        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "var(--scholar-text-secondary)" }} />
         <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
         <Radar
           name="掌握度"
           dataKey="value"
-          stroke="#165DFF"
+          stroke="var(--scholar-primary)"
           fill="url(#radarFill)"
           fillOpacity={0.45}
           strokeWidth={2}
@@ -54,8 +54,8 @@ export default function ProfileRadar({ dimensions }: { dimensions: ProfileDimens
         />
         <defs>
           <linearGradient id="radarFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#165DFF" stopOpacity={0.55} />
-            <stop offset="100%" stopColor="#36D399" stopOpacity={0.25} />
+            <stop offset="0%" stopColor="#0B6E83" stopOpacity={0.55} />
+            <stop offset="100%" stopColor="#14B8A6" stopOpacity={0.25} />
           </linearGradient>
         </defs>
       </RadarChart>

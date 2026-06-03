@@ -3,19 +3,24 @@
  * 无后端依赖
  */
 @import "tailwindcss";
+@import "./styles/scholar-tokens.css";
+@import "./styles/design-system.css";
+@import "./styles/scholar-design-system.css";
+@import "./styles/scholar-motion.css";
+@import "./styles/scholar-auth.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-primary: #165dff;
-  --color-accent: #36d399;
-  --color-surface: #f9fafb;
-  --color-surface-dark: #111827;
+  --color-primary: #0b6e83;
+  --color-accent: #c27803;
+  --color-surface: #edf2f6;
+  --color-surface-dark: #0c1219;
 
-  --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Noto Sans SC", "PingFang SC", sans-serif;
 
-  --shadow-card: 0 4px 24px rgba(22, 93, 255, 0.08);
-  --shadow-card-hover: 0 8px 32px rgba(22, 93, 255, 0.15);
+  --shadow-card: 0 1px 3px rgb(12 18 34 / 6%), 0 1px 2px rgb(12 18 34 / 4%);
+  --shadow-card-hover: 0 8px 32px rgb(11 110 131 / 14%);
 
   --animate-fade-in: fade-in 0.4s ease-out;
   --animate-pulse-soft: pulse-soft 2s ease-in-out infinite;
@@ -53,71 +58,11 @@
 }
 
 :root {
-  --color-primary: #165dff;
-  --color-accent: #36d399;
-  --color-surface: #f9fafb;
-  --color-border: #e5e7eb;
-  /* 毛玻璃层级（与 DESIGN.md / landing-glass 对齐） */
-  --glass: rgba(255, 255, 255, 0.52);
-  --glass-border: rgba(255, 255, 255, 0.72);
-  --glass-card-bg: rgba(255, 255, 255, 0.36);
-  --glass-card-border: rgba(255, 255, 255, 0.92);
-  --glass-blur: 20px;
-  --glass-blur-card: 24px;
-  /* 认证 / 按钮强调色毛玻璃（与品牌图标一致） */
-  --glass-accent-bg: linear-gradient(
-    135deg,
-    rgba(22, 93, 255, 0.78) 0%,
-    rgba(54, 211, 153, 0.72) 100%
-  );
-  --glass-accent-border: rgba(255, 255, 255, 0.48);
-  --glass-accent-shadow:
-    0 4px 14px rgba(22, 93, 255, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 -1px 0 rgba(22, 93, 255, 0.12);
-  --glass-accent-shadow-hover:
-    0 6px 20px rgba(22, 93, 255, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.62),
-    inset 0 -1px 0 rgba(22, 93, 255, 0.14);
-  --glass-auth-blur: blur(10px) saturate(1.35);
-  /* 输入框 / 次级按钮 / Tab 底 */
-  --glass-control-bg: rgba(255, 255, 255, 0.36);
-  --glass-control-border: rgba(255, 255, 255, 0.55);
-  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  --glass-control-bg-hover: rgba(255, 255, 255, 0.44);
-  --glass-control-bg-focus: rgba(255, 255, 255, 0.48);
-  --glass-control-focus-ring: 0 0 0 3px rgba(22, 93, 255, 0.12);
-  --glass-control-elevated: rgba(255, 255, 255, 0.52);
+  /* canonical tokens → scholar-tokens.css */
 }
 
 .dark {
-  --color-surface: #111827;
-  --color-border: #374151;
-  --glass: rgba(17, 24, 39, 0.58);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-card-bg: rgba(17, 24, 39, 0.42);
-  --glass-card-border: rgba(255, 255, 255, 0.18);
-  --glass-accent-bg: linear-gradient(
-    135deg,
-    rgba(22, 93, 255, 0.62) 0%,
-    rgba(54, 211, 153, 0.52) 100%
-  );
-  --glass-accent-border: rgba(255, 255, 255, 0.22);
-  --glass-accent-shadow:
-    0 4px 16px rgba(22, 93, 255, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
-  --glass-accent-shadow-hover:
-    0 6px 22px rgba(22, 93, 255, 0.26),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.14);
-  --glass-control-bg: rgba(255, 255, 255, 0.08);
-  --glass-control-border: rgba(255, 255, 255, 0.18);
-  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --glass-control-bg-hover: rgba(255, 255, 255, 0.12);
-  --glass-control-bg-focus: rgba(255, 255, 255, 0.14);
-  --glass-control-focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.18);
-  --glass-control-elevated: rgba(255, 255, 255, 0.14);
+  /* canonical tokens → scholar-tokens.css */
 }
 
 html,
@@ -131,7 +76,7 @@ body,
 
 body {
   background-color: var(--color-surface);
-  color: #1d2129;
+  color: var(--ds-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -595,6 +540,13 @@ a {
     box-shadow: var(--glass-accent-shadow-hover);
   }
 
+  /* 抽屉打开时隐藏 FAB，避免叠在落地页卡片上 */
+  .guest-fab--active {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   .guest-fab__ring {
     position: absolute;
     top: 0;
@@ -756,8 +708,13 @@ a {
   .dark .book-sea__veil,
   .dark .landing-knowledge-flow__veil {
     background:
-      radial-gradient(ellipse 48% 40% at 50% 38%, rgba(15, 20, 25, 0.22) 0%, rgba(15, 20, 25, 0.4) 55%, rgba(15, 20, 25, 0.52) 100%),
-      linear-gradient(180deg, rgba(15, 20, 25, 0.24) 0%, rgba(15, 20, 25, 0.45) 100%);
+      radial-gradient(
+        ellipse 52% 44% at 50% 38%,
+        rgba(79, 70, 229, 0.07) 0%,
+        rgba(15, 23, 42, 0.1) 55%,
+        rgba(15, 23, 42, 0.18) 100%
+      ),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.06) 0%, rgba(15, 23, 42, 0.14) 100%);
   }
 
   /* 各页半透明衬底：透出书海且保证正文可读 */
@@ -788,6 +745,7 @@ a {
     background-size: 220% 100%;
     -webkit-background-clip: text;
     background-clip: text;
+    -webkit-text-fill-color: transparent;
     color: transparent;
     animation: shiny-flow 7s ease-in-out infinite alternate;
   }
@@ -795,15 +753,18 @@ a {
   .dark .shiny-text {
     background: linear-gradient(
       105deg,
-      #f3f4f6 0%,
-      #e5e7eb 12%,
-      #93c5fd 32%,
-      #60a5fa 48%,
-      #38bdf8 62%,
-      #22d3ee 78%,
-      #7dd3fc 100%
+      #e0e7ff 0%,
+      #c7d2fe 16%,
+      #818cf8 38%,
+      #38bdf8 58%,
+      #22d3ee 72%,
+      #34d399 100%
     );
     background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
 
   @keyframes shiny-flow {
@@ -1239,11 +1200,12 @@ a {
       background-size: 100% 100%;
       -webkit-background-clip: text;
       background-clip: text;
+      -webkit-text-fill-color: transparent;
       color: transparent;
     }
 
     .dark .shiny-text {
-      background: linear-gradient(105deg, #f3f4f6 0%, #60a5fa 48%, #38bdf8 100%);
+      background: linear-gradient(105deg, #e0e7ff 0%, #818cf8 48%, #34d399 100%);
       background-size: 100% 100%;
     }
 
@@ -1384,7 +1346,7 @@ a {
 
   @media (min-width: 1280px) {
     .landing-layout {
-      grid-template-columns: 12rem minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr) 12rem;
       gap: 1.5rem;
       padding: 0 1.5rem 2.5rem;
     }
@@ -2150,13 +2112,15 @@ a {
   }
 
   .dark .home-shell {
-    --landing-text: #f0f0f0;
-    --landing-text-secondary: #b8b8b8;
-    --landing-text-muted: #8f8f8f;
-    --landing-text-faint: #6b6b6b;
+    --landing-text: #e0e7ff;
+    --landing-text-secondary: #c7d2fe;
+    --landing-text-muted: #a5b4fc;
+    --landing-text-faint: #818cf8;
   }
 
   .home-hero {
+    position: relative;
+    z-index: 1;
     text-align: center;
     margin-bottom: 1.5rem;
   }
@@ -2183,6 +2147,11 @@ a {
   .home-onboard {
     padding: 0;
     margin-bottom: 1.25rem;
+  }
+
+  /* 与 Clay 单卡一致，避免日间 landing-section-frame 双层描边 */
+  .home-onboard.landing-glass-card {
+    overflow: hidden;
   }
 
   .home-onboard__inner {
@@ -2229,7 +2198,11 @@ a {
     height: 0.375rem;
     margin-top: 0.45rem;
     border-radius: 9999px;
-    background: #165dff;
+    background: var(--color-primary, #4f46e5);
+  }
+
+  .dark .home-onboard__tips li::before {
+    background: #818cf8;
   }
 
   .home-onboard__muted {
@@ -2250,6 +2223,15 @@ a {
 
   .home-flowing__menu {
     border-radius: 0 0 10px 10px;
+  }
+
+  .home-flowing__menu .menu__item-link,
+  .home-flowing__menu .menu__item-btn {
+    color: var(--landing-text, var(--ds-text, #1d2129));
+  }
+
+  .dark .home-flowing__menu .menu__item {
+    border-color: rgba(129, 140, 248, 0.22);
   }
 
   @media (min-width: 768px) {
@@ -3979,6 +3961,111 @@ a {
     margin-top: 0.25rem;
     font-size: 0.8125rem;
     color: #86909c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+
+  @media (min-width: 480px) {
+    .personal-info__email {
+      justify-content: flex-start;
+    }
+  }
+
+  .personal-info__username {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    color: #a8abb2;
+  }
+
+  .dark .personal-info__username {
+    color: #9ca3af;
+  }
+
+  .personal-info__avatar-hint {
+    margin-top: 0.875rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #86909c;
+  }
+
+  .personal-info__avatar-ring--clay {
+    background: var(--glass-card-bg, rgba(255, 255, 255, 0.9));
+    border: 3px solid var(--glass-card-border, rgba(199, 210, 254, 0.55));
+    box-shadow: var(--ds-clay-shadow, 0 4px 18px rgba(79, 70, 229, 0.12));
+  }
+
+  .personal-info__readonly {
+    margin-bottom: 1rem;
+  }
+
+  .personal-info__section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #1d2129;
+    margin-bottom: 1rem;
+  }
+
+  .dark .personal-info__section-title {
+    color: #f3f4f6;
+  }
+
+  .personal-info__meta-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.875rem 1.25rem;
+    margin: 0;
+  }
+
+  @media (min-width: 520px) {
+    .personal-info__meta-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .personal-info__meta-item {
+    min-width: 0;
+  }
+
+  .personal-info__meta-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #86909c;
+    margin-bottom: 0.25rem;
+  }
+
+  .dark .personal-info__meta-label {
+    color: #9ca3af;
+  }
+
+  .personal-info__meta-value {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #1d2129;
+    word-break: break-word;
+  }
+
+  .dark .personal-info__meta-value {
+    color: #e5e7eb;
+  }
+
+  .personal-info__field-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 480px) {
+    .personal-info__field-row {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 
   .personal-info__form {
@@ -4089,7 +4176,20 @@ a {
     border-radius: 0.625rem;
     font-weight: 600;
     color: #fff;
-    box-shadow: 0 4px 14px rgba(22, 93, 255, 0.22);
+    box-shadow: 0 4px 14px rgb(11 110 131 / 22%);
+  }
+
+  .user-avatar--photo {
+    overflow: hidden;
+    padding: 0;
+    background: var(--scholar-border) !important;
+  }
+
+  .user-avatar__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .user-avatar--md {

@@ -42,16 +42,31 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
   const [userRounds, setUserRounds] = useState(0);
   const [trialExhausted, setTrialExhausted] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!open) return;
+    const el = messagesRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [open, messages, thinking]);
 
   useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
+    if (!open) return;
+    const scrollY = window.scrollY;
+    const { style } = document.body;
+    style.position = "fixed";
+    style.top = `-${scrollY}px`;
+    style.left = "0";
+    style.right = "0";
+    style.width = "100%";
     return () => {
-      document.body.style.overflow = "";
+      style.position = "";
+      style.top = "";
+      style.left = "";
+      style.right = "";
+      style.width = "";
+      window.scrollTo(0, scrollY);
     };
   }, [open]);
 
@@ -127,7 +142,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
           </div>
         )}
 
-        <div className="guest-drawer__messages">
+        <div ref={messagesRef} className="guest-drawer__messages">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -151,7 +166,6 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
               </div>
             </div>
           ))}
-          <div ref={bottomRef} />
         </div>
 
         {!trialExhausted && (

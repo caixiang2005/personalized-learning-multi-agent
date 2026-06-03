@@ -1,16 +1,14 @@
 /**
- * 个人信息页 REST 接口
+ * 个人信息 REST（user_info_api）
  *
- * | 方法   | 路径               | 说明           |
- * |--------|--------------------|----------------|
- * | GET    | /api/user/profile  | 用户资料+学习背景 |
- * | PUT    | /api/user/update   | 更新资料        |
- * | GET    | /api/user/stats    | 统计概览        |
- * | DELETE | /api/user/profile  | 注销账号（预留）  |
+ * | GET  | /api/user/getProfile    |
+ * | POST | /api/user/updateProfile |
+ * | POST | /api/user/uploadAvatar  |
  */
 import type {
-  UpdateUserProfileDto,
-  UserProfileDto,
+  AccountProfileView,
+  UpdateProfileBody,
+  UserProfileData,
   UserStatsDto,
 } from "../../types/account";
 import { apiClient, unwrap } from "./client";
@@ -21,28 +19,37 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 
 const mockDelay = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
-function mockProfileFromStore(): UserProfileDto {
-  const { user, profile } = useAppStore.getState();
+async function mergeWithUserInfo(profile: UserProfileData): Promise<AccountProfileView> {
+  const user = await fetchUserInfo();
   return {
-    userId: user?.userId ?? 1,
-    email: user?.email ?? "learner@example.com",
-    username: user?.username ?? profile.name,
-    registerTime: user?.registerTime ?? "2026-01-15",
-    displayName: profile.name,
-    major: profile.major,
-    goal: profile.goal,
-    level: profile.level,
-    updatedAt: profile.updatedAt,
+    ...profile,
+    email: user.email,
+    registerTime: user.registerTime,
   };
 }
 
-function mockStatsFromStore(): UserStatsDto {
+function mockProfileData(): UserProfileData {
+  const { user, profile } = useAppStore.getState();
+  return {
+    userId: user?.userId ?? 1,
+    username: user?.username ?? "演示用户",
+    phoneNumber: null,
+    avatarUrl: null,
+    gender: null,
+    birthday: null,
+    lastLoginTime: new Date().toISOString(),
+    signature: null,
+    major: profile.major || null,
+    nickname: profile.name || null,
+  };
+}
+
+function mockStats(): UserStatsDto {
   const { profile, sessions, pathStages } = useAppStore.getState();
   const topics = pathStages.flatMap((s) => s.topics);
   const pathProgress = topics.length
     ? Math.round(topics.reduce((sum, t) => sum + t.progress, 0) / topics.length)
     : 0;
-
   return {
     healthScore: profile.healthScore,
     goalProgress: profile.goalProgress.percent,
@@ -51,103 +58,89 @@ function mockStatsFromStore(): UserStatsDto {
   };
 }
 
-/** GET /api/user/profile */
-export async function getUserProfile(): Promise<UserProfileDto> {
+/** GET /api/user/getProfile + getUserInfo */
+export async function getAccountProfile(): Promise<AccountProfileView> {
   if (USE_MOCK) {
     await mockDelay();
-    return mockProfileFromStore();
+    const data = mockProfileData();
+    return mergeWithUserInfo(data);
   }
 
-  try {
-    const res = await apiClient.get("/user/profile");
-    return unwrap<UserProfileDto>(res);
-  } catch {
-    // 后端未实现时：合并 user-service + 本地画像
-    const user = await fetchUserInfo();
-    const { profile } = useAppStore.getState();
-    return {
-      userId: user.userId,
-      email: user.email,
-      username: user.username,
-      registerTime: user.registerTime,
-      displayName: profile.name,
-      major: profile.major,
-      goal: profile.goal,
-      level: profile.level,
-      updatedAt: profile.updatedAt,
-    };
-  }
+  const res = await apiClient.get("/user/getProfile", { skipLoading: true });
+  const profile = unwrap<UserProfileData>(res);
+  return mergeWithUserInfo(profile);
 }
 
-/** PUT /api/user/update */
-export async function updateUserProfile(body: UpdateUserProfileDto): Promise<UserProfileDto> {
+/** POST /api/user/updateProfile（部分字段） */
+export async function updateAccountProfile(body: UpdateProfileBody): Promise<AccountProfileView> {
   if (USE_MOCK) {
     await mockDelay(650);
     const { setProfile } = useAppStore.getState();
-    setProfile({
-      name: body.displayName,
-      major: body.major,
-      goal: body.goal,
-      level: body.level,
-      updatedAt: new Date().toISOString().slice(0, 10),
-    });
-    return mockProfileFromStore();
+    if (body.nickname !== undefined) setProfile({ name: body.nickname ?? "" });
+    if (body.major !== undefined) setProfile({ major: body.major ?? "" });
+    return getAccountProfile();
   }
 
-  try {
-    const res = await apiClient.put("/user/update", body);
-    const data = unwrap<UserProfileDto>(res);
-    syncProfileToStore(data);
-    return data;
-  } catch {
-    await mockDelay(650);
-    const { setProfile } = useAppStore.getState();
-    setProfile({
-      name: body.displayName,
-      major: body.major,
-      goal: body.goal,
-      level: body.level,
-      updatedAt: new Date().toISOString().slice(0, 10),
-    });
-    return mockProfileFromStore();
-  }
+  const res = await apiClient.post("/user/updateProfile", body);
+  const updated = unwrap<UserProfileData>(res);
+  syncAccountToStore(updated);
+  return mergeWithUserInfo(updated);
 }
 
-/** GET /api/user/stats */
+/** POST /api/user/uploadAvatar */
+export async function uploadAccountAvatar(file: File): Promise<string> {
+  if (USE_MOCK) {
+    await mockDelay(800);
+    const url = `/static/avatar/${useAppStore.getState().user?.userId ?? 1}.jpg`;
+    useAppStore.getState().setUserAvatar(url, true);
+    return url;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await apiClient.post("/user/uploadAvatar", formData);
+  const data = unwrap<{ avatarUrl: string }>(res);
+  useAppStore.getState().setUserAvatar(data.avatarUrl, true);
+  return data.avatarUrl;
+}
+
+/** GET /api/user/stats（后端未实现时 fallback mock） */
 export async function getUserStats(): Promise<UserStatsDto> {
   if (USE_MOCK) {
     await mockDelay(300);
-    return mockStatsFromStore();
+    return mockStats();
   }
-
   try {
     const res = await apiClient.get("/user/stats", { skipLoading: true });
     return unwrap<UserStatsDto>(res);
   } catch {
-    return mockStatsFromStore();
+    return mockStats();
   }
 }
 
-/** DELETE /api/user/profile — 预留，后端未实现 */
-export async function deleteUserProfile(): Promise<void> {
-  if (USE_MOCK) {
-    await mockDelay();
-    return;
-  }
-  await apiClient.delete("/user/profile");
-}
-
-function syncProfileToStore(data: UserProfileDto) {
-  useAppStore.getState().setProfile({
-    name: data.displayName,
-    major: data.major,
-    goal: data.goal,
-    level: data.level,
-    updatedAt: data.updatedAt,
+function syncAccountToStore(data: UserProfileData, bumpAvatar = false) {
+  const store = useAppStore.getState();
+  store.setProfile({
+    name: data.nickname ?? data.username,
+    major: data.major ?? "",
   });
+  store.setUserAvatar(data.avatarUrl, bumpAvatar);
 }
 
-/** Mock 占位：后端未就绪时使用 store 数据 */
+/** 登录后拉取个人信息（含头像）写入全局 store */
+export async function hydrateAccountProfile(): Promise<void> {
+  try {
+    const profile = await getAccountProfile();
+    syncAccountToStore(profile);
+  } catch {
+    /* 未登录或接口不可用时保留首字母占位 */
+  }
+}
+
+/** @deprecated 保留兼容 import */
+export const getUserProfile = getAccountProfile;
+export const updateUserProfile = updateAccountProfile;
+
 export function ensureAccountMockSeed() {
   /* store 已在 AuthBootstrap / mockData 初始化 */
 }

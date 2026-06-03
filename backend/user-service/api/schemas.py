@@ -2,6 +2,8 @@ from datetime import date
 
 from pydantic import BaseModel, EmailStr, Field
 
+from error.logger import SERVICE_NAME
+
 
 class EmailBody(BaseModel):
     email: EmailStr
@@ -44,3 +46,8 @@ class UpdateProfileBody(BaseModel):
     nickname: str | None = Field(default=None, max_length=32)
 
     model_config = {"populate_by_name": True}
+
+
+class MarkSentBody(BaseModel):
+    ids: list[int] = Field(min_length=1)
+    service: str = Field(default=SERVICE_NAME, max_length=50)

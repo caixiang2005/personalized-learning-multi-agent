@@ -4,6 +4,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { getToken } from "../../lib/auth/token";
 import { fetchUserInfo, logoutLocal, UserApiError } from "../../lib/api/user";
+import { hydrateAccountProfile } from "../../lib/api/account";
 import { useAppStore } from "../../store/useAppStore";
 
 export default function AuthBootstrap({ children }: { children: ReactNode }) {
@@ -25,6 +26,7 @@ export default function AuthBootstrap({ children }: { children: ReactNode }) {
         if (cancelled) return;
         setUser(info);
         setLoggedIn(true);
+        await hydrateAccountProfile();
       } catch (e) {
         if (e instanceof UserApiError && e.code === 401) {
           logoutLocal();

@@ -14,7 +14,7 @@ export default function ApiLoadingBar() {
     <AnimatePresence>
       {loading && (
         <motion.div
-          className="fixed top-0 left-0 right-0 z-[120] h-0.5 origin-left bg-gradient-to-r from-[#165DFF] to-[#36D399]"
+          className="fixed top-0 left-0 right-0 z-[120] h-0.5 origin-left bg-gradient-to-r from-[var(--scholar-primary)] to-[var(--scholar-accent-cool)]"
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 0.92, opacity: 1 }}
           exit={{ scaleX: 1, opacity: 0 }}
