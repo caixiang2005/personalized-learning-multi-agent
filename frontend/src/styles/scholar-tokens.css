@@ -1,0 +1,84 @@
+/**
+ * Scholar · 青墨 + 琥珀（告别渐变紫）
+ */
+:root {
+  --scholar-primary: #0b6e83;
+  --scholar-primary-light: #1496a9;
+  --scholar-accent: #c27803;
+  --scholar-accent-cool: #14b8a6;
+  --scholar-surface: #edf2f6;
+  --scholar-card: #ffffff;
+  --scholar-text: #0c1222;
+  --scholar-text-secondary: #3d4f61;
+  --scholar-text-muted: #7a8fa3;
+  --scholar-border: #d4dee6;
+  --scholar-radius-md: 14px;
+  --scholar-shadow-card: 0 1px 2px rgb(12 18 34 / 5%), 0 4px 16px rgb(12 18 34 / 4%);
+  --scholar-shadow-elevated: 0 12px 40px rgb(11 110 131 / 14%);
+
+  --color-primary: #0b6e83;
+  --color-accent: #c27803;
+  --color-surface: #edf2f6;
+  --color-border: #c5d4de;
+  --ds-text: #0c1222;
+  --ds-text-secondary: #3d4f61;
+  --ds-text-muted: #7a8fa3;
+  --glass: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(197, 212, 222, 0.85);
+  --glass-card-bg: #ffffff;
+  --glass-card-border: rgba(197, 212, 222, 0.9);
+  --glass-accent-bg: linear-gradient(135deg, #0b6e83 0%, #1496a9 52%, #c27803 100%);
+  --glass-accent-border: rgba(255, 255, 255, 0.4);
+  --glass-accent-shadow: 0 4px 20px rgb(11 110 131 / 18%), 0 1px 0 rgb(255 255 255 / 0.9) inset;
+  --glass-accent-shadow-hover: 0 8px 28px rgb(11 110 131 / 24%), 0 1px 0 rgb(255 255 255 / 0.95) inset;
+  --glass-control-bg: rgba(255, 255, 255, 0.88);
+  --glass-control-border: rgba(197, 212, 222, 0.95);
+  --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --glass-control-bg-hover: rgba(237, 246, 249, 0.95);
+  --glass-control-bg-focus: #ffffff;
+  --glass-control-focus-ring: 0 0 0 3px rgba(11, 110, 131, 0.2);
+  --glass-auth-blur: blur(12px) saturate(1.2);
+  --glass-blur: 12px;
+  --glass-blur-card: 0px;
+  --ds-radius-sm: 0.625rem;
+  --ds-radius-md: 1rem;
+  --ds-radius-lg: 1.25rem;
+  --scholar-surface-dark: #0c1219;
+  --landing-text: var(--ds-text);
+  --landing-text-secondary: var(--ds-text-secondary);
+  --landing-text-muted: var(--ds-text-muted);
+  --landing-text-faint: #94a8b8;
+  --ds-clay-shadow: var(--scholar-shadow-card);
+  --ds-clay-shadow-hover: var(--scholar-shadow-elevated);
+}
+
+.dark {
+  --scholar-primary: #2cb8cf;
+  --scholar-primary-light: #5ed4e4;
+  --scholar-accent: #e8a849;
+  --scholar-accent-cool: #2dd4bf;
+  --scholar-surface: #0c1219;
+  --scholar-card: #151d28;
+  --scholar-text: #e8eef4;
+  --scholar-text-secondary: #a8b8c8;
+  --scholar-text-muted: #6b7d90;
+  --scholar-border: rgba(61, 79, 97, 0.55);
+  --scholar-shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 4px 16px rgb(0 0 0 / 15%);
+  --scholar-shadow-elevated: 0 12px 40px rgb(0 0 0 / 35%);
+
+  --color-surface: #0c1219;
+  --color-border: #3d4f61;
+  --ds-text: #e8eef4;
+  --ds-text-secondary: #a8b8c8;
+  --ds-text-muted: #6b7d90;
+  --glass: rgba(21, 29, 40, 0.94);
+  --glass-border: rgba(61, 79, 97, 0.6);
+  --glass-card-bg: rgba(21, 29, 40, 0.96);
+  --glass-card-border: rgba(61, 79, 97, 0.55);
+  --glass-accent-bg: linear-gradient(135deg, #0b6e83 0%, #1496a9 50%, #c27803 100%);
+  --glass-control-bg: rgba(21, 29, 40, 0.85);
+  --glass-control-border: rgba(61, 79, 97, 0.65);
+  --glass-control-bg-hover: rgba(30, 42, 58, 0.9);
+  --glass-control-focus-ring: 0 0 0 3px rgba(44, 184, 207, 0.28);
+  --landing-text-faint: #6b7d90;
+}

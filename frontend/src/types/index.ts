@@ -41,6 +41,59 @@ export interface ProfileDimension {
   value: number;
   level: "weak" | "medium" | "strong";
   source?: string;
+  /** 较上周变化，用于提升趋势等维度 */
+  trendDelta?: number;
+}
+
+/** 六维学习画像（比赛规范） */
+export type LearnerDimensionKey =
+  | "knowledge"
+  | "exercises"
+  | "focus"
+  | "weakpoints"
+  | "efficiency"
+  | "trend";
+
+export interface ScanStep {
+  order: number;
+  title: string;
+  content: string;
+}
+
+export interface SimilarQuestion {
+  id: string;
+  question: string;
+  difficulty: "基础" | "中等" | "进阶";
+  knowledgePoint: string;
+}
+
+export interface ScanResult {
+  ocrText: string;
+  knowledgePoints: string[];
+  analysis: string;
+  steps: ScanStep[];
+  similarQuestions: SimilarQuestion[];
+}
+
+export type DailyTaskType = "learn" | "chat" | "exercise";
+
+export interface DailyPlanTask {
+  id: string;
+  type: DailyTaskType;
+  title: string;
+  topic: string;
+  durationMin: number;
+  done: boolean;
+  progress: number;
+}
+
+export interface DailyPlan {
+  date: string;
+  greeting: string;
+  summary: string;
+  overallProgress: number;
+  knowledgePush: { id: string; title: string; desc: string; tag: string }[];
+  tasks: DailyPlanTask[];
 }
 
 export interface LearningProfile {
@@ -50,7 +103,10 @@ export interface LearningProfile {
   level: string;
   updatedAt: string;
   healthScore: number;
+  /** 知识点维度（对话/练习抽取） */
   dimensions: ProfileDimension[];
+  /** 六维学习画像（比赛雷达图） */
+  learnerDimensions: ProfileDimension[];
   cognitiveStyle: string[];
   weakPoints: { name: string; count: number }[];
   progress: number;

@@ -1,0 +1,160 @@
+/**
+ * Scholar · 认证页（紧凑宽度、表单居中）
+ */
+
+.scholar-auth-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(1rem, 3vw, 1.75rem);
+}
+
+.login-shell__glow {
+  background:
+    radial-gradient(ellipse 45% 40% at 18% 28%, rgba(11, 110, 131, 0.16), transparent 58%),
+    radial-gradient(ellipse 40% 35% at 82% 72%, rgba(194, 120, 3, 0.1), transparent 55%) !important;
+}
+
+.dark .login-shell__glow {
+  background:
+    radial-gradient(ellipse 45% 40% at 18% 28%, rgba(44, 184, 207, 0.12), transparent 58%),
+    radial-gradient(ellipse 40% 35% at 82% 72%, rgba(232, 168, 73, 0.08), transparent 55%) !important;
+}
+
+.login-layout {
+  max-width: 52rem !important;
+  gap: clamp(1rem, 2vw, 1.5rem) !important;
+  animation: scholar-page-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (min-width: 1024px) {
+  .login-layout {
+    grid-template-columns: 1fr 1fr !important;
+    align-items: stretch;
+  }
+}
+
+.login-form-area {
+  align-items: center !important;
+  justify-content: center;
+}
+
+.login-glass-card,
+.scholar-auth-card {
+  width: 100% !important;
+  max-width: 28rem !important;
+  padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.375rem, 2.5vw, 1.75rem) !important;
+  border-radius: var(--scholar-radius-md) !important;
+  border: 1px solid var(--scholar-border) !important;
+  background: color-mix(in srgb, var(--scholar-card) 94%, transparent) !important;
+  box-shadow: var(--scholar-shadow-elevated) !important;
+  backdrop-filter: blur(16px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.15) !important;
+  transition: box-shadow 0.4s ease, border-color 0.3s ease;
+}
+
+.login-glass-card:hover,
+.scholar-auth-card:hover {
+  border-color: color-mix(in srgb, var(--scholar-primary) 28%, var(--scholar-border)) !important;
+}
+
+.login-glass-card__head {
+  text-align: left !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.login-glass-card__title {
+  text-align: left !important;
+  font-size: clamp(1.375rem, 2.5vw, 1.625rem) !important;
+  letter-spacing: -0.02em !important;
+  color: var(--scholar-text) !important;
+}
+
+.login-glass-card__sub {
+  text-align: left !important;
+  font-size: 0.9375rem !important;
+  color: var(--scholar-text-secondary) !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.login-brand {
+  border: 1px solid var(--scholar-border) !important;
+  background: color-mix(in srgb, var(--scholar-card) 88%, transparent) !important;
+  box-shadow: var(--scholar-shadow-card) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: var(--scholar-radius-md) !important;
+  padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.375rem, 2.5vw, 1.75rem) !important;
+}
+
+.login-brand__title {
+  color: var(--scholar-text) !important;
+}
+
+.login-brand__sub {
+  color: var(--scholar-text-secondary) !important;
+}
+
+.login-mode-tabs {
+  border: 1px solid var(--scholar-border) !important;
+  background: color-mix(in srgb, var(--scholar-surface) 80%, var(--scholar-card)) !important;
+  border-radius: 12px !important;
+}
+
+.login-mode-tabs__btn--active {
+  color: var(--scholar-primary) !important;
+}
+
+.login-mode-tabs__slider {
+  background: color-mix(in srgb, var(--scholar-primary) 12%, var(--scholar-card)) !important;
+  border: 1px solid color-mix(in srgb, var(--scholar-primary) 22%, transparent) !important;
+  box-shadow: var(--scholar-shadow-card) !important;
+}
+
+.login-glass-input {
+  min-height: 2.75rem !important;
+  border: 1px solid var(--scholar-border) !important;
+  border-radius: 10px !important;
+  background: var(--scholar-card) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.login-glass-input:focus {
+  border-color: var(--scholar-primary) !important;
+  box-shadow: var(--glass-control-focus-ring) !important;
+}
+
+.login-glass-submit,
+.login-form .landing-btn-glass {
+  width: 100%;
+  min-height: 2.875rem;
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, var(--scholar-primary), var(--scholar-primary-light)) !important;
+  border: 1px solid color-mix(in srgb, var(--scholar-primary) 35%, transparent) !important;
+  box-shadow: 0 4px 16px rgb(11 110 131 / 22%) !important;
+  font-weight: 600 !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.login-glass-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgb(11 110 131 / 28%) !important;
+}
+
+.login-form-link {
+  color: var(--scholar-primary) !important;
+}
+
+.falling-text__highlight {
+  color: var(--scholar-primary) !important;
+}
+
+.login-form-body {
+  min-height: 12rem;
+}
+
+@media (min-width: 640px) {
+  .login-code-row {
+    gap: 0.75rem;
+  }
+}

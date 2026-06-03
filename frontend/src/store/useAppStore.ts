@@ -16,6 +16,7 @@ import { persist } from "zustand/middleware";
 import type { ChatMessage, ChatSession, LearningProfile, PathStage } from "../types";
 import type { UserInfo } from "../lib/api/endpoints";
 import { defaultProfile, defaultSessions, defaultPath } from "../lib/mockData";
+import { applyTheme, THEME_STORAGE_KEY } from "../lib/theme";
 
 interface AppState {
   isLoggedIn: boolean;
@@ -31,8 +32,12 @@ interface AppState {
   pathStages: PathStage[];
   profileInitialized: boolean;
   sidebarCollapsed: boolean;
+  /** GET getProfile · avatarUrl */
+  userAvatarUrl: string | null;
+  avatarCacheVersion: number;
   setLoggedIn: (v: boolean) => void;
   setUser: (user: UserInfo | null) => void;
+  setUserAvatar: (url: string | null, bumpVersion?: boolean) => void;
   toggleDarkMode: () => void;
   setProfile: (p: Partial<LearningProfile>) => void;
   setProfileInitialized: (v: boolean) => void;
@@ -56,16 +61,24 @@ export const useAppStore = create<AppState>()(
       pathStages: defaultPath,
       profileInitialized: false,
       sidebarCollapsed: false,
+      userAvatarUrl: null,
+      avatarCacheVersion: 0,
       setLoggedIn: (v) => set({ isLoggedIn: v }),
       setUser: (user) =>
         set((s) => ({
           user,
           profile: user ? { ...s.profile, name: user.username } : s.profile,
+          userAvatarUrl: user ? s.userAvatarUrl : null,
+        })),
+      setUserAvatar: (url, bumpVersion = false) =>
+        set((s) => ({
+          userAvatarUrl: url,
+          avatarCacheVersion: bumpVersion ? s.avatarCacheVersion + 1 : s.avatarCacheVersion,
         })),
       toggleDarkMode: () =>
         set((s) => {
           const next = !s.darkMode;
-          document.documentElement.classList.toggle("dark", next);
+          applyTheme(next);
           return { darkMode: next };
         }),
       setProfile: (p) => set((s) => ({ profile: { ...s.profile, ...p } })),
@@ -95,14 +108,22 @@ export const useAppStore = create<AppState>()(
         })),
     }),
     {
-      name: "learn-platform-store",
+      name: THEME_STORAGE_KEY,
       partialize: (s) => ({
         isLoggedIn: s.isLoggedIn,
         darkMode: s.darkMode,
         profile: s.profile,
         profileInitialized: s.profileInitialized,
         pathStages: s.pathStages,
+        userAvatarUrl: s.userAvatarUrl,
       }),
+      onRehydrateStorage: () => (state, error) => {
+        if (!error && state) applyTheme(state.darkMode);
+      },
     }
   )
 );
+
+useAppStore.persist.onFinishHydration(() => {
+  applyTheme(useAppStore.getState().darkMode);
+});

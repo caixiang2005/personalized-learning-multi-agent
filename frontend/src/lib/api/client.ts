@@ -50,6 +50,10 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (!config.skipLoading) setLoading(1);
 
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
+
   const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

@@ -22,7 +22,9 @@ import {
   Filter,
   CheckCircle2,
 } from "lucide-react";
-import PageHeader from "../components/ui/PageHeader";
+import ScholarPageShell from "../components/scholar/ScholarPageShell";
+import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import ResourceTypeStrip from "../components/scholar/ResourceTypeStrip";
 import { useAppStore } from "../store/useAppStore";
 import type { MultimodalResource, ResourceType } from "../types";
 
@@ -75,17 +77,21 @@ export default function LearningPath() {
   const startLearning = () => navigate("/chat");
 
   return (
-    <div className="page-container">
-      <PageHeader
+    <ScholarPageShell>
+      <ScholarPageHeader
+        badge="资源中心"
         title="个性化学习路径"
         subtitle="数据结构期末复习 · 三阶段递进"
-        badge="资源中心"
         action={
           <button type="button" onClick={startLearning} className="btn-primary">
             <Play size={16} /> 开始学习
           </button>
         }
       />
+
+      <div className="mb-6">
+        <ResourceTypeStrip />
+      </div>
 
       <section className="section-card mb-8">
         <div className="flex justify-between text-sm mb-2">
@@ -160,7 +166,7 @@ export default function LearningPath() {
           </div>
         </div>
       ))}
-    </div>
+    </ScholarPageShell>
   );
 }
 

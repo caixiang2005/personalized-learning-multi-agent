@@ -10,7 +10,7 @@ type AuthFormCardProps = {
 
 export function AuthFormCard({ title, subtitle, children, footer, tip }: AuthFormCardProps) {
   return (
-    <div className="login-glass-card landing-glass-card landing-enter">
+    <div className="login-glass-card scholar-auth-card landing-enter">
       <header className="login-glass-card__head">
         <h2 className="login-glass-card__title">{title}</h2>
         <p className="login-glass-card__sub">{subtitle}</p>

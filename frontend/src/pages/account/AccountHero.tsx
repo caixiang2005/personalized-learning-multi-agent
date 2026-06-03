@@ -1,7 +1,7 @@
 import { Calendar, Mail } from "lucide-react";
 import FadeInView from "../../components/motion/FadeInView";
 import UserAvatar from "../../components/account/UserAvatar";
-import type { UserProfileDto } from "../../types/account";
+import type { AccountProfileView } from "../../types/account";
 
 function formatDate(raw: string | null) {
   if (!raw) return "—";
@@ -11,22 +11,25 @@ function formatDate(raw: string | null) {
 }
 
 type Props = {
-  profile: UserProfileDto;
+  profile: AccountProfileView;
+  avatarVersion?: number;
 };
 
-export default function AccountHero({ profile }: Props) {
+export default function AccountHero({ profile, avatarVersion = 0 }: Props) {
   return (
     <FadeInView parallax={4}>
       <section className="account-hero landing-glass-card">
         <div className="account-hero__main">
           <UserAvatar
             userId={profile.userId}
-            displayName={profile.displayName}
+            displayName={profile.nickname ?? profile.username}
             username={profile.username}
+            avatarUrl={profile.avatarUrl}
+            avatarVersion={avatarVersion}
             size="lg"
           />
           <div className="account-hero__info">
-            <h1 className="account-hero__name">{profile.displayName || profile.username}</h1>
+            <h1 className="account-hero__name">{profile.nickname || profile.username}</h1>
             <p className="account-hero__username">@{profile.username}</p>
             <p className="account-hero__meta">
               <Mail size={14} strokeWidth={1.75} />
@@ -38,7 +41,7 @@ export default function AccountHero({ profile }: Props) {
             </p>
           </div>
         </div>
-        <p className="account-hero__avatar-tip">默认头像为昵称首字母，头像上传功能预留中</p>
+        <p className="account-hero__avatar-tip">点击个人信息页可上传或更换头像</p>
       </section>
     </FadeInView>
   );

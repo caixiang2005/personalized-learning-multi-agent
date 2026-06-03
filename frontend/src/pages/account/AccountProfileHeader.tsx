@@ -1,6 +1,6 @@
 import { Calendar, Mail, Pencil } from "lucide-react";
 import UserAvatar from "../../components/account/UserAvatar";
-import type { UserProfileDto } from "../../types/account";
+import type { AccountProfileView } from "../../types/account";
 
 function formatDate(raw: string | null) {
   if (!raw) return "—";
@@ -10,28 +10,32 @@ function formatDate(raw: string | null) {
 }
 
 type Props = {
-  profile: UserProfileDto;
+  profile: AccountProfileView;
   editing: boolean;
   onEdit: () => void;
+  avatarVersion?: number;
 };
 
-export default function AccountProfileHeader({ profile, editing, onEdit }: Props) {
-  const educationHint =
-    profile.major.trim() || profile.goal.trim()
-      ? `${profile.major || "未填写专业"} · ${profile.goal || "未填写目标"}`
-      : "未填写学习背景，点击编辑完善资料";
+export default function AccountProfileHeader({ profile, editing, onEdit, avatarVersion = 0 }: Props) {
+  const educationHint = profile.major?.trim()
+    ? profile.major
+    : profile.signature?.trim()
+      ? profile.signature
+      : "未填写专业或签名，点击编辑完善资料";
 
   return (
     <section className="account-profile-head landing-glass-card">
       <div className="account-profile-head__main">
         <UserAvatar
           userId={profile.userId}
-          displayName={profile.displayName}
+          displayName={profile.nickname ?? profile.username}
           username={profile.username}
+          avatarUrl={profile.avatarUrl}
+          avatarVersion={avatarVersion}
           size="lg"
         />
         <div className="account-profile-head__info">
-          <h1 className="account-profile-head__name">{profile.displayName || profile.username}</h1>
+          <h1 className="account-profile-head__name">{profile.nickname || profile.username}</h1>
           <p className="account-profile-head__username">@{profile.username}</p>
           <p className="account-profile-head__meta">{educationHint}</p>
           <div className="account-profile-head__tags">

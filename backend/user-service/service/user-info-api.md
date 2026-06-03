@@ -1,6 +1,6 @@
 # 个人信息接口文档（user_info_api）
 
-> 依据 `user-api/user_info_api.py` 与 `utils/user_info.py` 当前实现整理。  
+> 依据 `api/user_info.py` 与 `utils/user_info.py` 当前实现整理。  
 > **端口**：`8001` · **联调速览**：[user-info-handoff.md](./user-info-handoff.md)
 
 ---

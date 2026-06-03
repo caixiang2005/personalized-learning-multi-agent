@@ -23,7 +23,8 @@ import {
   Legend,
 } from "recharts";
 import { AlertTriangle, Lightbulb, Clock, Activity } from "lucide-react";
-import PageHeader from "../components/ui/PageHeader";
+import ScholarPageShell from "../components/scholar/ScholarPageShell";
+import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
 import ProfileRadar from "../components/charts/ProfileRadar";
 import ActivityHeatmap from "../components/charts/ActivityHeatmap";
 import { analyticsData } from "../lib/mockData";
@@ -44,11 +45,11 @@ export default function Analytics() {
   const [range, setRange] = useState("近 7 天");
 
   return (
-    <div className="page-container">
-      <PageHeader
+    <ScholarPageShell>
+      <ScholarPageHeader
+        badge="加分功能"
         title="学习效果评估"
         subtitle="可视化学习数据，辅助调整学习方案"
-        badge="加分功能"
         action={
           <div className="flex gap-2">
             {ranges.map((r) => (
@@ -77,7 +78,7 @@ export default function Analytics() {
               <XAxis dataKey="day" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Bar dataKey="hours" fill="#165DFF" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="hours" fill="var(--scholar-primary)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -90,7 +91,7 @@ export default function Analytics() {
               <XAxis dataKey="week" tick={{ fontSize: 11 }} />
               <YAxis domain={[50, 100]} tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Line type="monotone" dataKey="rate" stroke="#36D399" strokeWidth={2} dot={{ fill: "#36D399" }} />
+              <Line type="monotone" dataKey="rate" stroke="var(--scholar-accent-cool)" strokeWidth={2} dot={{ fill: "var(--scholar-accent-cool)" }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -105,7 +106,7 @@ export default function Analytics() {
               <Tooltip />
               <Legend />
               <Bar dataKey="before" fill="#94a3b8" name="之前" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="after" fill="#165DFF" name="现在" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="after" fill="var(--scholar-primary)" name="现在" radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -176,6 +177,6 @@ export default function Analytics() {
           ))}
         </ul>
       </section>
-    </div>
+    </ScholarPageShell>
   );
 }

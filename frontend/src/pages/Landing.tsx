@@ -119,29 +119,14 @@ export default function Landing() {
       </header>
 
       <div className="landing-layout">
-        <aside className="landing-side landing-side--left" aria-hidden>
-          <p className="landing-side__title">多智能体</p>
-          {sideAgents.map((a, i) => (
-            <div key={a.label} className="landing-side-chip landing-glass landing-enter" style={{ animationDelay: `${i * 80}ms` }}>
-              <span className="landing-icon-glass landing-icon-glass--sm">
-                <a.icon size={17} strokeWidth={1.75} />
-              </span>
-              <div>
-                <p className="landing-side-chip__label">{a.label}</p>
-                <p className="landing-side-chip__desc">{a.desc}</p>
-              </div>
-            </div>
-          ))}
-        </aside>
-
         <main className="landing-page">
           <LandingReveal as="section" className="landing-hero landing-hero--motion">
             <div className="landing-hero__main landing-hero__parallax" style={heroMainStyle}>
               <h1 className="landing-hero__title landing-hero__title--plain">
-                AI 驱动的个性化学习平台
+                高等教育 · 个性化学习多智能体系统
               </h1>
               <p className="landing-hero__desc">
-                面向高校与自学场景，通过多智能体协同完成画像构建、资源生成、路径规划与学习评估。登录后进入完整学习系统。
+                专业学术科技风 AI 教育平台：对话式 6 维画像、五类资源协同生成、智能路径推送与学习效果评估。
               </p>
               <div className="landing-hero__actions">
                 <Link to="/login" className="landing-btn-glass landing-hero__cta-primary landing-hero__cta-shimmer">
@@ -244,9 +229,28 @@ export default function Landing() {
 
           <LandingFaq />
         </main>
+
+        <aside className="landing-side landing-side--right" aria-label="多智能体能力">
+          <p className="landing-side__title">多智能体</p>
+          {sideAgents.map((a, i) => (
+            <div
+              key={a.label}
+              className="landing-side-chip landing-glass landing-enter"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <span className="landing-icon-glass landing-icon-glass--sm">
+                <a.icon size={17} strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="landing-side-chip__label">{a.label}</p>
+                <p className="landing-side-chip__desc">{a.desc}</p>
+              </div>
+            </div>
+          ))}
+        </aside>
       </div>
 
-      <GuestAssistantFab onClick={() => setChatOpen(true)} active={chatOpen} />
+      <GuestAssistantFab onClick={() => setChatOpen((open) => !open)} active={chatOpen} />
       <GuestChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   );
