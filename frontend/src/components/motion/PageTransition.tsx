@@ -1,5 +1,5 @@
 /**
- * 路由级页面切换转场（Framer Motion）
+ * 路由级页面切换（轻量淡入，避免与 scholar-page 动画叠加）
  */
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Outlet, useLocation } from "react-router-dom";
@@ -18,10 +18,10 @@ export default function PageTransition() {
     <AnimatePresence mode="wait">
       <motion.div
         key={location.pathname}
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.38, ease }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.22, ease }}
         className="min-h-0"
       >
         <Outlet />

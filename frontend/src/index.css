@@ -8,6 +8,7 @@
 @import "./styles/scholar-design-system.css";
 @import "./styles/scholar-motion.css";
 @import "./styles/scholar-auth.css";
+@import "./styles/scholar-polish.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -57,14 +58,6 @@
   }
 }
 
-:root {
-  /* canonical tokens → scholar-tokens.css */
-}
-
-.dark {
-  /* canonical tokens → scholar-tokens.css */
-}
-
 html,
 body,
 #root {
@@ -72,6 +65,11 @@ body,
   width: 100%;
   margin: 0;
   padding: 0;
+}
+
+html {
+  /* 避免切换页面时滚动条显隐导致内容区左右位移 */
+  scrollbar-gutter: stable;
 }
 
 body {

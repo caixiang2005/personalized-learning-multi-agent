@@ -106,6 +106,7 @@ export const defaultPath: PathStage[] = [
         progress: 10,
         resources: [
           { id: "r8", type: "mindmap", title: "BFS/DFS 对比导图", description: "算法选择指南", status: "todo" },
+          
           { id: "r9", type: "video", title: "最短路算法入门", description: "Dijkstra 讲解", status: "todo" },
         ],
       },

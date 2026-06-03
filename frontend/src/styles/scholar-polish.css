@@ -1,0 +1,378 @@
+/**
+ * Scholar · 全局视觉精修（仅样式，不改结构与逻辑）
+ * 覆盖：Home / Chat / Profile / DailyPlan / Scan / LearningPath / Analytics
+ */
+
+/* —— Mesh 肌理与衬底 —— */
+.app-mesh::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 75% at 50% 18%, transparent 42%, color-mix(in srgb, var(--scholar-surface) 18%, transparent) 100%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, color-mix(in srgb, var(--scholar-primary) 6%, transparent), transparent 55%),
+    radial-gradient(ellipse 50% 45% at 0% 80%, color-mix(in srgb, var(--scholar-accent) 5%, transparent), transparent 50%);
+}
+
+.app-mesh__grain {
+  opacity: 0.052 !important;
+  z-index: 2;
+  mix-blend-mode: multiply;
+}
+
+.dark .app-mesh__grain {
+  opacity: 0.035 !important;
+  mix-blend-mode: soft-light;
+}
+
+.app-mesh__orb {
+  opacity: 0.4 !important;
+  filter: blur(72px) saturate(1.1) !important;
+}
+
+.app-mesh__orb--3 {
+  opacity: 0.28 !important;
+}
+
+.app-mesh__grid {
+  opacity: 0.28 !important;
+}
+
+.app-page-scrim {
+  background: color-mix(in srgb, var(--scholar-surface) 78%, transparent) !important;
+  backdrop-filter: blur(8px) saturate(1.08) !important;
+}
+
+.dark .app-page-scrim {
+  background: color-mix(in srgb, var(--scholar-surface) 86%, transparent) !important;
+}
+
+/* —— 页面留白与节奏 —— */
+.page-container.scholar-page {
+  padding-top: clamp(1.75rem, 3.5vw, 2.75rem);
+  padding-bottom: clamp(2.75rem, 5vw, 4.5rem);
+  padding-left: clamp(1rem, 2.5vw, 1.75rem);
+  padding-right: clamp(1rem, 2.5vw, 1.75rem);
+}
+
+.scholar-page-header {
+  margin-bottom: clamp(1.5rem, 3vw, 2.25rem);
+  padding-bottom: 0.25rem;
+}
+
+.scholar-page-header__title {
+  text-wrap: balance;
+}
+
+.scholar-stagger > * {
+  margin-bottom: 0;
+}
+
+.scholar-stagger > * + * {
+  margin-top: 0;
+}
+
+/* —— 卡片质感（内高光 + 悬停） —— */
+.scholar-card,
+.page-container.scholar-page .section-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.75) inset,
+    var(--scholar-shadow-card) !important;
+}
+
+.scholar-card::after,
+.page-container.scholar-page .section-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(
+    165deg,
+    rgb(255 255 255 / 0.55) 0%,
+    transparent 42%,
+    transparent 100%
+  );
+  opacity: 0.9;
+  z-index: 0;
+}
+
+.dark .scholar-card::after,
+.dark .page-container.scholar-page .section-card::after {
+  background: linear-gradient(165deg, rgb(255 255 255 / 0.07) 0%, transparent 45%);
+  opacity: 1;
+}
+
+.scholar-card > *,
+.page-container.scholar-page .section-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.scholar-card:hover,
+.page-container.scholar-page .section-card:hover,
+.scholar-cap-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.8) inset,
+    var(--scholar-shadow-elevated) !important;
+  border-color: color-mix(in srgb, var(--scholar-primary) 28%, var(--scholar-border)) !important;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px) !important;
+}
+
+/* —— 能力矩阵 / 维度卡片 —— */
+.scholar-cap-card {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    var(--scholar-shadow-card) !important;
+}
+
+.scholar-page .grid.gap-3 .scholar-card,
+.scholar-page .grid.gap-6 .scholar-card {
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.3s ease;
+}
+
+/* —— 芯片 / 按钮微动效 —— */
+.chip {
+  transition:
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    background 0.22s ease,
+    color 0.22s ease,
+    box-shadow 0.22s ease !important;
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgb(11 110 131 / 10%) !important;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.99) !important;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--scholar-primary) 5%, var(--scholar-card)) !important;
+  transform: translateY(-1px);
+}
+
+/* —— 玻璃面板去遗留蓝影 —— */
+.glass-panel {
+  box-shadow:
+    0 4px 20px rgb(11 110 131 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 0.72) !important;
+  border-color: var(--scholar-border) !important;
+}
+
+.dark .glass-panel {
+  box-shadow:
+    0 4px 24px rgb(0 0 0 / 22%),
+    inset 0 1px 0 rgb(255 255 255 / 0.08) !important;
+}
+
+/* —— 进度条 —— */
+.progress-bar {
+  background: color-mix(in srgb, var(--scholar-primary) 12%, var(--scholar-border)) !important;
+  border-radius: 9999px !important;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  border-radius: inherit !important;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--scholar-primary) 35%, transparent);
+}
+
+.scholar-stream-bar {
+  height: 4px !important;
+}
+
+/* —— Scholar 页面内文案色统一 —— */
+.scholar-page .text-gray-900,
+.scholar-page .text-gray-800 {
+  color: var(--scholar-text) !important;
+}
+
+.scholar-page .text-gray-700,
+.scholar-page .text-gray-600 {
+  color: var(--scholar-text-secondary) !important;
+}
+
+.scholar-page .text-gray-500,
+.scholar-page .text-gray-400 {
+  color: var(--scholar-text-muted) !important;
+}
+
+.scholar-page .text-violet-600 {
+  color: var(--scholar-primary-light) !important;
+}
+
+/* —— Analytics 图表区 —— */
+.scholar-page .section-card .recharts-cartesian-grid line {
+  stroke: color-mix(in srgb, var(--scholar-border) 80%, transparent) !important;
+}
+
+.scholar-page .section-card .recharts-text {
+  fill: var(--scholar-text-muted) !important;
+  font-size: 11px;
+}
+
+.scholar-page .section-card ul li button:hover {
+  background: color-mix(in srgb, var(--scholar-primary) 8%, transparent) !important;
+  border-radius: 12px;
+}
+
+/* —— LearningPath 阶段卡 / 资源卡 —— */
+.scholar-page .section-card.ring-2 {
+  transform: translateY(-2px);
+  box-shadow: var(--scholar-shadow-elevated) !important;
+}
+
+.scholar-page .section-card .rounded-xl.border {
+  border-color: var(--scholar-border) !important;
+  background: color-mix(in srgb, var(--scholar-card) 92%, transparent) !important;
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease !important;
+}
+
+.scholar-page .section-card .rounded-xl.border:hover {
+  border-color: color-mix(in srgb, var(--scholar-primary) 25%, var(--scholar-border)) !important;
+  box-shadow: 0 6px 20px rgb(11 110 131 / 10%) !important;
+}
+
+/* —— Scan 上传区 —— */
+.scholar-card [role="button"][aria-label*="上传"] {
+  transition:
+    border-color 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.35s ease !important;
+}
+
+.scholar-card [role="button"][aria-label*="上传"]:hover {
+  background: color-mix(in srgb, var(--scholar-primary) 6%, var(--scholar-card)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--scholar-primary) 18%, transparent) !important;
+}
+
+.scholar-card [role="button"][aria-label*="上传"]:focus-visible {
+  outline: 2px solid var(--scholar-primary);
+  outline-offset: 2px;
+}
+
+/* —— Profile 雷达容器 —— */
+.scholar-page .grid.lg\:grid-cols-2 > .scholar-card:first-child {
+  padding: clamp(1.25rem, 2.5vw, 1.75rem) !important;
+}
+
+/* —— Home 画像回复区 / 快捷入口 —— */
+.scholar-page .scholar-card .markdown-body {
+  line-height: 1.65;
+  color: var(--scholar-text-secondary);
+}
+
+.scholar-page .home-flowing__menu {
+  padding: 0.25rem 0;
+}
+
+/* —— Chat 全页（独立布局） —— */
+.scholar-chat-page aside {
+  background: color-mix(in srgb, var(--scholar-card) 78%, transparent) !important;
+  border-color: var(--scholar-border) !important;
+  backdrop-filter: blur(16px) saturate(1.12) !important;
+  box-shadow: 4px 0 24px rgb(11 110 131 / 6%) !important;
+}
+
+.dark .scholar-chat-page aside {
+  box-shadow: 4px 0 28px rgb(0 0 0 / 25%) !important;
+}
+
+.scholar-chat-page .border-gray-200\/80,
+.scholar-chat-page .border-gray-700\/80 {
+  border-color: var(--scholar-border) !important;
+}
+
+.scholar-chat-page .text-gray-400 {
+  color: var(--scholar-text-muted) !important;
+  letter-spacing: 0.04em;
+}
+
+.scholar-chat-page .text-gray-700,
+.scholar-chat-page .text-gray-600 {
+  color: var(--scholar-text-secondary) !important;
+}
+
+.scholar-chat-page .text-gray-800,
+.scholar-chat-page .text-gray-200 {
+  color: var(--scholar-text) !important;
+}
+
+.scholar-chat-page button.rounded-xl {
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.2s ease,
+    color 0.2s ease !important;
+}
+
+.scholar-chat-page button.rounded-xl:hover:not(.bg-primary\/10) {
+  transform: translateX(2px);
+}
+
+.scholar-chat-page .bg-primary\/10 {
+  background: color-mix(in srgb, var(--scholar-primary) 12%, transparent) !important;
+  border-color: color-mix(in srgb, var(--scholar-primary) 22%, transparent) !important;
+}
+
+.scholar-chat-page .bg-gradient-to-br.from-primary\/10 {
+  background: color-mix(in srgb, var(--scholar-primary) 8%, var(--scholar-card)) !important;
+  border-color: color-mix(in srgb, var(--scholar-primary) 16%, transparent) !important;
+  border-radius: 12px !important;
+}
+
+.scholar-chat-page .scholar-card {
+  margin-bottom: 1rem;
+}
+
+.scholar-chat-page .border-t.border-gray-200\/80 {
+  background: color-mix(in srgb, var(--scholar-card) 88%, transparent) !important;
+  backdrop-filter: blur(14px) saturate(1.1) !important;
+}
+
+/* —— 页头徽章 —— */
+.scholar-page-header__badge {
+  box-shadow: 0 1px 4px rgb(11 110 131 / 8%);
+}
+
+/* —— 资源类型条 —— */
+.scholar-resource-pill {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.scholar-resource-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgb(11 110 131 / 8%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scholar-card:hover,
+  .page-container.scholar-page .section-card:hover,
+  .scholar-cap-card:hover,
+  .chip:hover,
+  .btn-secondary:hover:not(:disabled),
+  .scholar-chat-page button.rounded-xl:hover,
+  .scholar-resource-pill:hover,
+  .card-hover:hover {
+    transform: none !important;
+  }
+}
