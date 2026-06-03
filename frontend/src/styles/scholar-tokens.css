@@ -13,8 +13,8 @@
   --scholar-text-muted: #7a8fa3;
   --scholar-border: #d4dee6;
   --scholar-radius-md: 14px;
-  --scholar-shadow-card: 0 1px 2px rgb(12 18 34 / 5%), 0 4px 16px rgb(12 18 34 / 4%);
-  --scholar-shadow-elevated: 0 12px 40px rgb(11 110 131 / 14%);
+  --scholar-shadow-card: 0 1px 0 rgb(255 255 255 / 0.75) inset, 0 1px 3px rgb(12 18 34 / 5%), 0 6px 20px rgb(11 110 131 / 7%);
+  --scholar-shadow-elevated: 0 1px 0 rgb(255 255 255 / 0.65) inset, 0 12px 40px rgb(11 110 131 / 14%), 0 4px 12px rgb(12 18 34 / 6%);
 
   --color-primary: #0b6e83;
   --color-accent: #c27803;

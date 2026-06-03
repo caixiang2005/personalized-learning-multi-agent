@@ -138,7 +138,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="relative flex h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] pb-14 md:pb-0">
+    <div className="scholar-chat-page relative flex h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] pb-14 md:pb-0">
       <aside
         className={`${
           sidebarCollapsed ? "w-0 overflow-hidden border-0" : "w-72 lg:w-80"

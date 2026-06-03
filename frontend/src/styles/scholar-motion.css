@@ -16,11 +16,11 @@
 @keyframes scholar-stagger-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.985);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -65,12 +65,13 @@
   }
 }
 
+/* 页面容器不再单独做位移动画，由 PageTransition 统一淡入，避免「抖两下」 */
 .scholar-page {
-  animation: scholar-page-in 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: none;
 }
 
 .scholar-stagger > * {
-  animation: scholar-stagger-in 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: scholar-stagger-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .scholar-stagger > *:nth-child(1) { animation-delay: 0.04s; }
@@ -79,6 +80,10 @@
 .scholar-stagger > *:nth-child(4) { animation-delay: 0.16s; }
 .scholar-stagger > *:nth-child(5) { animation-delay: 0.2s; }
 .scholar-stagger > *:nth-child(6) { animation-delay: 0.24s; }
+.scholar-stagger > *:nth-child(7) { animation-delay: 0.28s; }
+.scholar-stagger > *:nth-child(8) { animation-delay: 0.32s; }
+.scholar-stagger > *:nth-child(9) { animation-delay: 0.36s; }
+.scholar-stagger > *:nth-child(10) { animation-delay: 0.4s; }
 
 .scholar-card--interactive {
   transition:
