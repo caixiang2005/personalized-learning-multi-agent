@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from api.unlogin import router as unlogin_router
+from api.chat import router as chat_router
 from services.logger import capture_exception
 
 
@@ -16,6 +17,9 @@ app = FastAPI(lifespan=lifespan)
 
 # 未登录用户对话接口
 app.include_router(unlogin_router)
+
+# 登录用户知识库聊天接口
+app.include_router(chat_router)
 
 
 @app.exception_handler(Exception)
