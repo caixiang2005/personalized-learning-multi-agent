@@ -24,6 +24,17 @@ export function getAgentSessionId(): string {
   return pageSessionId;
 }
 
+/** 切换到已有 session（历史对话） */
+export function setAgentSessionId(sessionId: string): void {
+  pageSessionId = sessionId;
+}
+
+/** 开启新对话：生成新 UUID 并返回 */
+export function resetAgentSessionId(): string {
+  pageSessionId = crypto.randomUUID();
+  return pageSessionId;
+}
+
 export interface AgentChatResult {
   reply: string;
   /** 网络/服务异常时为 true */
