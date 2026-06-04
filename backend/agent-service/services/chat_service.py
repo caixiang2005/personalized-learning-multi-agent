@@ -102,6 +102,60 @@ async def search_knowledge(query_vec: list[float]) -> list[dict]:
     return await loop.run_in_executor(None, _sync_search)
 
 
+# ── 视频资源检索 ──
+
+TOP_K_VIDEO = 3
+
+
+async def search_videos(query_vec: list[float]) -> list[dict]:
+    """从 video_resources 召回 top-3 相关视频"""
+    loop = asyncio.get_event_loop()
+
+    def _sync_search():
+        import psycopg2
+        from pgvector.psycopg2 import register_vector
+        conn = psycopg2.connect(
+            host=os.environ.get("PG_HOST", "127.0.0.1"),
+            port=int(os.environ.get("PG_PORT", "5432")),
+            user=os.environ.get("PG_USER", "postgres"),
+            password=os.environ.get("PG_PASSWORD", ""),
+            dbname=os.environ.get("PG_DATABASE", "postgres"),
+        )
+        register_vector(conn)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT title, url, author, play_count, duration_seconds,
+                   category, sub_module
+            FROM video_resources
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+        """, (query_vec, TOP_K_VIDEO))
+        cols = [desc[0] for desc in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return rows
+
+    return await loop.run_in_executor(None, _sync_search)
+
+
+def build_video_context(videos: list[dict]) -> str:
+    """将视频列表格式化为 AI 可读的推荐上下文"""
+    if not videos:
+        return ""
+    parts = []
+    for i, v in enumerate(videos, 1):
+        play = v.get("play_count", 0)
+        play_str = f"{play / 10000:.1f}万" if play > 10000 else str(play)
+        dur = v.get("duration_seconds", 0)
+        dur_str = f"{dur // 60}分钟" if dur > 0 else ""
+        parts.append(
+            f"[{i}] [{v['title']}]({v['url']})\n"
+            f"    UP主：{v['author']} | 播放：{play_str} {dur_str}"
+        )
+    return "\n\n".join(parts)
+
+
 # ── 对话历史 ──
 
 async def load_history(session_id: str) -> list:
@@ -149,13 +203,17 @@ async def get_knowledge_reply(
         await log_error("CONFIG_ERROR", "DEEPSEEK_API_KEY 未配置", session_id)
         return "服务配置错误，请联系管理员。"
 
-    # 1. 检索相关知识
+    # 1. 检索相关知识 + 视频
     try:
         query_vec = await embed_text(user_input)
-        chunks = await search_knowledge(query_vec)
+        chunks, videos = await asyncio.gather(
+            search_knowledge(query_vec),
+            search_videos(query_vec),
+        )
     except Exception as e:
-        await capture_exception(e, session_id, "知识库检索失败")
+        await capture_exception(e, session_id, "检索失败")
         chunks = []
+        videos = []
 
     # 2. 加载历史
     try:
@@ -166,9 +224,12 @@ async def get_knowledge_reply(
 
     # 3. 构建上下文
     context = build_context(chunks)
+    video_ctx = build_video_context(videos)
     system_prompt = KNOWLEDGE_CHAT_PROMPT
     if context:
         system_prompt += f"\n\n## 本次检索到的知识上下文\n{context}"
+    if video_ctx:
+        system_prompt += f"\n\n## 相关视频资源推荐\n{video_ctx}"
     if not chunks:
         system_prompt += "\n\n【注意】本次未检索到相关知识库内容，请用你自己的知识回答，并告知用户。"
 
