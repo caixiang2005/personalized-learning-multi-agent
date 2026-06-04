@@ -6,6 +6,7 @@
 """
 
 import asyncio
+import re
 import os
 
 from dotenv import load_dotenv
@@ -191,6 +192,21 @@ def build_context(chunks: list[dict]) -> str:
     return "\n\n---\n\n".join(parts)
 
 
+# ── 修复 AI 回复中的 markdown 链接换行问题 ──
+
+def fix_markdown_links(text: str) -> str:
+    """将跨行 markdown 链接合并为单行：
+       [text](
+       url)  →  [text](url)
+    """
+    text = re.sub(r'\[\s*([^\]]*?)\s*\]\s*\(\s*\n+\s*(https?://[^\s)]+)\s*\)',
+                  r'[\1](\2)', text)
+    # 同时 fix 加粗版：**[text]( 的情况
+    text = re.sub(r'\*+\s*\[\s*([^\]]*?)\s*\]\s*\(\s*\n+\s*(https?://[^\s)]+)\s*\)',
+                  r'**[\1](\2)', text)
+    return text
+
+
 # ── 主流程：接收问题 → 检索 → 生成回答 ──
 
 async def get_knowledge_reply(
@@ -248,6 +264,7 @@ async def get_knowledge_reply(
             max_tokens=2048,
         )
         reply = resp.choices[0].message.content or ""
+        reply = fix_markdown_links(reply)
     except Exception as e:
         await capture_exception(e, session_id, "DeepSeek API 调用失败")
         return "抱歉，系统繁忙，请稍后再试。"
