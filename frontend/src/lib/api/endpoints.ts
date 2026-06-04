@@ -119,9 +119,11 @@ export const API = {
     check: `${API_BASE}/safety/check`,
   },
 
-  /** 未登录访客 Agent（agent-service :8003） */
+  /** Agent 对话（agent-service :8003） */
   agent: {
-    /** POST { user_input, session_id } → { code, msg, data: { ai_reply } } */
+    /** POST 登录用户知识库对话 { user_input, session_id } → { ai_reply: Markdown } */
+    chat: `${API_BASE}/agent/chat`,
+    /** POST 未登录访客体验 */
     unloginChat: `${API_BASE}/agent/unlogin/chat`,
   },
 } as const;
@@ -134,11 +136,14 @@ export interface StreamChunk {
   progress?: number;
 }
 
-/** 未登录 Agent 对话响应 */
-export interface UnloginChatResponse {
+/** Agent 对话响应（登录 / 未登录结构一致） */
+export interface AgentChatResponse {
   code: number;
   msg: string;
   data: {
     ai_reply: string;
-  };
+  } | null;
 }
+
+/** @deprecated 使用 AgentChatResponse */
+export type UnloginChatResponse = AgentChatResponse;
