@@ -107,7 +107,7 @@ export async function sendGuestMessage(
 
   try {
     const json = await requestUnloginChat(userInput, sessionId);
-    const reply = json.data.ai_reply;
+    const reply = json.data!.ai_reply;
     return finish(reply);
   } catch {
     const fallback = pickMockReply(userInput, userRound);

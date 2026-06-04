@@ -448,10 +448,12 @@ a {
     border-radius: 0.25rem;
     font-size: 0.875rem;
     font-family: ui-monospace, monospace;
+    color: #1d2129;
   }
 
   .dark .markdown-body code {
     background: #1f2937;
+    color: #e5e7eb;
   }
 
   .markdown-body pre {
@@ -462,6 +464,25 @@ a {
     overflow-x: auto;
     margin: 0.75rem 0;
     font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .markdown-body pre code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+    font-size: inherit;
+  }
+
+  .dark .markdown-body pre {
+    background: #111827;
+    color: #f3f4f6;
+  }
+
+  .dark .markdown-body pre code {
+    background: transparent;
+    color: inherit;
   }
 
   .skeleton {
