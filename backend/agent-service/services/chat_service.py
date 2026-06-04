@@ -59,7 +59,7 @@ def _get_embedder() -> SentenceTransformer:
 
 async def embed_text(text: str) -> list[float]:
     model = _get_embedder()
-    vec = model.encode(text, normalize_embeddings=True)
+    vec = model.encode(text, normalize_embeddings=True, show_progress_bar=False)
     return vec.tolist()
 
 
