@@ -9,6 +9,10 @@ import asyncio
 import re
 import os
 
+# ── 防止 HuggingFace 联网超时阻塞事件循环 ──
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from sentence_transformers import SentenceTransformer
@@ -47,20 +51,28 @@ def _key(session_id: str) -> str:
     return f"{_KEY_PREFIX}{session_id}"
 
 
-# ── 加载 embedding 模型 ──
+# ── 加载 embedding 模型（异步，不阻塞事件循环） ──
 
-def _get_embedder() -> SentenceTransformer:
+async def _get_embedder_async() -> SentenceTransformer:
+    """线程池中加载模型，避免阻塞 asyncio 事件循环。"""
     global _embed_model
     if _embed_model is None:
-        _embed_model = SentenceTransformer(EMBED_MODEL_NAME)
+        loop = asyncio.get_event_loop()
+        _embed_model = await loop.run_in_executor(
+            None, SentenceTransformer, EMBED_MODEL_NAME
+        )
     return _embed_model
 
 
-# ── 向量化 ──
+# ── 向量化（异步） ──
 
 async def embed_text(text: str) -> list[float]:
-    model = _get_embedder()
-    vec = model.encode(text, normalize_embeddings=True, show_progress_bar=False)
+    model = await _get_embedder_async()
+    loop = asyncio.get_event_loop()
+    vec = await loop.run_in_executor(
+        None,
+        lambda: model.encode(text, normalize_embeddings=True, show_progress_bar=False),
+    )
     return vec.tolist()
 
 

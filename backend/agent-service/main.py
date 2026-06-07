@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -10,6 +11,12 @@ from services.logger import capture_exception
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 启动时预加载 embedding 模型（避免第一个请求卡死事件循环）
+    try:
+        from services.chat_service import _get_embedder_async
+        await asyncio.wait_for(_get_embedder_async(), timeout=120)
+    except Exception as e:
+        print(f"[WARN] 预加载 embedding 模型失败（不影响业务，请求时会重试）: {e}")
     yield
 
 
