@@ -1,16 +1,18 @@
 /**
  * @file Chat.tsx
- * @description 登录后学习对话。
+ * @description 登录后学习对话：对接 agent-service POST /api/agent/chat。
  * @route /chat
- * @backend
- *   - 发消息：agent-service POST /api/agent/chat（Redis 多轮上下文，当前暂存约 2h，非最终方案）
- *   - 历史列表/消息：学习服务 GET /api/chat/sessions（队长规划，待完善）
+ * @backend agent-service :8003 · { user_input, session_id } → { ai_reply: Markdown }
  */
 
 import { useRef, useEffect, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  Search,
+  Map,
+  ClipboardList,
+  GitBranch,
   Paperclip,
   Send,
   PanelLeft,
@@ -20,11 +22,9 @@ import {
   Shield,
 } from "lucide-react";
 import MessageBubble from "../components/chat/MessageBubble";
-import ChatSidebar from "../components/chat/ChatSidebar";
 import PageHeader from "../components/ui/PageHeader";
 import ResourceTypeStrip from "../components/scholar/ResourceTypeStrip";
 import { useAppStore } from "../store/useAppStore";
-import { useChatSessionManager } from "../hooks/useChatSessionManager";
 import { checkSensitiveInput } from "../lib/stream";
 import { sendAgentMessage, getAgentSessionId } from "../lib/agentChat";
 import type { ChatMessage } from "../types";
@@ -45,36 +45,27 @@ const welcomeMsg: ChatMessage = {
 };
 
 export default function Chat() {
-  const { profile, sidebarCollapsed, toggleSidebar } = useAppStore();
-  const course = profile.major || "学习对话";
-
   const {
-    sessions,
-    activeSessionId,
     messages,
-    setMessages,
-    historySource,
-    historyLoading,
-    messagesLoading,
-    sessionTick,
-    handleNewChat,
-    handleSelectSession,
-    handleSearch,
-    persistCurrentDraft,
-  } = useChatSessionManager({ course });
-
+    addMessage,
+    updateMessage,
+    sessions,
+    profile,
+    sidebarCollapsed,
+    toggleSidebar,
+  } = useAppStore();
   const [input, setInput] = useState("");
-  const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("");
+  const [activeSession, setActiveSession] = useState("1");
   const [usedFallback, setUsedFallback] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const displayMessages = messages.length ? messages : [welcomeMsg];
-  const showQuickCmds = messages.length === 0;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [displayMessages, loading, messagesLoading]);
+  }, [displayMessages, loading]);
 
   const sendMessage = async (text: string) => {
     const trimmed = text.trim();
@@ -82,56 +73,39 @@ export default function Chat() {
 
     const sensitive = checkSensitiveInput(trimmed);
     if (sensitive) {
-      const next: ChatMessage[] = [
-        ...messages,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: sensitive,
-          timestamp: Date.now(),
-        },
-      ];
-      setMessages(next);
-      persistCurrentDraft(next);
+      addMessage({
+        id: `err-${Date.now()}`,
+        role: "assistant",
+        content: sensitive,
+        timestamp: Date.now(),
+      });
       return;
     }
 
-    const userMsg: ChatMessage = {
+    addMessage({
       id: `u-${Date.now()}`,
       role: "user",
       content: trimmed,
       timestamp: Date.now(),
-    };
-    const nextAfterUser = [...messages, userMsg];
-    setMessages(nextAfterUser);
+    });
     setInput("");
     setLoading(true);
 
     const assistantId = `a-${Date.now()}`;
-    const withAssistant: ChatMessage[] = [
-      ...nextAfterUser,
-      {
-        id: assistantId,
-        role: "assistant",
-        content: "",
-        streaming: true,
-        verified: true,
-        timestamp: Date.now(),
-      },
-    ];
-    setMessages(withAssistant);
-
-    const result = await sendAgentMessage(trimmed, (partial) => {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, content: partial } : m))
-      );
+    addMessage({
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      streaming: true,
+      verified: true,
+      timestamp: Date.now(),
     });
 
-    const finalMessages = withAssistant.map((m) =>
-      m.id === assistantId ? { ...m, streaming: false, content: result.reply || m.content } : m
+    const result = await sendAgentMessage(trimmed, (partial) =>
+      updateMessage(assistantId, { content: partial })
     );
-    setMessages(finalMessages);
-    persistCurrentDraft(finalMessages);
+
+    updateMessage(assistantId, { streaming: false });
     if (result.usedFallback) setUsedFallback(true);
     setLoading(false);
   };
@@ -143,22 +117,76 @@ export default function Chat() {
           sidebarCollapsed ? "w-0 overflow-hidden border-0" : "w-72 lg:w-80"
         } shrink-0 border-r border-gray-200/80 dark:border-gray-700/80 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl flex flex-col transition-all duration-300 absolute lg:relative z-20 h-full shadow-xl lg:shadow-none`}
       >
-        {!sidebarCollapsed && (
-          <ChatSidebar
-            sessions={sessions}
-            activeSessionId={activeSessionId}
-            filter={filter}
-            profile={profile}
-            loading={loading}
-            historyLoading={historyLoading}
-            historySource={historySource}
-            onFilterChange={setFilter}
-            onSearch={handleSearch}
-            onNewChat={handleNewChat}
-            onSelectSession={handleSelectSession}
-            onQuickAction={sendMessage}
-          />
-        )}
+        <div className="p-4 border-b border-gray-200/80 dark:border-gray-700/80">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            对话历史
+          </p>
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+            <input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="按课程 / 知识点搜索"
+              className="input-field pl-9 py-2"
+            />
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          {sessions
+            .filter((s) => !filter || s.course.includes(filter) || s.title.includes(filter))
+            .map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setActiveSession(s.id)}
+                className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all cursor-pointer ${
+                  activeSession === s.id
+                    ? "bg-primary/10 border border-primary/20 text-primary"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                <p className="font-medium truncate">{s.title}</p>
+                <p className="text-xs opacity-70 mt-0.5">
+                  {s.course} · {s.updatedAt}
+                </p>
+              </button>
+            ))}
+        </div>
+
+        <div className="p-4 border-t border-gray-200/80 dark:border-gray-700/80 space-y-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">学习画像</p>
+          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/10">
+            <p className="font-medium text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
+              {profile.major}
+            </p>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-gray-500">健康度</span>
+              <span className="text-sm font-semibold text-primary">{profile.healthScore}%</span>
+            </div>
+            <div className="progress-bar mt-2 h-1.5">
+              <div className="progress-bar-fill" style={{ width: `${profile.healthScore}%` }} />
+            </div>
+          </div>
+          <div className="grid gap-1">
+            {[
+              { icon: Map, label: "生成学习路径" },
+              { icon: ClipboardList, label: "生成练习题" },
+              { icon: GitBranch, label: "生成思维导图" },
+            ].map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => sendMessage(item.label)}
+                disabled={loading}
+                className="flex items-center gap-2 px-3 py-2 text-xs rounded-xl hover:bg-primary/8 text-gray-600 dark:text-gray-400 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <item.icon size={14} className="text-primary" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </aside>
 
       {!sidebarCollapsed && (
@@ -169,7 +197,7 @@ export default function Chat() {
         <div className="hidden lg:block px-4 pt-4 max-w-3xl mx-auto w-full">
           <PageHeader
             title="学习对话"
-            subtitle="历史由学习服务加载 · 多轮上下文当前暂用 Redis（暂时方案）"
+            subtitle="知识库增强 · Markdown 回复 · 同页 session 记忆"
             badge="Agent"
           />
           <div className="mb-4">
@@ -204,12 +232,6 @@ export default function Chat() {
         )}
 
         <div className="flex-1 overflow-y-auto px-4 py-4 lg:py-2 max-w-3xl mx-auto w-full">
-          {messagesLoading && (
-            <div className="flex items-center gap-2 text-xs text-[var(--scholar-text-muted)] mb-4">
-              <Loader2 size={14} className="animate-spin text-primary" />
-              正在加载会话消息…
-            </div>
-          )}
           {displayMessages.map((m) => (
             <MessageBubble key={m.id} message={m} />
           ))}
@@ -224,31 +246,25 @@ export default function Chat() {
 
         <div className="border-t border-gray-200/80 dark:border-gray-700/80 p-4 glass-panel">
           <div className="max-w-3xl mx-auto">
-            {showQuickCmds && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {quickCmds.map((cmd) => (
-                  <button
-                    key={cmd}
-                    type="button"
-                    onClick={() => sendMessage(cmd)}
-                    disabled={loading}
-                    className="chip cursor-pointer disabled:opacity-50"
-                  >
-                    {cmd}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {quickCmds.map((cmd) => (
+                <button
+                  key={cmd}
+                  type="button"
+                  onClick={() => sendMessage(cmd)}
+                  disabled={loading}
+                  className="chip cursor-pointer disabled:opacity-50"
+                >
+                  {cmd}
+                </button>
+              ))}
+            </div>
             <div className="flex items-center justify-between text-[10px] text-[var(--scholar-text-muted)] mb-2">
               <span className="flex items-center gap-1">
                 <Shield size={11} />
                 内容安全过滤
               </span>
-              <span
-                key={sessionTick}
-                className="flex items-center gap-1 font-mono opacity-70"
-                title="session_id（与 agent Redis 上下文对应）"
-              >
+              <span className="flex items-center gap-1 font-mono opacity-70" title="session_id">
                 <Sparkles size={11} className="text-primary" />
                 {getAgentSessionId().slice(0, 8)}…
               </span>
