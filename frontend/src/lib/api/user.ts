@@ -56,8 +56,11 @@ async function get<T>(url: string): Promise<T> {
 }
 
 /** 需登录的 POST，无请求体（如 refreshToken） */
-async function postAuth<T>(url: string): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: authHeaders() });
+async function postAuth<T>(url: string, extraHeaders?: Record<string, string>): Promise<T> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { ...authHeaders(), ...extraHeaders },
+  });
   const json = await parseJson<T>(res);
   if (json.code !== 200) {
     throw new UserApiError(json.msg || "请求失败", json.code);
@@ -155,15 +158,21 @@ export async function loginByCode(email: string, code: string): Promise<LoginDat
 // ─── 令牌与用户信息 ───────────────────────────────────────────────────
 
 export async function refreshToken(): Promise<string> {
-  if (!getToken()) throw new UserApiError("登录已失效，请重新登录", 401);
+  const access = getToken();
+  const refresh = getRefreshToken();
+  if (!access && !refresh) {
+    throw new UserApiError("登录已失效，请重新登录", 401);
+  }
   if (USE_MOCK) {
     await mockDelay();
     const next = "mock-token-refreshed";
-    setTokens(next, getRefreshToken() ?? undefined);
+    setTokens(next, refresh ?? undefined);
     return next;
   }
-  const data = await postAuth<RefreshTokenData>(API.user.refreshToken);
-  setTokens(data.newToken, getRefreshToken() ?? undefined);
+  const headers: Record<string, string> = {};
+  if (refresh) headers["X-Refresh-Token"] = refresh;
+  const data = await postAuth<RefreshTokenData>(API.user.refreshToken, headers);
+  setTokens(data.newToken, data.newRefreshToken ?? refresh ?? undefined);
   return data.newToken;
 }
 
