@@ -53,12 +53,15 @@ def login_by_email_code(body: LoginCodeBody):
 
 
 @router.post("/api/user/refreshToken")
-def refresh_user_token(authorization: str | None = Header(default=None)):
+def refresh_user_token(
+    authorization: str | None = Header(default=None),
+    x_refresh_token: str | None = Header(default=None, alias="X-Refresh-Token"),
+):
     token = ""
     if authorization:
         parts = authorization.split(" ", 1)
         token = parts[1].strip() if len(parts) == 2 and parts[0].lower() == "bearer" else authorization.strip()
-    return refresh_token(token)
+    return refresh_token(token, x_refresh_token)
 
 
 @router.get("/api/user/getUserInfo")

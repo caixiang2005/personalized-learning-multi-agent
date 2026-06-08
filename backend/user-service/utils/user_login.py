@@ -7,12 +7,16 @@ from sqlalchemy import select
 
 from utils.database import User, UserProfile, get_db
 from utils.email import CodePurpose, send_verification_code, verify_verification_code
+from utils.token_store import (
+    resolve_access_token,
+    resolve_refresh_token,
+    revoke_access_token,
+    revoke_refresh_token,
+    store_access_token,
+    store_refresh_token,
+)
 
 BEIJING_TZ = timezone(timedelta(hours=8))
-
-
-_ACCESS_TOKENS: dict[str, int] = {}
-_REFRESH_TOKENS: dict[str, int] = {}
 
 
 def _normalize_email(email: str) -> str:
@@ -62,8 +66,8 @@ def _user_payload(user: User) -> dict[str, Any]:
 def _make_auth_payload(user: User) -> dict[str, Any]:
     token = _new_token()
     refresh_token = _new_token()
-    _ACCESS_TOKENS[token] = user.user_id
-    _REFRESH_TOKENS[refresh_token] = user.user_id
+    store_access_token(token, user.user_id)
+    store_refresh_token(refresh_token, user.user_id)
     payload = _user_payload(user)
     payload["token"] = token
     payload["refreshToken"] = refresh_token
@@ -158,26 +162,37 @@ def login_user_by_code(email: str, code: str) -> dict:
     return _login_success(user)
 
 
-def refresh_token(old_token: str) -> dict:
-    user_id = _ACCESS_TOKENS.get(old_token)
+def refresh_token(old_token: str, refresh_token_value: str | None = None) -> dict:
+    user_id = resolve_access_token(old_token)
+    used_refresh = False
+    if user_id is None and refresh_token_value:
+        user_id = resolve_refresh_token(refresh_token_value)
+        used_refresh = user_id is not None
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
     with get_db() as db:
         user = db.get(User, user_id)
     if user is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
+
+    revoke_access_token(old_token)
+    if used_refresh:
+        revoke_refresh_token(refresh_token_value)
+
     payload = _make_auth_payload(user)
-    return {"code": 200, "msg": "令牌刷新成功", "data": {"newToken": payload["token"]}}
+    return {
+        "code": 200,
+        "msg": "令牌刷新成功",
+        "data": {"newToken": payload["token"], "newRefreshToken": payload["refreshToken"]},
+    }
 
 
 def resolve_user_id_from_token(token: str) -> int | None:
-    if not token:
-        return None
-    return _ACCESS_TOKENS.get(token)
+    return resolve_access_token(token)
 
 
 def get_user_info(token: str) -> dict:
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_access_token(token)
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
     with get_db() as db:
