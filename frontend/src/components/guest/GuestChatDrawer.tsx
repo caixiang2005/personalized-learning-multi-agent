@@ -1,16 +1,14 @@
 /**
  * @file GuestChatDrawer.tsx
- * @description 未登录访客：右侧滑出对话面板，对接 POST /api/agent/unlogin/chat。
- * @backend sendGuestMessage → agent-service :8003
+ * @description 未登录访客对话（豆包式布局）· POST /api/agent/unlogin/chat
  */
 
 import { useEffect, useRef, useState } from "react";
-import { X, Send, Loader2, Shield, LogIn, AlertCircle } from "lucide-react";
+import { X, Send, Loader2, LogIn, AlertCircle, Paperclip } from "lucide-react";
 import { Link } from "react-router-dom";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownContent from "../ui/MarkdownContent";
 import AgentAvatar from "../chat/AgentAvatar";
-import { sendGuestMessage, getGuestSessionId } from "../../lib/guestChat";
+import { sendGuestMessage } from "../../lib/guestChat";
 import { checkSensitiveInput } from "../../lib/stream";
 
 interface Message {
@@ -43,12 +41,14 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
   const [trialExhausted, setTrialExhausted] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const hasUserMessage = messages.some((m) => m.role === "user");
+  const showQuickPrompts = !trialExhausted && !hasUserMessage;
 
   useEffect(() => {
     if (!open) return;
-    const el = messagesRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [open, messages, thinking]);
 
   useEffect(() => {
@@ -104,6 +104,13 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
     if (result.trialExhausted) setTrialExhausted(true);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && !trialExhausted) {
+      e.preventDefault();
+      send();
+    }
+  };
+
   return (
     <>
       <div
@@ -112,16 +119,16 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
         aria-hidden={!open}
       />
       <aside
-        className={`guest-drawer ${open ? "guest-drawer--open" : ""}`}
+        className={`guest-drawer doubao-chat-main ${open ? "guest-drawer--open" : ""}`}
         role="dialog"
         aria-label="访客学习助手"
       >
         <header className="guest-drawer__head">
           <div className="flex items-center gap-3">
-            <AgentAvatar thinking={thinking} />
+            <AgentAvatar size="sm" thinking={thinking} />
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white">学习引导智能体</p>
-              <p className="text-xs text-gray-500">访客模式 · 学习引导智能体</p>
+              <p className="font-semibold text-gray-900 dark:text-white text-sm">学习引导智能体</p>
+              <p className="text-xs text-gray-500">访客体验 · 最多 3 轮</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="btn-secondary !p-2 rounded-lg" aria-label="关闭">
@@ -142,70 +149,79 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
           </div>
         )}
 
-        <div ref={messagesRef} className="guest-drawer__messages">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-            >
-              {msg.role === "assistant" && <AgentAvatar thinking={thinking && !msg.content} />}
-              <div
-                className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                  msg.role === "user"
-                    ? "bg-primary text-white"
-                    : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
-                }`}
-              >
-                {msg.role === "assistant" ? (
-                  <div className="markdown-body text-sm">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content || "…"}</ReactMarkdown>
-                  </div>
-                ) : (
-                  msg.content
-                )}
+        <div ref={messagesRef} className="doubao-chat-thread flex-1 min-h-0">
+          {messages.map((msg) =>
+            msg.role === "user" ? (
+              <div key={msg.id} className="doubao-msg doubao-msg--user">
+                <div className="doubao-msg__user-bubble">{msg.content}</div>
               </div>
+            ) : (
+              <div key={msg.id} className="doubao-msg doubao-msg--assistant">
+                <AgentAvatar size="sm" thinking={thinking && !msg.content && msg.id !== "welcome"} />
+                <div className="doubao-msg__body">
+                  <div className="doubao-msg__content">
+                    <MarkdownContent content={msg.content || "…"} />
+                  </div>
+                </div>
+              </div>
+            )
+          )}
+          {thinking && (
+            <div className="doubao-thinking">
+              <Loader2 size={14} className="animate-spin text-primary" />
+              正在思考…
             </div>
-          ))}
+          )}
+          <div ref={bottomRef} />
         </div>
 
-        {!trialExhausted && (
-          <div className="guest-drawer__quick">
-            {quickPrompts.map((q) => (
-              <button key={q} type="button" className="chip text-xs" onClick={() => send(q)} disabled={thinking}>
-                {q}
-              </button>
-            ))}
-          </div>
-        )}
-
         <footer className="guest-drawer__foot">
-          <div className="flex items-center justify-between text-[10px] text-gray-400 mb-2">
-            <span className="flex items-center gap-1">
-              <Shield size={12} />
-              内容安全过滤
-            </span>
-            <span className="font-mono opacity-60" title="session_id">
-              {getGuestSessionId().slice(0, 8)}…
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <input
-              className="input-field flex-1 text-sm"
+          {showQuickPrompts && (
+            <div className="doubao-composer__suggestions mb-3">
+              {quickPrompts.map((q) => (
+                <button
+                  key={q}
+                  type="button"
+                  className="doubao-suggest-chip"
+                  onClick={() => send(q)}
+                  disabled={thinking}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="doubao-composer__box">
+            <textarea
+              className="doubao-composer__input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !trialExhausted && send()}
-              placeholder={trialExhausted ? "请登录后继续使用" : "输入你的学习问题…"}
+              onKeyDown={handleKeyDown}
+              placeholder={trialExhausted ? "请登录后继续使用" : "发消息或输入学习问题…"}
+              rows={1}
               disabled={trialExhausted || thinking}
             />
-            <button
-              type="button"
-              className="btn-primary shrink-0 px-4"
-              onClick={() => send()}
-              disabled={thinking || trialExhausted}
-            >
-              {thinking ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-            </button>
+            <div className="doubao-composer__toolbar">
+              <div className="doubao-composer__tools">
+                <button type="button" className="doubao-composer__tool" disabled title="附件（登录后可用）">
+                  <Paperclip size={18} strokeWidth={1.75} />
+                </button>
+              </div>
+              <button
+                type="button"
+                className="doubao-composer__send"
+                onClick={() => send()}
+                disabled={thinking || trialExhausted || !input.trim()}
+                aria-label="发送"
+              >
+                {thinking ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} strokeWidth={2} />}
+              </button>
+            </div>
           </div>
+
+          <p className="doubao-composer__footnote">内容由 AI 生成，请仔细甄别</p>
+
           <Link
             to="/login"
             className={`btn-primary w-full mt-3 text-sm justify-center ${trialExhausted ? "ring-2 ring-primary ring-offset-2" : ""}`}

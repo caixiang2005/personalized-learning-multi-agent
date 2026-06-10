@@ -15,7 +15,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { ChatMessage, ChatSession, LearningProfile, PathStage } from "../types";
 import type { UserInfo } from "../lib/api/endpoints";
-import { defaultProfile, defaultSessions, defaultPath } from "../lib/mockData";
+import { blankProfile } from "../lib/mockData";
 import { applyTheme, THEME_STORAGE_KEY } from "../lib/theme";
 
 interface AppState {
@@ -55,10 +55,10 @@ export const useAppStore = create<AppState>()(
       isLoggedIn: false,
       user: null,
       darkMode: false,
-      profile: defaultProfile,
-      sessions: defaultSessions,
+      profile: blankProfile,
+      sessions: [],
       messages: [],
-      pathStages: defaultPath,
+      pathStages: [],
       profileInitialized: false,
       sidebarCollapsed: false,
       userAvatarUrl: null,

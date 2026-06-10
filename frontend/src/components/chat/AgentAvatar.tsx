@@ -8,19 +8,23 @@ import { Bot, Check } from "lucide-react";
 interface Props {
   thinking?: boolean;
   done?: boolean;
+  size?: "md" | "sm";
 }
 
-export default function AgentAvatar({ thinking, done }: Props) {
+export default function AgentAvatar({ thinking, done, size = "md" }: Props) {
+  const box = size === "sm" ? "w-8 h-8" : "w-10 h-10";
+  const icon = size === "sm" ? "w-4 h-4" : "w-5 h-5";
+
   return (
     <div
-      className={`w-10 h-10 rounded-full gradient-hero flex items-center justify-center shrink-0 shadow-card ${
+      className={`${box} rounded-full gradient-hero flex items-center justify-center shrink-0 shadow-sm ${
         thinking ? "animate-pulse-soft" : ""
       }`}
     >
       {done ? (
-        <Check className="w-5 h-5 text-white" />
+        <Check className={`${icon} text-white`} />
       ) : (
-        <Bot className="w-5 h-5 text-white" />
+        <Bot className={`${icon} text-white`} />
       )}
     </div>
   );

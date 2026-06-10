@@ -32,7 +32,6 @@ export interface RegisterData extends UserInfo {}
 
 export interface RefreshTokenData {
   newToken: string;
-  newRefreshToken?: string;
 }
 
 export const API = {
@@ -120,11 +119,15 @@ export const API = {
     check: `${API_BASE}/safety/check`,
   },
 
-  /** Agent 对话（agent-service :8003） */
+  /**
+   * Agent 对话（agent-service :8003，Vite 代理 /api/agent）
+   * 实现见 backend/agent-service/api/chat.py · unlogin.py
+   * 请求封装见 lib/api/agent.ts
+   */
   agent: {
-    /** POST 登录用户知识库对话 { user_input, session_id } → { ai_reply: Markdown } */
+    /** POST 登录用户 · 知识库 RAG + Redis 多轮 */
     chat: `${API_BASE}/agent/chat`,
-    /** POST 未登录访客体验 */
+    /** POST 访客 · 最多 3 轮免费 */
     unloginChat: `${API_BASE}/agent/unlogin/chat`,
   },
 } as const;
@@ -137,7 +140,7 @@ export interface StreamChunk {
   progress?: number;
 }
 
-/** Agent 对话响应（登录 / 未登录结构一致） */
+/** @deprecated 使用 AgentApiEnvelope（lib/api/agent.ts） */
 export interface AgentChatResponse {
   code: number;
   msg: string;
@@ -146,5 +149,7 @@ export interface AgentChatResponse {
   } | null;
 }
 
-/** @deprecated 使用 AgentChatResponse */
+/** @deprecated 使用 AgentApiEnvelope */
 export type UnloginChatResponse = AgentChatResponse;
+
+export type { AgentChatRequestBody, AgentApiEnvelope } from "./agent";

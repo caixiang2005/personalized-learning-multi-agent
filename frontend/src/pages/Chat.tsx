@@ -1,300 +1,417 @@
 /**
  * @file Chat.tsx
- * @description 登录后学习对话：对接 agent-service POST /api/agent/chat。
+ * @description 登录后学习对话（豆包式布局）· POST /api/agent/chat
  * @route /chat
- * @backend agent-service :8003 · { user_input, session_id } → { ai_reply: Markdown }
  */
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ChevronLeft,
   ChevronRight,
-  Search,
-  Map,
-  ClipboardList,
-  GitBranch,
   Paperclip,
   Send,
   PanelLeft,
   Loader2,
   AlertCircle,
+  SquarePen,
   Sparkles,
-  Shield,
+  ArrowRight,
 } from "lucide-react";
 import MessageBubble from "../components/chat/MessageBubble";
-import PageHeader from "../components/ui/PageHeader";
-import ResourceTypeStrip from "../components/scholar/ResourceTypeStrip";
+import UserAvatar from "../components/account/UserAvatar";
 import { useAppStore } from "../store/useAppStore";
 import { checkSensitiveInput } from "../lib/stream";
-import { sendAgentMessage, getAgentSessionId } from "../lib/agentChat";
+import { sendAgentMessage, resetAgentSessionId } from "../lib/agentChat";
+import {
+  bootstrapProfileFromInput,
+  finalizeProfileBuild,
+  getResourceIntentPrompt,
+} from "../lib/resourceIntents";
 import type { ChatMessage } from "../types";
 
-const quickCmds = [
+const tutorQuickCmds = [
   "Python 列表推导式怎么用？",
+  "有没有学习 Python 的视频链接？",
   "栈和队列有什么区别？",
-  "帮我梳理二叉树遍历",
 ];
 
-const welcomeMsg: ChatMessage = {
+const profileQuickCmds = [
+  "我是软件工程专业，正在学数据结构",
+  "目标是期末考 85 分以上",
+  "薄弱点：二叉树和图算法，偏好视频学习",
+];
+
+const profileWelcomeMsg: ChatMessage = {
   id: "welcome",
   role: "assistant",
   content:
-    "你好，我是**知识库学习助手**。\n\n我会结合课程知识库回答你的问题，回复为 **Markdown** 格式。\n\n试试：「Python 列表推导式怎么用？」",
+    "你好！我是**学习画像智能体**。\n\n请用自然语言告诉我：\n1. 你的**专业 / 课程**\n2. **学习目标**\n3. **当前水平与薄弱点**\n\n可以多轮补充，完成后点击「完成画像构建」生成六维画像。",
   verified: true,
   timestamp: Date.now(),
 };
 
+const tutorWelcomeMsg: ChatMessage = {
+  id: "welcome",
+  role: "assistant",
+  content:
+    "你好，我是**知识库学习助手**。\n\n我可以结合教程知识库与视频资源回答学习问题。直接输入问题，或点下方推荐试试。",
+  verified: true,
+  timestamp: Date.now(),
+};
+
+function truncateTitle(text: string, max = 20): string {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max)}…`;
+}
+
 export default function Chat() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const {
     messages,
     addMessage,
     updateMessage,
+    setMessages,
+    setProfile,
+    setProfileInitialized,
+    profileInitialized,
     sessions,
     profile,
+    user,
+    userAvatarUrl,
+    avatarCacheVersion,
     sidebarCollapsed,
     toggleSidebar,
   } = useAppStore();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState("");
   const [activeSession, setActiveSession] = useState("1");
   const [usedFallback, setUsedFallback] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const autoBootRef = useRef(false);
 
+  const isProfileBuild = !profileInitialized;
+  const welcomeMsg = isProfileBuild ? profileWelcomeMsg : tutorWelcomeMsg;
+  const quickCmds = isProfileBuild ? profileQuickCmds : tutorQuickCmds;
   const displayMessages = messages.length ? messages : [welcomeMsg];
+  const showQuickCmds = messages.length === 0;
+  const profileUserRounds = messages.filter((m) => m.role === "user").length;
+  const canCompleteProfile = isProfileBuild && profileUserRounds >= 2 && !loading;
+
+  const chatTitle = useMemo(() => {
+    if (isProfileBuild) return profileUserRounds > 0 ? "构建学习画像" : "学习画像引导";
+    const firstUser = messages.find((m) => m.role === "user");
+    if (firstUser?.content) return truncateTitle(firstUser.content);
+    const active = sessions.find((s) => s.id === activeSession);
+    if (active?.title) return truncateTitle(active.title);
+    return "新对话";
+  }, [messages, sessions, activeSession, isProfileBuild, profileUserRounds]);
+
+  const displayName = profile.name || user?.username || "用户";
+  const username = user?.username ?? "用户";
+  const userId = user?.userId ?? 1;
+
+  const handleNewChat = () => {
+    if (loading) return;
+    resetAgentSessionId();
+    setMessages([]);
+    setUsedFallback(false);
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [displayMessages, loading]);
 
-  const sendMessage = async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || loading) return;
+  const sendMessage = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || loading) return;
 
-    const sensitive = checkSensitiveInput(trimmed);
-    if (sensitive) {
+      const sensitive = checkSensitiveInput(trimmed);
+      if (sensitive) {
+        addMessage({
+          id: `err-${Date.now()}`,
+          role: "assistant",
+          content: sensitive,
+          timestamp: Date.now(),
+        });
+        return;
+      }
+
+      if (isProfileBuild) {
+        const draft = bootstrapProfileFromInput(trimmed, {
+          major: profile.major,
+          goal: profile.goal,
+          level: profile.level,
+        });
+        setProfile({
+          ...draft,
+          name: profile.name || user?.username || "学习者",
+        });
+      }
+
       addMessage({
-        id: `err-${Date.now()}`,
-        role: "assistant",
-        content: sensitive,
+        id: `u-${Date.now()}`,
+        role: "user",
+        content: trimmed,
         timestamp: Date.now(),
       });
-      return;
+      setInput("");
+      setLoading(true);
+
+      const assistantId = `a-${Date.now()}`;
+      addMessage({
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        streaming: true,
+        verified: true,
+        timestamp: Date.now(),
+      });
+
+      const result = await sendAgentMessage(trimmed, (partial) =>
+        updateMessage(assistantId, { content: partial })
+      );
+
+      updateMessage(assistantId, { streaming: false });
+      if (result.usedFallback) setUsedFallback(true);
+      setLoading(false);
+    },
+    [
+      loading,
+      messages,
+      isProfileBuild,
+      profile.major,
+      profile.goal,
+      profile.level,
+      profile.name,
+      user?.username,
+      addMessage,
+      updateMessage,
+      setProfile,
+      setProfileInitialized,
+    ]
+  );
+
+  useEffect(() => {
+    if (autoBootRef.current || loading || messages.some((m) => m.role === "user")) return;
+
+    const stateMsg = (location.state as { initialMessage?: string } | null)?.initialMessage?.trim();
+    const intentMsg = getResourceIntentPrompt(searchParams.get("intent"));
+    const text = stateMsg || intentMsg;
+    if (!text) return;
+
+    autoBootRef.current = true;
+    navigate("/chat", { replace: true, state: {} });
+    void sendMessage(text);
+  }, [location.state, searchParams, loading, messages, navigate, sendMessage]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
     }
+  };
 
-    addMessage({
-      id: `u-${Date.now()}`,
-      role: "user",
-      content: trimmed,
-      timestamp: Date.now(),
-    });
-    setInput("");
-    setLoading(true);
-
-    const assistantId = `a-${Date.now()}`;
-    addMessage({
-      id: assistantId,
-      role: "assistant",
-      content: "",
-      streaming: true,
-      verified: true,
-      timestamp: Date.now(),
-    });
-
-    const result = await sendAgentMessage(trimmed, (partial) =>
-      updateMessage(assistantId, { content: partial })
+  const handleCompleteProfile = () => {
+    if (!canCompleteProfile) return;
+    const finalized = finalizeProfileBuild(
+      {
+        name: profile.name || user?.username || "学习者",
+        major: profile.major || "未指定专业",
+        goal: profile.goal || "提升学习能力",
+        level: profile.level || "待补充",
+      },
+      profileUserRounds
     );
-
-    updateMessage(assistantId, { streaming: false });
-    if (result.usedFallback) setUsedFallback(true);
-    setLoading(false);
+    setProfile(finalized);
+    setProfileInitialized(true);
+    navigate("/profile");
   };
 
   return (
-    <div className="scholar-chat-page relative flex h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] pb-14 md:pb-0">
+    <div className="scholar-chat-page doubao-chat-shell relative flex h-[calc(100vh-56px)] pb-14 md:pb-0">
       <aside
-        className={`${
-          sidebarCollapsed ? "w-0 overflow-hidden border-0" : "w-72 lg:w-80"
-        } shrink-0 border-r border-gray-200/80 dark:border-gray-700/80 bg-white/60 dark:bg-gray-900/60 backdrop-blur-xl flex flex-col transition-all duration-300 absolute lg:relative z-20 h-full shadow-xl lg:shadow-none`}
+        className={`doubao-sidebar ${
+          sidebarCollapsed ? "doubao-sidebar--collapsed" : ""
+        }`}
       >
-        <div className="p-4 border-b border-gray-200/80 dark:border-gray-700/80">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            对话历史
-          </p>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-            <input
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="按课程 / 知识点搜索"
-              className="input-field pl-9 py-2"
-            />
-          </div>
-        </div>
+        <nav className="doubao-sidebar__nav">
+          <button
+            type="button"
+            onClick={handleNewChat}
+            disabled={loading}
+            className="doubao-sidebar__nav-item"
+          >
+            <SquarePen size={18} strokeWidth={1.75} />
+            <span>新对话</span>
+          </button>
+        </nav>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          {sessions
-            .filter((s) => !filter || s.course.includes(filter) || s.title.includes(filter))
-            .map((s) => (
+        <div className="doubao-sidebar__section">
+          <p className="doubao-sidebar__section-title">历史对话</p>
+          <div className="doubao-sidebar__history">
+            {sessions.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setActiveSession(s.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all cursor-pointer ${
-                  activeSession === s.id
-                    ? "bg-primary/10 border border-primary/20 text-primary"
-                    : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+                className={`doubao-sidebar__history-item ${
+                  activeSession === s.id ? "doubao-sidebar__history-item--active" : ""
                 }`}
               >
-                <p className="font-medium truncate">{s.title}</p>
-                <p className="text-xs opacity-70 mt-0.5">
-                  {s.course} · {s.updatedAt}
-                </p>
+                {s.title}
               </button>
             ))}
+          </div>
         </div>
 
-        <div className="p-4 border-t border-gray-200/80 dark:border-gray-700/80 space-y-3">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">学习画像</p>
-          <div className="p-3 rounded-xl bg-gradient-to-br from-primary/10 to-accent/5 border border-primary/10">
-            <p className="font-medium text-sm text-gray-800 dark:text-gray-200 line-clamp-2">
-              {profile.major}
-            </p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-gray-500">健康度</span>
-              <span className="text-sm font-semibold text-primary">{profile.healthScore}%</span>
-            </div>
-            <div className="progress-bar mt-2 h-1.5">
-              <div className="progress-bar-fill" style={{ width: `${profile.healthScore}%` }} />
-            </div>
-          </div>
-          <div className="grid gap-1">
-            {[
-              { icon: Map, label: "生成学习路径" },
-              { icon: ClipboardList, label: "生成练习题" },
-              { icon: GitBranch, label: "生成思维导图" },
-            ].map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => sendMessage(item.label)}
-                disabled={loading}
-                className="flex items-center gap-2 px-3 py-2 text-xs rounded-xl hover:bg-primary/8 text-gray-600 dark:text-gray-400 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                <item.icon size={14} className="text-primary" />
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <Link to="/account" className="doubao-sidebar__user">
+          <UserAvatar
+            userId={userId}
+            displayName={displayName}
+            username={username}
+            avatarUrl={userAvatarUrl}
+            avatarVersion={avatarCacheVersion}
+            size="md"
+            className="doubao-sidebar__user-avatar"
+          />
+          <span className="doubao-sidebar__user-name">{displayName}</span>
+          <ChevronRight size={16} className="doubao-sidebar__user-chevron" />
+        </Link>
       </aside>
 
       {!sidebarCollapsed && (
         <div className="lg:hidden fixed inset-0 bg-black/30 z-10" onClick={toggleSidebar} aria-hidden />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        <div className="hidden lg:block px-4 pt-4 max-w-3xl mx-auto w-full">
-          <PageHeader
-            title="学习对话"
-            subtitle="知识库增强 · Markdown 回复 · 同页 session 记忆"
-            badge="Agent"
-          />
-          <div className="mb-4">
-            <ResourceTypeStrip />
+      <div className="flex-1 flex flex-col min-w-0 relative doubao-chat-main">
+        <header className="doubao-chat-header">
+          <div className="doubao-chat-header__left">
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="doubao-chat-header__icon-btn"
+              aria-label={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+            >
+              <PanelLeft size={18} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              onClick={handleNewChat}
+              disabled={loading}
+              className="doubao-chat-header__icon-btn"
+              aria-label="新对话"
+            >
+              <SquarePen size={18} strokeWidth={1.75} />
+            </button>
           </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="lg:hidden absolute left-3 top-3 z-10 p-2 rounded-xl glass-panel cursor-pointer"
-          aria-label="展开侧边栏"
-        >
-          <PanelLeft size={18} />
-        </button>
-
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="hidden lg:flex absolute -left-3 top-1/2 -translate-y-1/2 z-10 p-1.5 glass-panel rounded-full shadow-md cursor-pointer"
-          style={{ left: sidebarCollapsed ? 4 : undefined }}
-          aria-label={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
-        >
-          {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
+          <div className="doubao-chat-header__center">
+            <h1 className="doubao-chat-header__title">{chatTitle}</h1>
+            <p className="doubao-chat-header__disclaimer">内容由 AI 生成，请仔细甄别</p>
+          </div>
+          <div className="doubao-chat-header__right" aria-hidden />
+        </header>
 
         {usedFallback && (
-          <div className="mx-4 mt-3 lg:mt-0 max-w-3xl lg:mx-auto w-full flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/50 px-3 py-2.5 text-xs text-amber-900 dark:text-amber-100">
+          <div className="doubao-chat-alert">
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
-            <span>未连接 agent-service（:8003），当前为本地 Mock。请启动后端后刷新页面。</span>
+            <span>未连接 agent-service（:8003），当前为本地 Mock。请启动后端后刷新。</span>
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 lg:py-2 max-w-3xl mx-auto w-full">
-          {displayMessages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
-          ))}
-          {loading && (
-            <div className="flex items-center gap-2 text-xs text-[var(--scholar-text-muted)] mb-4 pl-12">
-              <Loader2 size={14} className="animate-spin text-primary" />
-              正在生成回复…
+        {isProfileBuild && (
+          <div className="chat-profile-banner">
+            <div className="chat-profile-banner__main">
+              <Sparkles size={16} className="text-[var(--scholar-primary)] shrink-0" />
+              <div>
+                <p className="chat-profile-banner__title">画像构建中（{profileUserRounds}/2 轮以上可完成）</p>
+                <p className="chat-profile-banner__desc">
+                  请补充专业、目标与薄弱点；完成后生成六维画像，再进入学习中心
+                </p>
+              </div>
             </div>
-          )}
-          <div ref={bottomRef} />
+            <button
+              type="button"
+              className="chat-profile-banner__btn"
+              disabled={!canCompleteProfile}
+              onClick={handleCompleteProfile}
+            >
+              完成画像构建
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
+
+        <div className="doubao-chat-thread">
+          <div className="doubao-chat-thread__inner">
+            {displayMessages.map((m) => (
+              <MessageBubble key={m.id} message={m} />
+            ))}
+            {loading && (
+              <div className="doubao-thinking">
+                <Loader2 size={14} className="animate-spin text-primary" />
+                正在思考…
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
         </div>
 
-        <div className="border-t border-gray-200/80 dark:border-gray-700/80 p-4 glass-panel">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex flex-wrap gap-2 mb-3">
-              {quickCmds.map((cmd) => (
-                <button
-                  key={cmd}
-                  type="button"
-                  onClick={() => sendMessage(cmd)}
-                  disabled={loading}
-                  className="chip cursor-pointer disabled:opacity-50"
-                >
-                  {cmd}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center justify-between text-[10px] text-[var(--scholar-text-muted)] mb-2">
-              <span className="flex items-center gap-1">
-                <Shield size={11} />
-                内容安全过滤
-              </span>
-              <span className="flex items-center gap-1 font-mono opacity-70" title="session_id">
-                <Sparkles size={11} className="text-primary" />
-                {getAgentSessionId().slice(0, 8)}…
-              </span>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn-secondary p-3 shrink-0 opacity-60 cursor-not-allowed"
-                title="附件上传待后端接口"
-                disabled
-              >
-                <Paperclip size={18} />
-              </button>
-              <input
+        <div className="doubao-composer">
+          <div className="doubao-composer__inner">
+            {showQuickCmds && (
+              <div className="doubao-composer__suggestions">
+                {quickCmds.map((cmd) => (
+                  <button
+                    key={cmd}
+                    type="button"
+                    onClick={() => sendMessage(cmd)}
+                    disabled={loading}
+                    className="doubao-suggest-chip"
+                  >
+                    {cmd}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="doubao-composer__box">
+              <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
-                placeholder="输入学习问题，如：Python 列表推导式怎么用？"
-                className="input-field flex-1"
+                onKeyDown={handleKeyDown}
+                placeholder="发消息或输入学习问题…"
+                className="doubao-composer__input"
+                rows={1}
                 disabled={loading}
               />
-              <button
-                type="button"
-                onClick={() => sendMessage(input)}
-                disabled={loading || !input.trim()}
-                className="btn-primary px-5 shrink-0 cursor-pointer disabled:opacity-50"
-                aria-label="发送"
-              >
-                {loading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-              </button>
+              <div className="doubao-composer__toolbar">
+                <div className="doubao-composer__tools">
+                  <button
+                    type="button"
+                    className="doubao-composer__tool"
+                    title="附件（待后端）"
+                    disabled
+                  >
+                    <Paperclip size={18} strokeWidth={1.75} />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => sendMessage(input)}
+                  disabled={loading || !input.trim()}
+                  className="doubao-composer__send"
+                  aria-label="发送"
+                >
+                  {loading ? (
+                    <Loader2 size={17} className="animate-spin" />
+                  ) : (
+                    <Send size={17} strokeWidth={2} />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import ScholarPageShell from "../components/scholar/ScholarPageShell";
 import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import GrowthQuickLinks from "../components/layout/GrowthQuickLinks";
 import LearnerRadarChart, { LearnerDimensionLegend } from "../components/profile/LearnerRadarChart";
 import DimensionStatCard from "../components/profile/DimensionStatCard";
 import { useAppStore } from "../store/useAppStore";
@@ -52,6 +53,8 @@ export default function Profile() {
         title={`${profile.name} 的学习画像`}
         subtitle={`${profile.major} · 目标：${profile.goal}`}
       />
+
+      <GrowthQuickLinks />
 
       <section className="scholar-card p-5 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>

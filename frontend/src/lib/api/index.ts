@@ -6,3 +6,4 @@ export * from "./endpoints";
 export * from "./user";
 export * from "./client";
 export * from "./account";
+export * from "./agent";

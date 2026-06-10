@@ -15,6 +15,23 @@
 
 import type { LearningProfile, PathStage, ChatSession } from "../types";
 
+/** 新用户未完成画像构建前的空状态（勿展示驾驶舱数据） */
+export const blankProfile: LearningProfile = {
+  name: "学习者",
+  major: "",
+  goal: "",
+  level: "",
+  updatedAt: "",
+  healthScore: 0,
+  learnerDimensions: [],
+  dimensions: [],
+  cognitiveStyle: [],
+  weakPoints: [],
+  progress: 0,
+  rhythm: { period: "", duration: "" },
+  goalProgress: { label: "", percent: 0 },
+};
+
 /** 【待同步】GET /api/profile — 学习画像（含 6 个维度） */
 export const defaultProfile: LearningProfile = {
   name: "学习者",
