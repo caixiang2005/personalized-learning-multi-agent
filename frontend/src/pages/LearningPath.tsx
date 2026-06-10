@@ -67,6 +67,7 @@ export default function LearningPath() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [activeStage, setActiveStage] = useState(0);
 
+  const hasPath = pathStages.length > 0;
   const totalTopics = pathStages.reduce((a, s) => a + s.topics.length, 0);
   const doneTopics = pathStages.reduce(
     (a, s) => a + s.topics.filter((t) => t.progress >= 80).length,
@@ -76,15 +77,19 @@ export default function LearningPath() {
 
   const startLearning = () => navigate("/chat");
 
+  const pathSubtitle = hasPath
+    ? `共 ${pathStages.length} 阶段 · 当前：${pathStages[activeStage]?.title ?? pathStages[0]?.title}`
+    : "在智能辅导中描述学习目标，生成路径后将在此展示阶段与资源";
+
   return (
     <ScholarPageShell>
       <ScholarPageHeader
         badge="资源中心"
         title="个性化学习路径"
-        subtitle="数据结构期末复习 · 三阶段递进"
+        subtitle={pathSubtitle}
         action={
           <button type="button" onClick={startLearning} className="btn-primary">
-            <Play size={16} /> 开始学习
+            <Play size={16} /> {hasPath ? "继续学习" : "去生成路径"}
           </button>
         }
       />
@@ -93,6 +98,18 @@ export default function LearningPath() {
         <ResourceTypeStrip />
       </div>
 
+      {!hasPath ? (
+        <section className="section-card text-center py-14 px-6">
+          <p className="text-lg font-medium text-gray-900 dark:text-white">尚未生成学习路径</p>
+          <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
+            路径由智能辅导中的对话与画像驱动，不会预填演示数据。请先说明课程、目标与薄弱点。
+          </p>
+          <button type="button" onClick={startLearning} className="btn-primary mt-6">
+            <Play size={16} /> 进入智能辅导
+          </button>
+        </section>
+      ) : (
+        <>
       <section className="section-card mb-8">
         <div className="flex justify-between text-sm mb-2">
           <span className="font-medium text-gray-700 dark:text-gray-300">整体完成度</span>
@@ -166,6 +183,8 @@ export default function LearningPath() {
           </div>
         </div>
       ))}
+        </>
+      )}
     </ScholarPageShell>
   );
 }

@@ -1,23 +1,15 @@
 /**
  * @file Navbar.tsx
- * @description 顶部导航：品牌、页面链接、用户悬停下拉菜单。
+ * @description 顶栏导航：4 项主架构 + 成长档案下拉（赛题能力对齐）
  */
 
 import { NavLink, Link } from "react-router-dom";
-import { BookOpen, GraduationCap } from "lucide-react";
+import { GraduationCap } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
 import UserMenuDropdown from "./UserMenuDropdown";
+import NavGrowthMenu from "./NavGrowthMenu";
 import { useLandingHeaderScrolled } from "../../hooks/useLandingHeaderScrolled";
-
-const navItems = [
-  { to: "/home", label: "首页" },
-  { to: "/chat", label: "学习对话" },
-  { to: "/scan", label: "拍照搜题" },
-  { to: "/plan", label: "日计划" },
-  { to: "/profile", label: "学习画像" },
-  { to: "/path", label: "学习路径" },
-  { to: "/analytics", label: "效果评估" },
-];
+import { PRIMARY_NAV } from "../../lib/navConfig";
 
 export default function Navbar() {
   const headerScrolled = useLandingHeaderScrolled();
@@ -37,23 +29,22 @@ export default function Navbar() {
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-0.5 flex-1 justify-center">
-          {navItems.map((item) => (
+        <nav className="app-navbar__nav hidden md:flex items-center gap-1 flex-1 justify-center">
+          {PRIMARY_NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
+              end={item.end}
+              title={item.hint}
               className={({ isActive }) => `nav-link ${isActive ? "nav-link-active" : ""}`}
             >
               {item.label}
             </NavLink>
           ))}
+          <NavGrowthMenu />
         </nav>
 
         <div className="landing-header__actions app-navbar__actions">
-          <Link to="/path" className="app-navbar__path-link hidden sm:inline-flex">
-            <BookOpen size={17} strokeWidth={1.75} />
-            学习中心
-          </Link>
           <ThemeToggle />
           <UserMenuDropdown />
         </div>

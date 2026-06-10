@@ -23,6 +23,12 @@ export default defineConfig({
         target: "http://127.0.0.1:8001",
         changeOrigin: true,
       },
+      // B 站封面元数据（对话区视频卡片）
+      "/bili-api": {
+        target: "https://api.bilibili.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/bili-api/, ""),
+      },
     },
   },
 });

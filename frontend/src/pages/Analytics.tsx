@@ -25,6 +25,7 @@ import {
 import { AlertTriangle, Lightbulb, Clock, Activity } from "lucide-react";
 import ScholarPageShell from "../components/scholar/ScholarPageShell";
 import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import GrowthQuickLinks from "../components/layout/GrowthQuickLinks";
 import ProfileRadar from "../components/charts/ProfileRadar";
 import ActivityHeatmap from "../components/charts/ActivityHeatmap";
 import { analyticsData } from "../lib/mockData";
@@ -65,6 +66,8 @@ export default function Analytics() {
           </div>
         }
       />
+
+      <GrowthQuickLinks />
 
       {/* 核心指标 */}
       <div className="grid md:grid-cols-3 gap-6 mb-8">

@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { CalendarDays, Target } from "lucide-react";
 import ScholarPageShell from "../components/scholar/ScholarPageShell";
 import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import GrowthQuickLinks from "../components/layout/GrowthQuickLinks";
 import PlanTaskCard from "../components/plan/PlanTaskCard";
 import PlanChatPanel from "../components/plan/PlanChatPanel";
 import {
@@ -43,6 +44,8 @@ export default function DailyPlan() {
         title="今日学习计划"
         subtitle={plan.summary}
       />
+
+      <GrowthQuickLinks />
 
       <section className="scholar-card p-5 mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>

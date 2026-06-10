@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 import { Loader2, ScanLine } from "lucide-react";
 import ScholarPageShell from "../components/scholar/ScholarPageShell";
 import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import GrowthQuickLinks from "../components/layout/GrowthQuickLinks";
 import StreamProgress from "../components/scholar/StreamProgress";
 import ScanUploadZone from "../components/scan/ScanUploadZone";
 import ScanResultPanel from "../components/scan/ScanResultPanel";
@@ -63,6 +64,8 @@ export default function Scan() {
         title="拍照搜题"
         subtitle="上传题目图片，OCR 识别后由 AI 解析知识点、逐步讲解并生成同类练习"
       />
+
+      <GrowthQuickLinks />
 
       <ScanUploadZone preview={preview} disabled={busy} onFile={handleFile} />
 
