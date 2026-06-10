@@ -121,6 +121,16 @@ export interface PathStage {
   topics: PathTopic[];
 }
 
+/** 【待同步】GET /api/learning-path 元信息 */
+export interface LearningPathMeta {
+  id: string;
+  title: string;
+  course: string;
+  generatedAt: string;
+  source: "路径智能体规划" | "mock";
+  overallProgress: number;
+}
+
 export interface PathTopic {
   id: string;
   name: string;

@@ -5,7 +5,7 @@
  */
 
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronRight,
   Paperclip,
@@ -16,17 +16,25 @@ import {
   SquarePen,
   Sparkles,
   ArrowRight,
+  Home,
+  X,
 } from "lucide-react";
 import MessageBubble from "../components/chat/MessageBubble";
 import UserAvatar from "../components/account/UserAvatar";
 import { useAppStore } from "../store/useAppStore";
 import { checkSensitiveInput } from "../lib/stream";
 import { sendAgentMessage, resetAgentSessionId } from "../lib/agentChat";
+import { sendProfileBuildMessage } from "../lib/profileBuildChat";
 import {
   bootstrapProfileFromInput,
   finalizeProfileBuild,
   getResourceIntentPrompt,
 } from "../lib/resourceIntents";
+import { PROFILE_BUILD_PATH } from "../lib/navConfig";
+import {
+  needsProfileBuild as checkNeedsProfileBuild,
+  type ProfileTutorGateLocationState,
+} from "../lib/profileGate";
 import type { ChatMessage } from "../types";
 
 const tutorQuickCmds = [
@@ -65,12 +73,18 @@ function truncateTitle(text: string, max = 20): string {
   return `${t.slice(0, max)}…`;
 }
 
+/** 旧版共用 messages 时，画像引导语会误出现在 /chat */
+function isProfileAgentReply(content: string): boolean {
+  return /学习画像智能体|生成六维画像|还缺少 \*\*学习目标\*\*|信息已基本齐全/.test(content);
+}
+
 export default function Chat() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const {
-    messages,
+    profileBuildMessages,
+    tutorMessages,
     addMessage,
     updateMessage,
     setMessages,
@@ -91,8 +105,20 @@ export default function Chat() {
   const [usedFallback, setUsedFallback] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const autoBootRef = useRef(false);
+  const tutorMigrationRef = useRef(false);
 
-  const isProfileBuild = !profileInitialized;
+  const isProfileAgentPage = location.pathname === PROFILE_BUILD_PATH;
+  const gateState = location.state as ProfileTutorGateLocationState | null;
+  const needsProfileBuild = checkNeedsProfileBuild(profileInitialized, profile);
+  const isProfileBuild = isProfileAgentPage;
+  const [gateBannerDismissed, setGateBannerDismissed] = useState(false);
+  const [pathGateDismissed, setPathGateDismissed] = useState(false);
+  const showTutorGateBanner =
+    isProfileBuild && gateState?.fromTutorGate && !gateBannerDismissed;
+  const showPathGateBanner =
+    isProfileBuild && gateState?.fromPathGate && !pathGateDismissed;
+  const chatChannel = isProfileBuild ? "profile" : "tutor";
+  const messages = isProfileBuild ? profileBuildMessages : tutorMessages;
   const welcomeMsg = isProfileBuild ? profileWelcomeMsg : tutorWelcomeMsg;
   const quickCmds = isProfileBuild ? profileQuickCmds : tutorQuickCmds;
   const displayMessages = messages.length ? messages : [welcomeMsg];
@@ -101,7 +127,9 @@ export default function Chat() {
   const canCompleteProfile = isProfileBuild && profileUserRounds >= 2 && !loading;
 
   const chatTitle = useMemo(() => {
-    if (isProfileBuild) return profileUserRounds > 0 ? "构建学习画像" : "学习画像引导";
+    if (isProfileBuild) {
+      return profileUserRounds > 0 ? "构建学习画像" : "画像智能体";
+    }
     const firstUser = messages.find((m) => m.role === "user");
     if (firstUser?.content) return truncateTitle(firstUser.content);
     const active = sessions.find((s) => s.id === activeSession);
@@ -115,10 +143,36 @@ export default function Chat() {
 
   const handleNewChat = () => {
     if (loading) return;
-    resetAgentSessionId();
-    setMessages([]);
+    if (chatChannel === "tutor") resetAgentSessionId();
+    setMessages([], chatChannel);
     setUsedFallback(false);
   };
+
+  useEffect(() => {
+    autoBootRef.current = false;
+  }, [chatChannel]);
+
+  useEffect(() => {
+    setGateBannerDismissed(false);
+  }, [gateState?.fromTutorGate]);
+
+  useEffect(() => {
+    setPathGateDismissed(false);
+  }, [gateState?.fromPathGate]);
+
+  /** 一次性：把误写入 tutor 的画像对话迁回 profile 通道 */
+  useEffect(() => {
+    if (isProfileBuild || tutorMigrationRef.current) return;
+    tutorMigrationRef.current = true;
+    const contaminated = tutorMessages.some(
+      (m) => m.role === "assistant" && isProfileAgentReply(m.content)
+    );
+    if (!contaminated) return;
+    if (profileBuildMessages.length === 0) {
+      setMessages(tutorMessages, "profile");
+    }
+    setMessages([], "tutor");
+  }, [isProfileBuild, tutorMessages, profileBuildMessages, setMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -131,12 +185,15 @@ export default function Chat() {
 
       const sensitive = checkSensitiveInput(trimmed);
       if (sensitive) {
-        addMessage({
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: sensitive,
-          timestamp: Date.now(),
-        });
+        addMessage(
+          {
+            id: `err-${Date.now()}`,
+            role: "assistant",
+            content: sensitive,
+            timestamp: Date.now(),
+          },
+          chatChannel
+        );
         return;
       }
 
@@ -152,37 +209,55 @@ export default function Chat() {
         });
       }
 
-      addMessage({
-        id: `u-${Date.now()}`,
-        role: "user",
-        content: trimmed,
-        timestamp: Date.now(),
-      });
+      addMessage(
+        {
+          id: `u-${Date.now()}`,
+          role: "user",
+          content: trimmed,
+          timestamp: Date.now(),
+        },
+        chatChannel
+      );
       setInput("");
       setLoading(true);
 
       const assistantId = `a-${Date.now()}`;
-      addMessage({
-        id: assistantId,
-        role: "assistant",
-        content: "",
-        streaming: true,
-        verified: true,
-        timestamp: Date.now(),
-      });
-
-      const result = await sendAgentMessage(trimmed, (partial) =>
-        updateMessage(assistantId, { content: partial })
+      addMessage(
+        {
+          id: assistantId,
+          role: "assistant",
+          content: "",
+          streaming: true,
+          verified: true,
+          timestamp: Date.now(),
+        },
+        chatChannel
       );
 
-      updateMessage(assistantId, { streaming: false });
-      if (result.usedFallback) setUsedFallback(true);
+      const result = isProfileBuild
+        ? await sendProfileBuildMessage(
+            trimmed,
+            (partial) => updateMessage(assistantId, { content: partial }, chatChannel),
+            {
+              major: profile.major,
+              goal: profile.goal,
+              level: profile.level,
+            },
+            profileUserRounds + 1
+          )
+        : await sendAgentMessage(trimmed, (partial) =>
+            updateMessage(assistantId, { content: partial }, chatChannel)
+          );
+
+      updateMessage(assistantId, { streaming: false }, chatChannel);
+      if (result.usedFallback && !isProfileBuild) setUsedFallback(true);
       setLoading(false);
     },
     [
       loading,
-      messages,
       isProfileBuild,
+      chatChannel,
+      profileUserRounds,
       profile.major,
       profile.goal,
       profile.level,
@@ -191,7 +266,6 @@ export default function Chat() {
       addMessage,
       updateMessage,
       setProfile,
-      setProfileInitialized,
     ]
   );
 
@@ -199,14 +273,14 @@ export default function Chat() {
     if (autoBootRef.current || loading || messages.some((m) => m.role === "user")) return;
 
     const stateMsg = (location.state as { initialMessage?: string } | null)?.initialMessage?.trim();
-    const intentMsg = getResourceIntentPrompt(searchParams.get("intent"));
+    const intentMsg = isProfileAgentPage ? null : getResourceIntentPrompt(searchParams.get("intent"));
     const text = stateMsg || intentMsg;
     if (!text) return;
 
     autoBootRef.current = true;
-    navigate("/chat", { replace: true, state: {} });
+    navigate(location.pathname, { replace: true, state: {} });
     void sendMessage(text);
-  }, [location.state, searchParams, loading, messages, navigate, sendMessage]);
+  }, [location.state, location.pathname, searchParams, loading, messages, navigate, sendMessage, isProfileAgentPage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -220,9 +294,9 @@ export default function Chat() {
     const finalized = finalizeProfileBuild(
       {
         name: profile.name || user?.username || "学习者",
-        major: profile.major || "未指定专业",
-        goal: profile.goal || "提升学习能力",
-        level: profile.level || "待补充",
+        major: profile.major,
+        goal: profile.goal,
+        level: profile.level,
       },
       profileUserRounds
     );
@@ -230,6 +304,29 @@ export default function Chat() {
     setProfileInitialized(true);
     navigate("/profile");
   };
+
+  const headerDisclaimer = isProfileBuild
+    ? "画像智能体 · 对话抽取学习特征"
+    : "内容由 AI 生成，请仔细甄别";
+
+  const inputPlaceholder = isProfileBuild
+    ? "描述专业、课程、目标、薄弱点…"
+    : "发消息或输入学习问题…";
+
+  if (!isProfileAgentPage && needsProfileBuild) {
+    const intent = searchParams.get("intent") ?? undefined;
+    return (
+      <Navigate
+        to={PROFILE_BUILD_PATH}
+        replace
+        state={{ ...gateState, fromTutorGate: true, intent }}
+      />
+    );
+  }
+
+  if (isProfileAgentPage && !needsProfileBuild) {
+    return <Navigate to="/home" replace />;
+  }
 
   return (
     <div className="scholar-chat-page doubao-chat-shell relative flex h-[calc(100vh-56px)] pb-14 md:pb-0">
@@ -239,17 +336,25 @@ export default function Chat() {
         }`}
       >
         <nav className="doubao-sidebar__nav">
-          <button
-            type="button"
-            onClick={handleNewChat}
-            disabled={loading}
-            className="doubao-sidebar__nav-item"
-          >
-            <SquarePen size={18} strokeWidth={1.75} />
-            <span>新对话</span>
-          </button>
+          {isProfileBuild ? (
+            <Link to="/home" className="doubao-sidebar__nav-item no-underline">
+              <Home size={18} strokeWidth={1.75} />
+              <span>返回首页</span>
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={handleNewChat}
+              disabled={loading}
+              className="doubao-sidebar__nav-item"
+            >
+              <SquarePen size={18} strokeWidth={1.75} />
+              <span>新对话</span>
+            </button>
+          )}
         </nav>
 
+        {!isProfileBuild && (
         <div className="doubao-sidebar__section">
           <p className="doubao-sidebar__section-title">历史对话</p>
           <div className="doubao-sidebar__history">
@@ -267,6 +372,17 @@ export default function Chat() {
             ))}
           </div>
         </div>
+        )}
+
+        {isProfileBuild && (
+          <div className="doubao-sidebar__section">
+            <p className="doubao-sidebar__section-title">当前智能体</p>
+            <p className="doubao-sidebar__agent-label">画像智能体</p>
+            <p className="doubao-sidebar__agent-desc">
+              多轮对话抽取 ≥6 维学习特征，完成后进入学习驾驶舱
+            </p>
+          </div>
+        )}
 
         <Link to="/account" className="doubao-sidebar__user">
           <UserAvatar
@@ -300,17 +416,17 @@ export default function Chat() {
             </button>
             <button
               type="button"
-              onClick={handleNewChat}
+              onClick={isProfileBuild ? () => setMessages([], chatChannel) : handleNewChat}
               disabled={loading}
               className="doubao-chat-header__icon-btn"
-              aria-label="新对话"
+              aria-label={isProfileBuild ? "重新开始画像对话" : "新对话"}
             >
               <SquarePen size={18} strokeWidth={1.75} />
             </button>
           </div>
           <div className="doubao-chat-header__center">
             <h1 className="doubao-chat-header__title">{chatTitle}</h1>
-            <p className="doubao-chat-header__disclaimer">内容由 AI 生成，请仔细甄别</p>
+            <p className="doubao-chat-header__disclaimer">{headerDisclaimer}</p>
           </div>
           <div className="doubao-chat-header__right" aria-hidden />
         </header>
@@ -322,14 +438,58 @@ export default function Chat() {
           </div>
         )}
 
+        {showPathGateBanner && (
+          <div className="chat-profile-banner chat-profile-banner--gate" role="status">
+            <div className="chat-profile-banner__main">
+              <AlertCircle size={16} className="text-[var(--scholar-accent-soft)] shrink-0" />
+              <div>
+                <p className="chat-profile-banner__title">规划学习路径前，请先完成学习画像</p>
+                <p className="chat-profile-banner__desc">
+                  路径智能体依赖六维画像进行阶段规划与资源推送。请在此完成至少 2 轮对话后生成画像。
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="chat-profile-banner__dismiss"
+              aria-label="关闭提醒"
+              onClick={() => setPathGateDismissed(true)}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {showTutorGateBanner && (
+          <div className="chat-profile-banner chat-profile-banner--gate" role="status">
+            <div className="chat-profile-banner__main">
+              <AlertCircle size={16} className="text-[var(--scholar-accent-soft)] shrink-0" />
+              <div>
+                <p className="chat-profile-banner__title">使用智能辅导前，请先完成学习画像</p>
+                <p className="chat-profile-banner__desc">
+                  与画像智能体对话至少 2 轮，补充专业、目标与薄弱点后，点击「完成画像构建」即可进入智能辅导。
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="chat-profile-banner__dismiss"
+              aria-label="关闭提醒"
+              onClick={() => setGateBannerDismissed(true)}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
         {isProfileBuild && (
-          <div className="chat-profile-banner">
+          <div className="chat-profile-banner chat-profile-banner--info">
             <div className="chat-profile-banner__main">
               <Sparkles size={16} className="text-[var(--scholar-primary)] shrink-0" />
               <div>
                 <p className="chat-profile-banner__title">画像构建中（{profileUserRounds}/2 轮以上可完成）</p>
                 <p className="chat-profile-banner__desc">
-                  请补充专业、目标与薄弱点；完成后生成六维画像，再进入学习中心
+                  画像智能体为前端多轮引导（待后端 /api/agent/profile-build）。请补充专业、目标与薄弱点。
                 </p>
               </div>
             </div>
@@ -382,7 +542,7 @@ export default function Chat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="发消息或输入学习问题…"
+                placeholder={inputPlaceholder}
                 className="doubao-composer__input"
                 rows={1}
                 disabled={loading}

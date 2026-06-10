@@ -4,13 +4,20 @@
  */
 import { Link, useLocation } from "react-router-dom";
 import { GROWTH_NAV } from "../../lib/navConfig";
+import AnimeStagger from "../motion/AnimeStagger";
 
 export default function GrowthQuickLinks() {
   const { pathname } = useLocation();
   const links = GROWTH_NAV.filter((i) => i.to !== pathname);
 
   return (
-    <nav className="growth-quick-links" aria-label="成长档案相关页面">
+    <AnimeStagger
+      as="nav"
+      className="growth-quick-links"
+      aria-label="成长档案相关页面"
+      staggerMs={60}
+      y={10}
+    >
       {links.map(({ to, label, icon: Icon }) => (
         <Link
           key={to}
@@ -21,6 +28,6 @@ export default function GrowthQuickLinks() {
           {label}
         </Link>
       ))}
-    </nav>
+    </AnimeStagger>
   );
 }

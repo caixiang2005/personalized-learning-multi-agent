@@ -127,8 +127,8 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
           <div className="flex items-center gap-3">
             <AgentAvatar size="sm" thinking={thinking} />
             <div>
-              <p className="font-semibold text-gray-900 dark:text-white text-sm">学习引导智能体</p>
-              <p className="text-xs text-gray-500">访客体验 · 最多 3 轮</p>
+              <p className="guest-drawer__title">学习引导智能体</p>
+              <p className="guest-drawer__subtitle">访客体验 · 最多 3 轮</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="btn-secondary !p-2 rounded-lg" aria-label="关闭">
@@ -137,14 +137,14 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
         </header>
 
         {usedFallback && (
-          <div className="mx-4 mt-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+          <div className="guest-drawer__alert guest-drawer__alert--warn">
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
             未连接 agent-service，当前为本地 Mock。请启动后端 8003 端口后刷新。
           </div>
         )}
 
         {trialExhausted && (
-          <div className="mx-4 mt-3 rounded-lg bg-primary/8 border border-primary/20 px-3 py-2 text-xs text-primary">
+          <div className="guest-drawer__alert guest-drawer__alert--info">
             当前体验次数已用完，登录后可继续使用完整功能。
           </div>
         )}

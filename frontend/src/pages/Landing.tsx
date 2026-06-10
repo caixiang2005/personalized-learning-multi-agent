@@ -78,6 +78,29 @@ const steps = [
   { num: "03", title: "获取学习路径", desc: "生成资源并进入个性化学习中心" },
 ];
 
+function LandingAgentCards() {
+  return (
+    <>
+      {sideAgents.map((a, i) => (
+        <LandingTiltCard
+          key={a.label}
+          className="landing-side-chip landing-glass landing-enter"
+          intensity={6}
+          style={{ animationDelay: `${i * 80}ms` }}
+        >
+          <span className="landing-icon-glass landing-icon-glass--sm">
+            <a.icon size={17} strokeWidth={1.75} />
+          </span>
+          <div>
+            <p className="landing-side-chip__label">{a.label}</p>
+            <p className="landing-side-chip__desc">{a.desc}</p>
+          </div>
+        </LandingTiltCard>
+      ))}
+    </>
+  );
+}
+
 export default function Landing() {
   const [chatOpen, setChatOpen] = useState(false);
   const [statsActive, setStatsActive] = useState(false);
@@ -93,6 +116,7 @@ export default function Landing() {
     : { transform: `translate3d(0, ${scrollY * -0.06}px, 0)` };
 
   return (
+    <>
     <div className="landing-shell app-page-scrim">
       <LandingMotionLayer scrollY={scrollY} progress={progress} />
       <header
@@ -119,70 +143,90 @@ export default function Landing() {
       </header>
 
       <div className="landing-layout">
-        <main className="landing-page">
-          <LandingReveal as="section" className="landing-hero landing-hero--motion">
-            <div className="landing-hero__main landing-hero__parallax" style={heroMainStyle}>
-              <h1 className="landing-hero__title landing-hero__title--plain">
-                高等教育 · 个性化学习多智能体系统
-              </h1>
-              <p className="landing-hero__desc">
-                专业学术科技风 AI 教育平台：对话式 6 维画像、五类资源协同生成、智能路径推送与学习效果评估。
-              </p>
-              <div className="landing-hero__actions">
-                <Link to="/login" className="landing-btn-glass landing-hero__cta-primary landing-hero__cta-shimmer">
-                  <LogIn size={16} strokeWidth={1.75} />
-                  立即登录
-                  <ArrowRight size={16} strokeWidth={1.75} className="landing-hero__cta-arrow" />
-                </Link>
-                <button
-                  type="button"
-                  className="landing-hero__cta-secondary landing-glass"
-                  onClick={() => setChatOpen(true)}
-                >
-                  <MessageSquare size={16} strokeWidth={1.75} />
-                  先体验智能助手
-                </button>
+        <div className="landing-top-band">
+          <div className="landing-top-band__main">
+            <LandingReveal as="section" className="landing-hero landing-hero--motion">
+              <div className="landing-hero__main landing-hero__parallax" style={heroMainStyle}>
+                <h1 className="landing-hero__title landing-hero__title--plain">
+                  <span className="landing-hero__title-line">高等教育</span>
+                  <span className="landing-hero__title-line">个性化学习多智能体系统</span>
+                </h1>
+                <p className="landing-hero__desc">
+                  专业学术科技风 AI 教育平台：对话式 6 维画像、五类资源协同生成、智能路径推送与学习效果评估。
+                </p>
+                <div className="landing-hero__actions">
+                  <Link to="/login" className="landing-btn-glass landing-hero__cta-primary landing-hero__cta-shimmer">
+                    <LogIn size={16} strokeWidth={1.75} />
+                    立即登录
+                    <ArrowRight size={16} strokeWidth={1.75} className="landing-hero__cta-arrow" />
+                  </Link>
+                  <button
+                    type="button"
+                    className="landing-hero__cta-secondary landing-glass"
+                    onClick={() => setChatOpen(true)}
+                  >
+                    <MessageSquare size={16} strokeWidth={1.75} />
+                    先体验智能助手
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="landing-hero__parallax" style={heroCardStyle}>
-              <LandingTiltCard
-                className="landing-hero__card landing-glass landing-glass--accent landing-float"
-                intensity={5}
-              >
-                <p className="landing-hero__card-label">登录后可使用</p>
-                <ul className="landing-hero__card-list">
-                  <li>
-                    <MessageSquare size={16} strokeWidth={1.75} /> 多轮学习对话与画像构建
-                  </li>
-                  <li>
-                    <BookOpen size={16} strokeWidth={1.75} /> 文档 / 导图 / 题库等资源生成
-                  </li>
-                  <li>
-                    <Route size={16} strokeWidth={1.75} /> 阶段性学习路径推送
-                  </li>
-                </ul>
-              </LandingTiltCard>
-            </div>
-          </LandingReveal>
+              <div className="landing-hero__parallax" style={heroCardStyle}>
+                <LandingTiltCard
+                  className="landing-hero__card landing-glass landing-glass--accent landing-float"
+                  intensity={5}
+                >
+                  <p className="landing-hero__card-label">登录后可使用</p>
+                  <ul className="landing-hero__card-list">
+                    <li>
+                      <MessageSquare size={16} strokeWidth={1.75} /> 多轮学习对话与画像构建
+                    </li>
+                    <li>
+                      <BookOpen size={16} strokeWidth={1.75} /> 文档 / 导图 / 题库等资源生成
+                    </li>
+                    <li>
+                      <Route size={16} strokeWidth={1.75} /> 阶段性学习路径推送
+                    </li>
+                  </ul>
+                </LandingTiltCard>
+              </div>
+            </LandingReveal>
 
-          <LandingReveal
-            className="landing-stats"
-            delay={80}
-            stagger
-            onVisible={() => setStatsActive(true)}
-          >
-            {stats.map((s) => (
-              <LandingTiltCard key={s.label} className="landing-stat landing-glass-card" intensity={6}>
-                <LandingCountUp
-                  value={s.value}
-                  active={statsActive}
-                  className="landing-stat__value shiny-text-subtle"
-                />
-                <span className="landing-stat__label">{s.label}</span>
-              </LandingTiltCard>
-            ))}
-          </LandingReveal>
+            <LandingReveal
+              className="landing-stats"
+              delay={80}
+              stagger
+              onVisible={() => setStatsActive(true)}
+            >
+              {stats.map((s) => (
+                <LandingTiltCard key={s.label} className="landing-stat landing-glass-card" intensity={6}>
+                  <LandingCountUp
+                    value={s.value}
+                    active={statsActive}
+                    className="landing-stat__value shiny-text-subtle"
+                  />
+                  <span className="landing-stat__label">{s.label}</span>
+                </LandingTiltCard>
+              ))}
+            </LandingReveal>
+          </div>
+
+          <aside className="landing-rail" aria-label="多智能体能力">
+            <p className="landing-rail__title">多智能体</p>
+            <div className="landing-rail__agents">
+              <LandingAgentCards />
+            </div>
+          </aside>
+        </div>
+
+        <div className="landing-body">
+        <main className="landing-page">
+          <section className="landing-agents landing-agents--mobile" aria-label="多智能体能力">
+            <p className="landing-agents__title">多智能体</p>
+            <div className="landing-agents__grid">
+              <LandingAgentCards />
+            </div>
+          </section>
 
           <LandingReveal
             as="section"
@@ -229,29 +273,12 @@ export default function Landing() {
 
           <LandingFaq />
         </main>
-
-        <aside className="landing-side landing-side--right" aria-label="多智能体能力">
-          <p className="landing-side__title">多智能体</p>
-          {sideAgents.map((a, i) => (
-            <div
-              key={a.label}
-              className="landing-side-chip landing-glass landing-enter"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <span className="landing-icon-glass landing-icon-glass--sm">
-                <a.icon size={17} strokeWidth={1.75} />
-              </span>
-              <div>
-                <p className="landing-side-chip__label">{a.label}</p>
-                <p className="landing-side-chip__desc">{a.desc}</p>
-              </div>
-            </div>
-          ))}
-        </aside>
+        </div>
       </div>
+    </div>
 
       <GuestAssistantFab onClick={() => setChatOpen((open) => !open)} active={chatOpen} />
       <GuestChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
-    </div>
+    </>
   );
 }

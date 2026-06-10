@@ -8,15 +8,21 @@ type Props = {
   children: ReactNode;
   className?: string;
   intensity?: number;
+  style?: CSSProperties;
 };
 
-export default function LandingTiltCard({ children, className = "", intensity = 7 }: Props) {
+export default function LandingTiltCard({
+  children,
+  className = "",
+  intensity = 7,
+  style: outerStyle,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = usePrefersReducedMotion();
-  const [style, setStyle] = useState<CSSProperties>({});
+  const [tiltStyle, setTiltStyle] = useState<CSSProperties>({});
 
   const reset = () => {
-    setStyle({
+    setTiltStyle({
       transform: "perspective(900px) rotateX(0deg) rotateY(0deg)",
     });
   };
@@ -26,7 +32,7 @@ export default function LandingTiltCard({ children, className = "", intensity = 
     const rect = ref.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setStyle({
+    setTiltStyle({
       transform: `perspective(900px) rotateX(${(-y * intensity).toFixed(2)}deg) rotateY(${(x * intensity).toFixed(2)}deg) translateZ(0)`,
     });
   };
@@ -35,7 +41,7 @@ export default function LandingTiltCard({ children, className = "", intensity = 
     <div
       ref={ref}
       className={`landing-tilt${className ? ` ${className}` : ""}`}
-      style={style}
+      style={{ ...outerStyle, ...tiltStyle }}
       onMouseMove={onMove}
       onMouseLeave={reset}
     >

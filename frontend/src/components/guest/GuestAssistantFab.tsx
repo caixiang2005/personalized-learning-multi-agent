@@ -15,13 +15,24 @@ const MARGIN = 12;
 const DRAG_THRESHOLD = 8;
 const STORAGE_KEY = "guest-fab-position";
 
+function viewportBounds() {
+  const vv = window.visualViewport;
+  return {
+    width: vv?.width ?? window.innerWidth,
+    height: vv?.height ?? window.innerHeight,
+    offsetLeft: vv?.offsetLeft ?? 0,
+    offsetTop: vv?.offsetTop ?? 0,
+  };
+}
+
 function clampPos(x: number, y: number, el: HTMLElement | null) {
   const rect = el?.getBoundingClientRect();
   const w = rect?.width ?? 56;
   const h = rect?.height ?? 56;
+  const { width, height, offsetLeft, offsetTop } = viewportBounds();
   return {
-    x: Math.max(MARGIN, Math.min(x, window.innerWidth - w - MARGIN)),
-    y: Math.max(MARGIN, Math.min(y, window.innerHeight - h - MARGIN)),
+    x: Math.max(MARGIN + offsetLeft, Math.min(x, offsetLeft + width - w - MARGIN)),
+    y: Math.max(MARGIN + offsetTop, Math.min(y, offsetTop + height - h - MARGIN)),
   };
 }
 
@@ -29,9 +40,10 @@ function defaultPos(el: HTMLElement | null) {
   const rect = el?.getBoundingClientRect();
   const w = rect?.width ?? 56;
   const h = rect?.height ?? 56;
+  const { width, height, offsetLeft, offsetTop } = viewportBounds();
   return {
-    x: window.innerWidth - w - MARGIN,
-    y: window.innerHeight - h - MARGIN,
+    x: offsetLeft + width - w - MARGIN,
+    y: offsetTop + height - h - MARGIN,
   };
 }
 
@@ -73,7 +85,13 @@ export default function GuestAssistantFab({ onClick, active }: Props) {
 
   useEffect(() => {
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("resize", handleResize);
+    window.visualViewport?.addEventListener("scroll", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("resize", handleResize);
+      window.visualViewport?.removeEventListener("scroll", handleResize);
+    };
   }, [handleResize]);
 
   const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
