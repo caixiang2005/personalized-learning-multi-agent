@@ -50,6 +50,8 @@ export function bootstrapProfileFromInput(text: string, current: ProfileDraft): 
   } else if (/期末/.test(trimmed) && /(\d+)\s*分/.test(trimmed)) {
     const score = trimmed.match(/(\d+)\s*分/)![1];
     goal = `期末考 ${score} 分以上`;
+  } else if (/^(学好|学会|掌握|考过|通过)/.test(trimmed) && trimmed.length <= 24) {
+    goal = trimmed.replace(/[。！!？?]+$/, "").trim();
   }
 
   level = level ? `${level}\n${trimmed}` : trimmed;

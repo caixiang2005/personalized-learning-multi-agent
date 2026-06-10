@@ -1668,7 +1668,17 @@ a {
     font-size: clamp(1.875rem, 4.5vw, 2.5rem);
     font-weight: 600;
     line-height: 1.22;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
+  }
+
+  .landing-hero__title-line {
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+
+  .landing-hero__title-line + .landing-hero__title-line {
+    margin-top: 0.14em;
   }
 
   .landing-hero__title--plain {

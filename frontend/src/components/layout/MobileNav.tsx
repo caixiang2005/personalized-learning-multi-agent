@@ -2,33 +2,53 @@
  * @file MobileNav.tsx
  * @description 移动端底栏：4 Tab（首页 · 辅导 · 路径 · 成长）
  */
-import { NavLink, useLocation } from "react-router-dom";
+import { useLocation, NavLink } from "react-router-dom";
 import { MoreHorizontal } from "lucide-react";
-import { MOBILE_NAV, isGrowthPath } from "../../lib/navConfig";
+import { MOBILE_NAV, isGrowthPath, isHomePath } from "../../lib/navConfig";
+import { resolveTutorNavTarget, isTutorNavActive, TUTOR_CHAT_PATH } from "../../lib/profileGate";
+import { useAppStore } from "../../store/useAppStore";
 
 export default function MobileNav() {
   const { pathname } = useLocation();
+  const { profile, profileInitialized } = useAppStore();
+  const tutorNav = resolveTutorNavTarget(profileInitialized, profile);
   const growthActive = isGrowthPath(pathname) && pathname !== "/profile";
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-gray-200/80 dark:border-gray-700/80 safe-area-pb">
       <div className="flex items-center justify-around h-14 px-2">
         {MOBILE_NAV.map((item) => {
-          const { to, label, icon: Icon } = item;
+          const { label, icon: Icon } = item;
+          const isTutorTab = item.to === TUTOR_CHAT_PATH;
+          const to = isTutorTab ? tutorNav.to : item.to;
+          const navState = isTutorTab ? tutorNav.state : undefined;
           const end = "end" in item ? item.end : undefined;
-          const isGrowthTab = to === "/profile";
+          const isGrowthTab = item.to === "/profile";
+          const isHomeTab = item.to === "/home";
           return (
             <NavLink
-              key={to}
+              key={item.to}
               to={to}
+              state={navState}
               end={end}
-              className={({ isActive }) => {
-                const active = isActive || (isGrowthTab && growthActive);
+              title={isTutorTab && tutorNav.state?.fromTutorGate ? "需先完成学习画像" : undefined}
+              className={() => {
+                const active =
+                  (isHomeTab && isHomePath(pathname)) ||
+                  (isTutorTab
+                    ? isTutorNavActive(pathname, profileInitialized, profile)
+                    : item.to !== "/home" && pathname.startsWith(item.to)) ||
+                  (isGrowthTab && growthActive);
                 return `mobile-nav-tab ${active ? "mobile-nav-tab--active" : ""}`;
               }}
             >
               {({ isActive }) => {
-                const active = isActive || (isGrowthTab && growthActive);
+                const active =
+                  (isHomeTab && isHomePath(pathname)) ||
+                  (isTutorTab
+                    ? isTutorNavActive(pathname, profileInitialized, profile)
+                    : isActive) ||
+                  (isGrowthTab && growthActive);
                 return (
                   <>
                     {isGrowthTab && growthActive && !isActive ? (

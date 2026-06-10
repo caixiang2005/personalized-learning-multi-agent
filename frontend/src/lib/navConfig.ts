@@ -41,12 +41,12 @@ export const PRIMARY_NAV: PrimaryNavItem[] = [
   {
     to: "/chat",
     label: "智能辅导",
-    hint: "对话画像 · 答疑 · 资源生成",
+    hint: "知识库答疑 · 资源生成",
   },
   {
     to: "/path",
     label: "学习路径",
-    hint: "路径规划 · 资源推送",
+    hint: "路径智能体 · 阶段规划 · 资源推送",
   },
 ];
 
@@ -82,6 +82,13 @@ export const GROWTH_NAV: GrowthNavItem[] = [
 ];
 
 export const GROWTH_PATHS = GROWTH_NAV.map((i) => i.to);
+
+/** 画像构建专用智能体（与 /chat 智能辅导分离） */
+export const PROFILE_BUILD_PATH = "/profile-build";
+
+export function isHomePath(pathname: string): boolean {
+  return pathname === "/home" || pathname === PROFILE_BUILD_PATH;
+}
 
 export function isGrowthPath(pathname: string): boolean {
   return GROWTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

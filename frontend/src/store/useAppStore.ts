@@ -13,10 +13,13 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { ChatMessage, ChatSession, LearningProfile, PathStage } from "../types";
+import type { ChatMessage, ChatSession, LearningProfile, PathStage, LearningPathMeta } from "../types";
 import type { UserInfo } from "../lib/api/endpoints";
 import { blankProfile } from "../lib/mockData";
+import { isProfileReady } from "../lib/profileReady";
 import { applyTheme, THEME_STORAGE_KEY } from "../lib/theme";
+
+export type ChatChannel = "profile" | "tutor";
 
 interface AppState {
   isLoggedIn: boolean;
@@ -26,10 +29,16 @@ interface AppState {
   profile: LearningProfile;
   /** 【待同步】GET /api/chat/sessions */
   sessions: ChatSession[];
-  /** 【待同步】GET /api/chat/sessions/:id/messages */
-  messages: ChatMessage[];
+  /** 画像智能体 /profile-build 专用会话 */
+  profileBuildMessages: ChatMessage[];
+  /** 智能辅导 /chat 专用会话 */
+  tutorMessages: ChatMessage[];
   /** 【待同步】GET /api/learning-path */
   pathStages: PathStage[];
+  /** 路径规划智能体 /path/plan 专用会话 */
+  pathPlanMessages: ChatMessage[];
+  /** 【待同步】GET /api/learning-path 元信息 */
+  learningPathMeta: LearningPathMeta | null;
   profileInitialized: boolean;
   sidebarCollapsed: boolean;
   /** GET getProfile · avatarUrl */
@@ -41,12 +50,50 @@ interface AppState {
   toggleDarkMode: () => void;
   setProfile: (p: Partial<LearningProfile>) => void;
   setProfileInitialized: (v: boolean) => void;
-  addMessage: (msg: ChatMessage) => void;
-  updateMessage: (id: string, patch: Partial<ChatMessage>) => void;
-  setMessages: (msgs: ChatMessage[]) => void;
+  /** 清空画像并回到构建流程（保留用户名与智能辅导历史） */
+  resetProfileForRebuild: () => void;
+  addMessage: (msg: ChatMessage, channel: ChatChannel) => void;
+  updateMessage: (id: string, patch: Partial<ChatMessage>, channel: ChatChannel) => void;
+  setMessages: (msgs: ChatMessage[], channel: ChatChannel) => void;
+  setPathPlanMessages: (msgs: ChatMessage[]) => void;
+  addPathPlanMessage: (msg: ChatMessage) => void;
+  updatePathPlanMessage: (id: string, patch: Partial<ChatMessage>) => void;
+  /** 【待同步】POST /api/learning-path/generate */
+  setLearningPath: (stages: PathStage[], meta: LearningPathMeta) => void;
+  clearLearningPath: () => void;
   toggleSidebar: () => void;
   /** 【待同步】PUT /api/learning-path/resource-status */
   updateResourceStatus: (topicId: string, resourceId: string, status: string) => void;
+}
+
+function messagesFor(state: AppState, channel: ChatChannel): ChatMessage[] {
+  return channel === "profile" ? state.profileBuildMessages : state.tutorMessages;
+}
+
+function normalizePersistedProfile(
+  profile: LearningProfile | undefined,
+  profileInitialized: boolean,
+  pathStages: PathStage[]
+): {
+  profile: LearningProfile;
+  profileInitialized: boolean;
+  pathStages: PathStage[];
+} {
+  if (!profile || !Array.isArray(profile.learnerDimensions)) {
+    return {
+      profile: { ...blankProfile, name: profile?.name || blankProfile.name },
+      profileInitialized: false,
+      pathStages: [],
+    };
+  }
+  if (profileInitialized && !isProfileReady(profile)) {
+    return {
+      profile: { ...blankProfile, name: profile.name || blankProfile.name },
+      profileInitialized: false,
+      pathStages: [],
+    };
+  }
+  return { profile, profileInitialized, pathStages };
 }
 
 export const useAppStore = create<AppState>()(
@@ -57,8 +104,11 @@ export const useAppStore = create<AppState>()(
       darkMode: false,
       profile: blankProfile,
       sessions: [],
-      messages: [],
+      profileBuildMessages: [],
+      tutorMessages: [],
       pathStages: [],
+      pathPlanMessages: [],
+      learningPathMeta: null,
       profileInitialized: false,
       sidebarCollapsed: false,
       userAvatarUrl: null,
@@ -83,12 +133,42 @@ export const useAppStore = create<AppState>()(
         }),
       setProfile: (p) => set((s) => ({ profile: { ...s.profile, ...p } })),
       setProfileInitialized: (v) => set({ profileInitialized: v }),
-      addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
-      updateMessage: (id, patch) =>
+      resetProfileForRebuild: () =>
         set((s) => ({
-          messages: s.messages.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+          profile: {
+            ...blankProfile,
+            name: s.user?.username || s.profile.name || blankProfile.name,
+          },
+          profileInitialized: false,
+          profileBuildMessages: [],
         })),
-      setMessages: (msgs) => set({ messages: msgs }),
+      addMessage: (msg, channel) =>
+        set((s) => {
+          const key = channel === "profile" ? "profileBuildMessages" : "tutorMessages";
+          return { [key]: [...messagesFor(s, channel), msg] };
+        }),
+      updateMessage: (id, patch, channel) =>
+        set((s) => {
+          const key = channel === "profile" ? "profileBuildMessages" : "tutorMessages";
+          return {
+            [key]: messagesFor(s, channel).map((m) => (m.id === id ? { ...m, ...patch } : m)),
+          };
+        }),
+      setMessages: (msgs, channel) =>
+        set(() => {
+          const key = channel === "profile" ? "profileBuildMessages" : "tutorMessages";
+          return { [key]: msgs };
+        }),
+      setPathPlanMessages: (msgs) => set({ pathPlanMessages: msgs }),
+      addPathPlanMessage: (msg) =>
+        set((s) => ({ pathPlanMessages: [...s.pathPlanMessages, msg] })),
+      updatePathPlanMessage: (id, patch) =>
+        set((s) => ({
+          pathPlanMessages: s.pathPlanMessages.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+        })),
+      setLearningPath: (stages, meta) => set({ pathStages: stages, learningPathMeta: meta }),
+      clearLearningPath: () =>
+        set({ pathStages: [], learningPathMeta: null, pathPlanMessages: [] }),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       updateResourceStatus: (topicId, resourceId, status) =>
         set((s) => ({
@@ -115,10 +195,37 @@ export const useAppStore = create<AppState>()(
         profile: s.profile,
         profileInitialized: s.profileInitialized,
         pathStages: s.pathStages,
+        pathPlanMessages: s.pathPlanMessages,
+        learningPathMeta: s.learningPathMeta,
         userAvatarUrl: s.userAvatarUrl,
       }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<AppState>;
+        const normalized = normalizePersistedProfile(
+          p.profile,
+          p.profileInitialized ?? current.profileInitialized,
+          p.pathStages ?? current.pathStages
+        );
+        return {
+          ...current,
+          ...p,
+          profile: normalized.profile,
+          profileInitialized: normalized.profileInitialized,
+          pathStages: normalized.pathStages,
+        };
+      },
       onRehydrateStorage: () => (state, error) => {
-        if (!error && state) applyTheme(state.darkMode);
+        if (!error && state) {
+          applyTheme(state.darkMode);
+          const normalized = normalizePersistedProfile(
+            state.profile,
+            state.profileInitialized,
+            state.pathStages
+          );
+          state.profile = normalized.profile;
+          state.profileInitialized = normalized.profileInitialized;
+          state.pathStages = normalized.pathStages;
+        }
       },
     }
   )

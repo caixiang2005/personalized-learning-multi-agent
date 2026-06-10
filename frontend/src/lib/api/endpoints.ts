@@ -129,6 +129,10 @@ export const API = {
     chat: `${API_BASE}/agent/chat`,
     /** POST 访客 · 最多 3 轮免费 */
     unloginChat: `${API_BASE}/agent/unlogin/chat`,
+    /** POST 画像智能体 · 对话抽取学习特征（待 agent-service 实现） */
+    profileBuild: `${API_BASE}/agent/profile-build`,
+    /** POST 路径规划智能体 · 分阶段路径与资源推送（待 agent-service 实现） */
+    pathPlan: `${API_BASE}/agent/path-plan`,
   },
 } as const;
 

@@ -158,15 +158,15 @@
 /* —— 顶栏 —— */
 .landing-header--bar,
 .app-navbar {
-  border-bottom: 3px solid rgba(199, 210, 254, 0.6) !important;
-  background: rgba(255, 255, 255, 0.85) !important;
+  border-bottom: 1px solid var(--scholar-border) !important;
+  background: color-mix(in srgb, var(--scholar-card) 92%, transparent) !important;
   backdrop-filter: blur(12px) !important;
 }
 
 .dark .landing-header--bar,
 .dark .app-navbar {
-  background: rgba(30, 27, 75, 0.9) !important;
-  border-bottom-color: rgba(99, 102, 241, 0.35) !important;
+  background: color-mix(in srgb, var(--scholar-card) 94%, transparent) !important;
+  border-bottom-color: var(--scholar-border) !important;
 }
 
 .landing-brand__icon {
@@ -183,8 +183,8 @@
 }
 
 .nav-link-active {
-  background: rgba(79, 70, 229, 0.12) !important;
-  color: var(--color-primary) !important;
+  background: color-mix(in srgb, var(--scholar-primary) 12%, transparent) !important;
+  color: var(--scholar-primary) !important;
   font-weight: 600;
 }
 
@@ -201,30 +201,30 @@
 }
 
 .chip {
-  border: 2px solid rgba(199, 210, 254, 0.9) !important;
-  background: #ffffff !important;
-  color: var(--ds-text-secondary) !important;
+  border: 1px solid var(--scholar-border) !important;
+  background: var(--scholar-card) !important;
+  color: var(--scholar-text-secondary) !important;
   border-radius: 9999px !important;
   transition: all 0.2s ease-out !important;
   cursor: pointer;
 }
 
 .chip:hover {
-  border-color: var(--color-primary) !important;
-  background: rgba(79, 70, 229, 0.06) !important;
-  color: var(--color-primary) !important;
+  border-color: var(--scholar-primary) !important;
+  background: color-mix(in srgb, var(--scholar-primary) 6%, var(--scholar-card)) !important;
+  color: var(--scholar-primary) !important;
 }
 
 .dark .chip {
-  background: rgba(49, 46, 129, 0.72) !important;
-  border-color: rgba(129, 140, 248, 0.42) !important;
-  color: var(--ds-text-secondary) !important;
+  background: color-mix(in srgb, var(--scholar-card) 88%, var(--scholar-primary) 12%) !important;
+  border-color: var(--scholar-border) !important;
+  color: var(--scholar-text-secondary) !important;
 }
 
 .dark .chip:hover {
-  background: rgba(79, 70, 229, 0.28) !important;
-  border-color: rgba(165, 180, 252, 0.65) !important;
-  color: #e0e7ff !important;
+  background: color-mix(in srgb, var(--scholar-primary) 18%, var(--scholar-card)) !important;
+  border-color: color-mix(in srgb, var(--scholar-primary-light) 40%, var(--scholar-border)) !important;
+  color: var(--scholar-primary-light) !important;
 }
 
 /* —— 暗色渐变标题兜底（避免 background-clip 失效成色块） —— */

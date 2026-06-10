@@ -18,6 +18,8 @@ import Profile from "./pages/Profile";
 import Scan from "./pages/Scan";
 import DailyPlan from "./pages/DailyPlan";
 import LearningPath from "./pages/LearningPath";
+import PathPlan from "./pages/PathPlan";
+import PathDetail from "./pages/PathDetail";
 import ResourceDetail from "./pages/ResourceDetail";
 import ExercisePage from "./pages/ExercisePage";
 import Analytics from "./pages/Analytics";
@@ -60,11 +62,14 @@ export default function App() {
           }
         >
           <Route path="/home" element={<Home />} />
+          <Route path="/profile-build" element={<Chat />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/scan" element={<Scan />} />
           <Route path="/plan" element={<DailyPlan />} />
           <Route path="/path" element={<LearningPath />} />
+          <Route path="/path/plan" element={<PathPlan />} />
+          <Route path="/path/view" element={<PathDetail />} />
           <Route path="/resource/:id" element={<ResourceDetail />} />
           <Route path="/exercise/:id" element={<ExercisePage />} />
           <Route path="/analytics" element={<Analytics />} />

@@ -1,36 +1,49 @@
 /**
- * Scholar · 青墨 + 琥珀（告别渐变紫）
+ * Scholar · 青墨 + 琥珀（告别渐变紫 / 遗留品牌蓝）
  */
 :root {
-  --scholar-primary: #0b6e83;
-  --scholar-primary-light: #1496a9;
-  --scholar-accent: #c27803;
-  --scholar-accent-cool: #14b8a6;
-  --scholar-surface: #edf2f6;
+  --scholar-primary: #0a6578;
+  --scholar-primary-light: #138da3;
+  --scholar-primary-deep: #084e5c;
+  --scholar-accent: #b45309;
+  --scholar-accent-soft: #d97706;
+  --scholar-accent-cool: #0d9488;
+  --scholar-bg: #f4f8fa;
+  --scholar-surface: #e8f0f4;
   --scholar-card: #ffffff;
   --scholar-text: #0c1222;
-  --scholar-text-secondary: #3d4f61;
-  --scholar-text-muted: #7a8fa3;
-  --scholar-border: #d4dee6;
+  --scholar-text-secondary: #334155;
+  --scholar-text-muted: #64748b;
+  --scholar-border: #cbd8e2;
   --scholar-radius-md: 14px;
-  --scholar-shadow-card: 0 1px 0 rgb(255 255 255 / 0.75) inset, 0 1px 3px rgb(12 18 34 / 5%), 0 6px 20px rgb(11 110 131 / 7%);
-  --scholar-shadow-elevated: 0 1px 0 rgb(255 255 255 / 0.65) inset, 0 12px 40px rgb(11 110 131 / 14%), 0 4px 12px rgb(12 18 34 / 6%);
+  --scholar-shadow-card: 0 1px 0 rgb(255 255 255 / 0.75) inset, 0 1px 3px rgb(12 18 34 / 5%), 0 6px 20px rgb(10 101 120 / 8%);
+  --scholar-shadow-elevated: 0 1px 0 rgb(255 255 255 / 0.65) inset, 0 12px 40px rgb(10 101 120 / 14%), 0 4px 12px rgb(12 18 34 / 6%);
 
-  --color-primary: #0b6e83;
-  --color-accent: #c27803;
-  --color-surface: #edf2f6;
-  --color-border: #c5d4de;
-  --ds-text: #0c1222;
-  --ds-text-secondary: #3d4f61;
-  --ds-text-muted: #7a8fa3;
-  --glass: rgba(255, 255, 255, 0.92);
-  --glass-border: rgba(197, 212, 222, 0.85);
-  --glass-card-bg: #ffffff;
-  --glass-card-border: rgba(197, 212, 222, 0.9);
-  --glass-accent-bg: linear-gradient(135deg, #0b6e83 0%, #1496a9 52%, #c27803 100%);
-  --glass-accent-border: rgba(255, 255, 255, 0.4);
-  --glass-accent-shadow: 0 4px 20px rgb(11 110 131 / 18%), 0 1px 0 rgb(255 255 255 / 0.9) inset;
-  --glass-accent-shadow-hover: 0 8px 28px rgb(11 110 131 / 24%), 0 1px 0 rgb(255 255 255 / 0.95) inset;
+  /* 访客抽屉 / 聊天 */
+  --guest-drawer-bg: var(--scholar-card);
+  --guest-drawer-header: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--scholar-primary) 10%, var(--scholar-card)) 0%,
+    var(--scholar-card) 100%
+  );
+  --guest-bubble-user: linear-gradient(145deg, var(--scholar-primary) 0%, var(--scholar-primary-light) 100%);
+  --guest-bubble-assistant: var(--scholar-surface);
+
+  --color-primary: var(--scholar-primary);
+  --color-accent: var(--scholar-accent);
+  --color-surface: var(--scholar-surface);
+  --color-border: var(--scholar-border);
+  --ds-text: var(--scholar-text);
+  --ds-text-secondary: var(--scholar-text-secondary);
+  --ds-text-muted: var(--scholar-text-muted);
+  --glass: rgba(255, 255, 255, 0.96);
+  --glass-border: color-mix(in srgb, var(--scholar-border) 90%, transparent);
+  --glass-card-bg: var(--scholar-card);
+  --glass-card-border: var(--scholar-border);
+  --glass-accent-bg: linear-gradient(145deg, var(--scholar-primary) 0%, var(--scholar-primary-light) 100%);
+  --glass-accent-border: color-mix(in srgb, var(--scholar-primary-light) 45%, white);
+  --glass-accent-shadow: 0 4px 20px rgb(10 101 120 / 22%), 0 1px 0 rgb(255 255 255 / 0.9) inset;
+  --glass-accent-shadow-hover: 0 8px 28px rgb(10 101 120 / 28%), 0 1px 0 rgb(255 255 255 / 0.95) inset;
   --glass-control-bg: rgba(255, 255, 255, 0.88);
   --glass-control-border: rgba(197, 212, 222, 0.95);
   --glass-control-inset: inset 0 1px 0 rgba(255, 255, 255, 0.95);
@@ -55,9 +68,12 @@
 .dark {
   --scholar-primary: #2cb8cf;
   --scholar-primary-light: #5ed4e4;
+  --scholar-primary-deep: #1a8a9c;
   --scholar-accent: #e8a849;
+  --scholar-accent-soft: #fbbf24;
   --scholar-accent-cool: #2dd4bf;
-  --scholar-surface: #0c1219;
+  --scholar-bg: #0c1219;
+  --scholar-surface: #151d28;
   --scholar-card: #151d28;
   --scholar-text: #e8eef4;
   --scholar-text-secondary: #a8b8c8;
@@ -66,19 +82,28 @@
   --scholar-shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 4px 16px rgb(0 0 0 / 15%);
   --scholar-shadow-elevated: 0 12px 40px rgb(0 0 0 / 35%);
 
-  --color-surface: #0c1219;
-  --color-border: #3d4f61;
-  --ds-text: #e8eef4;
-  --ds-text-secondary: #a8b8c8;
-  --ds-text-muted: #6b7d90;
-  --glass: rgba(21, 29, 40, 0.94);
+  --guest-drawer-bg: var(--scholar-card);
+  --guest-drawer-header: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--scholar-primary) 14%, var(--scholar-card)) 0%,
+    var(--scholar-card) 100%
+  );
+  --guest-bubble-user: linear-gradient(145deg, var(--scholar-primary-deep) 0%, var(--scholar-primary) 100%);
+  --guest-bubble-assistant: color-mix(in srgb, var(--scholar-surface) 88%, var(--scholar-primary) 12%);
+
+  --color-surface: var(--scholar-surface);
+  --color-border: var(--scholar-border);
+  --ds-text: var(--scholar-text);
+  --ds-text-secondary: var(--scholar-text-secondary);
+  --ds-text-muted: var(--scholar-text-muted);
+  --glass: rgba(21, 29, 40, 0.96);
   --glass-border: rgba(61, 79, 97, 0.6);
-  --glass-card-bg: rgba(21, 29, 40, 0.96);
+  --glass-card-bg: var(--scholar-card);
   --glass-card-border: rgba(61, 79, 97, 0.55);
-  --glass-accent-bg: linear-gradient(135deg, #0b6e83 0%, #1496a9 50%, #c27803 100%);
+  --glass-accent-bg: linear-gradient(145deg, var(--scholar-primary-deep) 0%, var(--scholar-primary) 100%);
   --glass-control-bg: rgba(21, 29, 40, 0.85);
   --glass-control-border: rgba(61, 79, 97, 0.65);
   --glass-control-bg-hover: rgba(30, 42, 58, 0.9);
   --glass-control-focus-ring: 0 0 0 3px rgba(44, 184, 207, 0.28);
-  --landing-text-faint: #6b7d90;
+  --landing-text-faint: var(--scholar-text-muted);
 }

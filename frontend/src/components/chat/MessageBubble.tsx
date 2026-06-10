@@ -3,12 +3,13 @@
  * @description 单条聊天消息（豆包式：用户右气泡、助手左栏扁平正文 + 操作条）
  * @backend POST /api/chat/feedback（有用/没用/收藏）
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Copy, ThumbsDown, ThumbsUp, Star, RotateCcw } from "lucide-react";
 import AgentAvatar from "./AgentAvatar";
 import MarkdownContent from "../ui/MarkdownContent";
 import MultimodalCard from "./MultimodalCard";
 import StreamText from "../ui/StreamText";
+import { useAnimeEntrance } from "../../hooks/useAnimeEntrance";
 import type { ChatMessage } from "../../types";
 
 interface Props {
@@ -18,12 +19,19 @@ interface Props {
 export default function MessageBubble({ message }: Props) {
   const [streamDone, setStreamDone] = useState(!message.streaming);
   const isUser = message.role === "user";
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useAnimeEntrance(rootRef, {
+    y: isUser ? 10 : 12,
+    x: isUser ? 10 : -8,
+    duration: 420,
+  });
 
   const copyText = () => navigator.clipboard.writeText(message.content);
 
   if (isUser) {
     return (
-      <div className="doubao-msg doubao-msg--user">
+      <div ref={rootRef} className="doubao-msg doubao-msg--user">
         <div className="doubao-msg__user-bubble">{message.content}</div>
       </div>
     );
@@ -32,7 +40,7 @@ export default function MessageBubble({ message }: Props) {
   const showActions = streamDone && !message.streaming && message.content;
 
   return (
-    <div className="doubao-msg doubao-msg--assistant">
+    <div ref={rootRef} className="doubao-msg doubao-msg--assistant">
       <AgentAvatar
         size="sm"
         thinking={message.streaming && !streamDone}

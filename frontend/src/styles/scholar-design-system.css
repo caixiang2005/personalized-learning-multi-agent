@@ -30,6 +30,22 @@
   box-shadow: none !important;
 }
 
+/* 登录后顶栏：顶/左/右贴边，取消门户浮动卡片留白 */
+.app-navbar--flush.landing-header--bar {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  width: 100%;
+}
+
+.app-navbar--flush .landing-header__inner,
+.app-navbar--flush .app-navbar__inner {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding-left: clamp(1rem, 2.5vw, 1.5rem);
+  padding-right: clamp(1rem, 2.5vw, 1.5rem);
+}
+
 .nav-link {
   border-radius: 8px !important;
   padding: 0.5rem 0.875rem !important;
@@ -350,8 +366,36 @@
 
 .landing-icon-tone--blue { background: color-mix(in srgb, var(--scholar-primary) 12%, transparent) !important; color: var(--scholar-primary) !important; }
 .landing-icon-tone--green { background: color-mix(in srgb, var(--scholar-accent-cool) 12%, transparent) !important; color: var(--scholar-accent-cool) !important; }
-.landing-icon-tone--purple { background: color-mix(in srgb, var(--scholar-accent) 12%, transparent) !important; color: var(--scholar-accent) !important; }
-.landing-icon-tone--orange { background: color-mix(in srgb, #BE123C 10%, transparent) !important; color: #BE123C !important; }
+.landing-icon-tone--purple { background: color-mix(in srgb, var(--scholar-primary-light) 14%, transparent) !important; color: var(--scholar-primary-light) !important; }
+.landing-icon-tone--orange { background: color-mix(in srgb, var(--scholar-accent) 12%, transparent) !important; color: var(--scholar-accent-soft) !important; }
+
+.landing-glass--accent {
+  background: color-mix(in srgb, var(--scholar-primary) 6%, var(--scholar-card)) !important;
+  border-color: color-mix(in srgb, var(--scholar-primary) 22%, var(--scholar-border)) !important;
+  box-shadow: var(--scholar-shadow-card) !important;
+}
+
+.dark .landing-glass--accent {
+  background: color-mix(in srgb, var(--scholar-primary) 10%, var(--scholar-card)) !important;
+  border-color: color-mix(in srgb, var(--scholar-primary) 28%, var(--scholar-border)) !important;
+}
+
+.landing-shell {
+  --landing-text: var(--scholar-text);
+  --landing-text-secondary: var(--scholar-text-secondary);
+  --landing-text-muted: var(--scholar-text-muted);
+  --landing-text-faint: color-mix(in srgb, var(--scholar-text-muted) 85%, transparent);
+}
+
+.landing-hero__cta-secondary:hover {
+  color: var(--scholar-primary) !important;
+  border-color: color-mix(in srgb, var(--scholar-primary) 28%, var(--scholar-border)) !important;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--scholar-primary) 12%, transparent) !important;
+}
+
+.landing-hero__card-label {
+  color: var(--scholar-primary) !important;
+}
 
 .landing-scroll-progress {
   background: linear-gradient(90deg, var(--scholar-primary), var(--scholar-accent-cool)) !important;
