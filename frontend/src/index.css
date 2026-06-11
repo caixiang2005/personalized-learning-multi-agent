@@ -476,23 +476,23 @@ a {
   }
 
   .markdown-body a.markdown-link {
-    color: #0b6e83;
+    color: var(--scholar-primary);
     font-weight: 500;
     text-decoration: underline;
-    text-decoration-color: color-mix(in srgb, #0b6e83 45%, transparent);
+    text-decoration-color: color-mix(in srgb, var(--scholar-primary) 45%, transparent);
     text-underline-offset: 3px;
     cursor: pointer;
     transition: color 0.2s ease, text-decoration-color 0.2s ease;
   }
 
   .markdown-body a.markdown-link:hover {
-    color: #085a6b;
-    text-decoration-color: #0b6e83;
+    color: var(--scholar-primary-deep);
+    text-decoration-color: var(--scholar-primary);
   }
 
   .dark .markdown-body a.markdown-link {
-    color: #5ec4d6;
-    text-decoration-color: color-mix(in srgb, #5ec4d6 50%, transparent);
+    color: var(--scholar-primary-light);
+    text-decoration-color: color-mix(in srgb, var(--scholar-primary-light) 50%, transparent);
   }
 
   .dark .markdown-body a.markdown-link:hover {

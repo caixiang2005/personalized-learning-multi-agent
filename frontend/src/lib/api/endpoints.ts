@@ -28,7 +28,7 @@ export interface LoginData extends UserInfo {
   refreshToken: string;
 }
 
-export interface RegisterData extends UserInfo {}
+export type RegisterData = UserInfo;
 
 export interface RefreshTokenData {
   newToken: string;

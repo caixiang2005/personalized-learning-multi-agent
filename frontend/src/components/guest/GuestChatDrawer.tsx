@@ -31,6 +31,11 @@ const quickPrompts = [
 const WELCOME =
   "你好！👋 欢迎使用**个性化学习多智能体系统**。\n\n我是学习引导智能体，可以先和你聊聊学习背景与目标。登录后可构建完整画像并生成多模态学习资源。\n\n**请问你是什么专业的？**";
 
+function createMessageId(role: "user" | "assistant"): string {
+  const prefix = role === "user" ? "u" : "a";
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
 export default function GuestChatDrawer({ open, onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     { id: "welcome", role: "assistant", content: WELCOME },
@@ -78,16 +83,16 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
     if (blocked) {
       setMessages((m) => [
         ...m,
-        { id: `u-${Date.now()}`, role: "user", content },
-        { id: `a-${Date.now()}`, role: "assistant", content: `⚠️ ${blocked}` },
+        { id: createMessageId("user"), role: "user", content },
+        { id: createMessageId("assistant"), role: "assistant", content: `⚠️ ${blocked}` },
       ]);
       setInput("");
       return;
     }
 
     const nextRound = userRounds + 1;
-    const userMsg: Message = { id: `u-${Date.now()}`, role: "user", content };
-    const assistantId = `a-${Date.now()}`;
+    const userMsg: Message = { id: createMessageId("user"), role: "user", content };
+    const assistantId = createMessageId("assistant");
     setMessages((m) => [...m, userMsg, { id: assistantId, role: "assistant", content: "" }]);
     setInput("");
     setThinking(true);
@@ -131,7 +136,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
               <p className="guest-drawer__subtitle">访客体验 · 最多 3 轮</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="btn-secondary !p-2 rounded-lg" aria-label="关闭">
+          <button type="button" onClick={onClose} className="btn-secondary p-2! rounded-lg" aria-label="关闭">
             <X size={18} />
           </button>
         </header>

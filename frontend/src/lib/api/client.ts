@@ -1,10 +1,9 @@
 /**
- * Axios 统一客户端：鉴权、loading、401 自动 refresh、失败跳转登录。
+ * Axios 统一客户端：鉴权、loading、错误与 401 跳转。
  */
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
-import { clearTokens, getRefreshToken, getToken } from "../auth/token";
+import { clearTokens, getToken } from "../auth/token";
 import type { ApiEnvelope } from "../../types/account";
-import { refreshToken } from "./user";
 
 export class ApiClientError extends Error {
   code: number;
@@ -35,45 +34,10 @@ function setLoading(delta: number) {
   loadingListeners.forEach((fn) => fn(pendingRequests > 0));
 }
 
-function redirectToLogin() {
-  if (window.location.pathname.startsWith("/login")) return;
-  window.location.assign("/login");
-}
-
-function canRetryAuth(config: InternalAxiosRequestConfig | undefined): boolean {
-  if (!config || config._authRetried || config.skipAuthRetry) return false;
-  const url = config.url ?? "";
-  return !url.includes("/user/refreshToken");
-}
-
-async function refreshAccessToken(): Promise<string | null> {
-  if (!getToken() && !getRefreshToken()) return null;
-  try {
-    return await refreshToken();
-  } catch {
-    return null;
-  }
-}
-
-async function retryWithFreshToken(config: InternalAxiosRequestConfig): Promise<unknown> {
-  const newToken = await refreshAccessToken();
-  if (!newToken) {
-    clearTokens();
-    redirectToLogin();
-    return Promise.reject(new ApiClientError("登录已失效，请重新登录", 401));
-  }
-  config._authRetried = true;
-  config.headers.Authorization = `Bearer ${newToken}`;
-  return apiClient.request(config);
-}
-
 declare module "axios" {
   export interface AxiosRequestConfig {
     /** 为 true 时不触发全局 loading */
     skipLoading?: boolean;
-    /** 为 true 时 401 不尝试 refresh */
-    skipAuthRetry?: boolean;
-    _authRetried?: boolean;
   }
 }
 
@@ -98,34 +62,28 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 });
 
 apiClient.interceptors.response.use(
-  async (response) => {
+  (response) => {
     if (!response.config.skipLoading) setLoading(-1);
 
     const body = response.data as ApiEnvelope<unknown> | undefined;
     if (body && typeof body.code === "number" && body.code !== 200) {
-      if (body.code === 401 && canRetryAuth(response.config)) {
-        return retryWithFreshToken(response.config);
-      }
       if (body.code === 401) {
         clearTokens();
-        redirectToLogin();
+        window.location.assign("/login");
       }
       return Promise.reject(new ApiClientError(body.msg || "请求失败", body.code));
     }
     return response;
   },
-  async (error: AxiosError<ApiEnvelope<unknown>>) => {
+  (error: AxiosError<ApiEnvelope<unknown>>) => {
     if (!error.config?.skipLoading) setLoading(-1);
 
     const code = error.response?.data?.code;
     const msg = error.response?.data?.msg ?? error.message ?? "网络异常";
 
-    if (code === 401 && error.config && canRetryAuth(error.config)) {
-      return retryWithFreshToken(error.config);
-    }
     if (code === 401) {
       clearTokens();
-      redirectToLogin();
+      window.location.assign("/login");
     }
 
     return Promise.reject(new ApiClientError(msg, code ?? error.response?.status ?? 500));
