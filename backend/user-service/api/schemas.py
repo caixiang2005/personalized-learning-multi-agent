@@ -37,6 +37,10 @@ class ResetPwdBody(BaseModel):
     newPassword: str = Field(min_length=6, max_length=64)
 
 
+class RefreshTokenBody(BaseModel):
+    refreshToken: str | None = Field(default=None, max_length=128)
+
+
 class UpdateProfileBody(BaseModel):
     phoneNumber: str | None = Field(default=None, max_length=11)
     gender: int | None = Field(default=None, ge=0, le=2)

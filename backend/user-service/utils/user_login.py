@@ -163,7 +163,7 @@ def login_user_by_code(email: str, code: str) -> dict:
 
 
 def refresh_token(old_token: str, refresh_token_value: str | None = None) -> dict:
-    user_id = resolve_access_token(old_token)
+    user_id = resolve_access_token(old_token) if old_token else None
     used_refresh = False
     if user_id is None and refresh_token_value:
         user_id = resolve_refresh_token(refresh_token_value)

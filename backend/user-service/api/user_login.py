@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header
 
-from api.schemas import EmailBody, LoginBody, LoginCodeBody, LoginUsernameBody, RegisterBody, ResetPwdBody
+from api.schemas import EmailBody, LoginBody, LoginCodeBody, LoginUsernameBody, RefreshTokenBody, RegisterBody, ResetPwdBody
 from utils.user_login import (
     get_user_info,
     login_user,
@@ -54,6 +54,7 @@ def login_by_email_code(body: LoginCodeBody):
 
 @router.post("/api/user/refreshToken")
 def refresh_user_token(
+    body: RefreshTokenBody | None = None,
     authorization: str | None = Header(default=None),
     x_refresh_token: str | None = Header(default=None, alias="X-Refresh-Token"),
 ):
@@ -61,7 +62,8 @@ def refresh_user_token(
     if authorization:
         parts = authorization.split(" ", 1)
         token = parts[1].strip() if len(parts) == 2 and parts[0].lower() == "bearer" else authorization.strip()
-    return refresh_token(token, x_refresh_token)
+    refresh_value = (body.refreshToken if body else None) or x_refresh_token
+    return refresh_token(token, refresh_value)
 
 
 @router.get("/api/user/getUserInfo")
