@@ -17,6 +17,15 @@ from utils.database import init_db
 
 _SERVICE_ROOT = Path(__file__).resolve().parent
 
+# 会话过期 401 属于正常用户行为，不写入 error_logs（避免飞书刷屏）
+_SKIP_401_LOG_PATHS = frozenset({
+    "/api/user/getUserInfo",
+    "/api/user/getProfile",
+    "/api/user/refreshToken",
+    "/api/user/updateProfile",
+    "/api/user/uploadAvatar",
+})
+
 app = FastAPI(title="用户微服务")
 app.add_middleware(
     CORSMiddleware,
@@ -65,7 +74,8 @@ async def log_api_errors_middleware(request: Request, call_next):
         code = payload.get("code")
         msg = payload.get("msg", "")
         if isinstance(code, int) and code != 200 and response.status_code != 500:
-            log_api_response(code, str(msg), context, session_id=session_id)
+            if not (code == 401 and request.url.path in _SKIP_401_LOG_PATHS):
+                log_api_response(code, str(msg), context, session_id=session_id)
     except (json.JSONDecodeError, TypeError):
         pass
 

@@ -32,6 +32,7 @@ export interface RegisterData extends UserInfo {}
 
 export interface RefreshTokenData {
   newToken: string;
+  newRefreshToken?: string;
 }
 
 export const API = {
