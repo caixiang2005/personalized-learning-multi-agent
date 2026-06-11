@@ -56,10 +56,11 @@ async function get<T>(url: string): Promise<T> {
 }
 
 /** 需登录的 POST，无请求体（如 refreshToken） */
-async function postAuth<T>(url: string, extraHeaders?: Record<string, string>): Promise<T> {
+async function postAuth<T>(url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
     method: "POST",
-    headers: { ...authHeaders(), ...extraHeaders },
+    headers: authHeaders(),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   const json = await parseJson<T>(res);
   if (json.code !== 200) {
@@ -157,7 +158,9 @@ export async function loginByCode(email: string, code: string): Promise<LoginDat
 
 // ─── 令牌与用户信息 ───────────────────────────────────────────────────
 
-export async function refreshToken(): Promise<string> {
+let refreshInFlight: Promise<string> | null = null;
+
+async function doRefreshToken(): Promise<string> {
   const access = getToken();
   const refresh = getRefreshToken();
   if (!access && !refresh) {
@@ -169,11 +172,21 @@ export async function refreshToken(): Promise<string> {
     setTokens(next, refresh ?? undefined);
     return next;
   }
-  const headers: Record<string, string> = {};
-  if (refresh) headers["X-Refresh-Token"] = refresh;
-  const data = await postAuth<RefreshTokenData>(API.user.refreshToken, headers);
+  const data = await postAuth<RefreshTokenData>(
+    API.user.refreshToken,
+    refresh ? { refreshToken: refresh } : {}
+  );
   setTokens(data.newToken, data.newRefreshToken ?? refresh ?? undefined);
   return data.newToken;
+}
+
+export async function refreshToken(): Promise<string> {
+  if (!refreshInFlight) {
+    refreshInFlight = doRefreshToken().finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
 }
 
 export async function fetchUserInfo(): Promise<UserInfo> {

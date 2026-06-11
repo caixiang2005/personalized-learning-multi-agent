@@ -2,8 +2,8 @@
  * 应用启动时：若本地有 token，尝试拉取用户信息恢复登录态。
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { getToken } from "../../lib/auth/token";
-import { fetchUserInfo, logoutLocal, UserApiError } from "../../lib/api/user";
+import { getToken, getRefreshToken } from "../../lib/auth/token";
+import { fetchUserInfo, logoutLocal, refreshToken, UserApiError } from "../../lib/api/user";
 import { hydrateAccountProfile } from "../../lib/api/account";
 import { useAppStore } from "../../store/useAppStore";
 
@@ -28,6 +28,19 @@ export default function AuthBootstrap({ children }: { children: ReactNode }) {
         setLoggedIn(true);
         await hydrateAccountProfile();
       } catch (e) {
+        if (e instanceof UserApiError && e.code === 401 && getRefreshToken()) {
+          try {
+            await refreshToken();
+            const info = await fetchUserInfo();
+            if (cancelled) return;
+            setUser(info);
+            setLoggedIn(true);
+            await hydrateAccountProfile();
+            return;
+          } catch {
+            /* refresh 失败，走下方登出逻辑 */
+          }
+        }
         if (e instanceof UserApiError && e.code === 401) {
           logoutLocal();
         }

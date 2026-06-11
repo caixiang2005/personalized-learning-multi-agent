@@ -20,6 +20,14 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 const mockDelay = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
 async function mergeWithUserInfo(profile: UserProfileData): Promise<AccountProfileView> {
+  const cached = useAppStore.getState().user;
+  if (cached) {
+    return {
+      ...profile,
+      email: cached.email,
+      registerTime: cached.registerTime,
+    };
+  }
   const user = await fetchUserInfo();
   return {
     ...profile,
