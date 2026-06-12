@@ -7,7 +7,9 @@ import { simulateStream } from "../../lib/stream";
 
 type Msg = { role: "user" | "assistant"; content: string; streaming?: boolean };
 
-export default function PlanChatPanel() {
+type Props = { embedded?: boolean };
+
+export default function PlanChatPanel({ embedded = false }: Props) {
   const [messages, setMessages] = useState<Msg[]>([
     { role: "assistant", content: PLAN_CHAT_SEED },
   ]);
@@ -41,13 +43,15 @@ export default function PlanChatPanel() {
   };
 
   return (
-    <div className="scholar-card flex flex-col min-h-[280px] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--scholar-border)]">
-        <h3 className="text-sm font-semibold text-[var(--scholar-text)]">对话式学习</h3>
-        <p className="text-xs text-[var(--scholar-text-muted)] mt-0.5">流式答疑 · 今日知识点</p>
-      </div>
+    <div className={`scholar-card flex flex-col overflow-hidden ${embedded ? "min-h-[280px]" : "min-h-[280px]"}`}>
+      {!embedded && (
+        <div className="px-4 py-3 border-b border-[var(--scholar-border)]">
+          <h3 className="text-sm font-semibold text-[var(--scholar-text)]">对话式学习</h3>
+          <p className="text-xs text-[var(--scholar-text-muted)] mt-0.5">流式答疑 · 今日知识点</p>
+        </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-64">
+      <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${embedded ? "max-h-[360px]" : "max-h-64"}`}>
         {messages.map((m, i) => (
           <div
             key={i}

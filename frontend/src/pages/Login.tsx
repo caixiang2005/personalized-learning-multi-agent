@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthBrandPanel from "../components/auth/AuthBrandPanel";
+import AuthPageBackground from "../components/auth/AuthPageBackground";
 import { AuthFormCard, AuthModeTabs } from "../components/auth/AuthFormCard";
 import { useAppStore } from "../store/useAppStore";
 import type { UserInfo } from "../lib/api/endpoints";
@@ -111,8 +112,8 @@ export default function Login() {
   const tipSuccess = tipText.includes("成功");
 
   return (
-    <div className="login-shell scholar-auth-shell app-page-scrim">
-      <div className="login-shell__glow" aria-hidden />
+    <div className="login-shell landing-shell app-page-scrim">
+      <AuthPageBackground />
 
       <div className="login-layout">
         <AuthBrandPanel />

@@ -4,22 +4,30 @@
  * @route /plan
  */
 import { useMemo, useState } from "react";
-import { CalendarDays, Target } from "lucide-react";
-import ScholarPageShell from "../components/scholar/ScholarPageShell";
-import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
-import GrowthQuickLinks from "../components/layout/GrowthQuickLinks";
+import { CalendarDays, Target, ListChecks, CheckCircle2, Clock, Lightbulb } from "lucide-react";
+import PlanSidebar from "../components/plan/PlanSidebar";
+import ScholarDashboardLayout, { DashboardHealthAside } from "../components/dashboard/ScholarDashboardLayout";
+import AnimeStagger from "../components/motion/AnimeStagger";
 import PlanTaskCard from "../components/plan/PlanTaskCard";
-import PlanChatPanel from "../components/plan/PlanChatPanel";
 import {
   getDefaultDailyPlan,
   recalcPlanProgress,
 } from "../lib/mockDailyPlan";
 
+const PLAN_TIPS = [
+  "优先完成对话类任务，针对易错点向助手提问",
+  "练习任务建议在精讲与对话后进行，巩固效果更好",
+  "每完成一项任务，系统会自动更新今日完成度",
+];
+
 export default function DailyPlan() {
   const [plan, setPlan] = useState(getDefaultDailyPlan);
-  const [chatOpen, setChatOpen] = useState(false);
 
   const overall = useMemo(() => recalcPlanProgress(plan.tasks), [plan.tasks]);
+
+  const doneCount = plan.tasks.filter((t) => t.done).length;
+  const totalMin = plan.tasks.reduce((s, t) => s + t.durationMin, 0);
+  const doneMin = plan.tasks.filter((t) => t.done).reduce((s, t) => s + t.durationMin, 0);
 
   const toggleTask = (id: string) => {
     setPlan((p) => {
@@ -30,6 +38,10 @@ export default function DailyPlan() {
     });
   };
 
+  const scrollToChat = () => {
+    document.getElementById("plan-sidebar-chat")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const formattedDate = new Date(plan.date).toLocaleDateString("zh-CN", {
     year: "numeric",
     month: "long",
@@ -38,22 +50,53 @@ export default function DailyPlan() {
   });
 
   return (
-    <ScholarPageShell maxWidth="5xl">
-      <ScholarPageHeader
-        badge="AI 每日计划"
-        title="今日学习计划"
-        subtitle={plan.summary}
-      />
+    <ScholarDashboardLayout
+      badge="AI 每日计划"
+      title="今日学习计划"
+      subtitle={plan.summary}
+      aside={<DashboardHealthAside score={overall} label="今日完成度" />}
+      sidebar={<PlanSidebar plan={plan} />}
+    >
+      <AnimeStagger className="dash-stats mb-6" staggerMs={60} y={12} delay={70}>
+        <div className="dash-stats__item">
+          <ListChecks size={16} strokeWidth={1.75} aria-hidden />
+          <span className="dash-stats__num">{plan.tasks.length}</span>
+          <span className="dash-stats__label">今日任务</span>
+        </div>
+        <div className="dash-stats__item">
+          <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden />
+          <span className="dash-stats__num">{doneCount}</span>
+          <span className="dash-stats__label">已完成</span>
+        </div>
+        <div className="dash-stats__item">
+          <Target size={16} strokeWidth={1.75} aria-hidden />
+          <span className="dash-stats__num">{overall}%</span>
+          <span className="dash-stats__label">完成度</span>
+        </div>
+        <div className="dash-stats__item">
+          <CalendarDays size={16} strokeWidth={1.75} aria-hidden />
+          <span className="dash-stats__num">{plan.tasks.length - doneCount}</span>
+          <span className="dash-stats__label">待完成</span>
+        </div>
+      </AnimeStagger>
 
-      <GrowthQuickLinks />
-
-      <section className="scholar-card p-5 mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
+      <section className="section-card dash-panel mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-medium text-[var(--scholar-primary)] flex items-center gap-1.5">
             <CalendarDays size={14} aria-hidden />
             {formattedDate}
           </p>
           <p className="text-lg font-semibold text-[var(--scholar-text)] mt-1">{plan.greeting}</p>
+          <ul className="dash-sidebar-facts mt-3">
+            <li>
+              <Clock size={14} aria-hidden />
+              <span>{doneCount}/{plan.tasks.length} 任务完成 · 预计 {totalMin} 分钟</span>
+            </li>
+            <li>
+              <Clock size={14} aria-hidden />
+              <span>已完成 {doneMin} 分钟</span>
+            </li>
+          </ul>
         </div>
         <div className="text-center min-w-[5rem]">
           <div className="relative w-20 h-20 mx-auto">
@@ -79,10 +122,7 @@ export default function DailyPlan() {
       </section>
 
       <section className="mb-6">
-        <h2 className="text-base font-semibold text-[var(--scholar-text)] mb-3 flex items-center gap-2">
-          <Target size={18} className="text-[var(--scholar-accent)]" aria-hidden />
-          每日知识点推送
-        </h2>
+        <h2 className="text-base font-semibold text-[var(--scholar-text)] mb-3">今日知识点推送</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           {plan.knowledgePush.map((kp) => (
             <article key={kp.id} className="scholar-cap-card">
@@ -104,31 +144,23 @@ export default function DailyPlan() {
               key={task.id}
               task={task}
               onToggle={toggleTask}
-              onChat={() => setChatOpen(true)}
+              onChat={scrollToChat}
             />
           ))}
         </div>
       </section>
 
-      <section>
-        <h2 className="text-base font-semibold text-[var(--scholar-text)] mb-3">对话式学习</h2>
-        {chatOpen ? (
-          <PlanChatPanel />
-        ) : (
-          <div className="scholar-card p-6 text-center">
-            <p className="text-sm text-[var(--scholar-text-muted)] mb-4">
-              点击任务中的「开始对话」，或下方按钮进入今日学习助手
-            </p>
-            <button
-              type="button"
-              className="btn-primary cursor-pointer"
-              onClick={() => setChatOpen(true)}
-            >
-              打开学习对话
-            </button>
-          </div>
-        )}
+      <section className="section-card dash-panel">
+        <h2 className="dash-panel__title">
+          <Lightbulb size={16} className="inline mr-1 text-[var(--scholar-accent)]" aria-hidden />
+          今日学习建议
+        </h2>
+        <ul className="dash-sidebar-notes">
+          {PLAN_TIPS.map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
+        </ul>
       </section>
-    </ScholarPageShell>
+    </ScholarDashboardLayout>
   );
 }

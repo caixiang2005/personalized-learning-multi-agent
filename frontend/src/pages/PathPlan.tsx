@@ -16,7 +16,8 @@ import {
   Sparkles,
   ArrowRight,
   Home,
-  Route,
+  ChevronRight,
+  Paperclip,
 } from "lucide-react";
 import MessageBubble from "../components/chat/MessageBubble";
 import UserAvatar from "../components/account/UserAvatar";
@@ -73,6 +74,7 @@ export default function PathPlan() {
   const displayMessages = pathPlanMessages.length ? pathPlanMessages : [welcomeMsg];
   const userRounds = pathPlanMessages.filter((m) => m.role === "user").length;
   const canGenerate = userRounds >= 2 && !loading;
+  const showQuickCmds = pathPlanMessages.length === 0;
 
   const quickCmds = useMemo(() => {
     const cmds = [
@@ -183,16 +185,30 @@ export default function PathPlan() {
           </button>
         </nav>
 
-        <div className="doubao-sidebar__agent">
-          <div className="doubao-sidebar__agent-avatar">
-            <Route size={20} strokeWidth={1.75} />
-          </div>
-          <div>
-            <p className="doubao-sidebar__agent-label">路径智能体</p>
-            <p className="doubao-sidebar__agent-desc">规划阶段 · 推送资源</p>
-          </div>
+        <div className="doubao-sidebar__section">
+          <p className="doubao-sidebar__section-title">当前智能体</p>
+          <p className="doubao-sidebar__agent-label">路径智能体</p>
+          <p className="doubao-sidebar__agent-desc">规划阶段 · 推送资源</p>
         </div>
+
+        <Link to="/account" className="doubao-sidebar__user">
+          <UserAvatar
+            userId={userId}
+            displayName={displayName}
+            username={username}
+            avatarUrl={userAvatarUrl}
+            avatarVersion={avatarCacheVersion}
+            size="md"
+            className="doubao-sidebar__user-avatar"
+          />
+          <span className="doubao-sidebar__user-name">{displayName}</span>
+          <ChevronRight size={16} className="doubao-sidebar__user-chevron" />
+        </Link>
       </aside>
+
+      {!sidebarCollapsed && (
+        <div className="lg:hidden fixed inset-0 bg-black/30 z-10" onClick={toggleSidebar} aria-hidden />
+      )}
 
       <button
         type="button"
@@ -203,17 +219,26 @@ export default function PathPlan() {
         <PanelLeft size={18} />
       </button>
 
-      <main className="doubao-chat-main flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative doubao-chat-main">
         <header className="doubao-chat-header">
           <div className="doubao-chat-header__left">
-            <UserAvatar
-              userId={userId}
-              displayName={displayName}
-              username={username}
-              avatarUrl={userAvatarUrl}
-              avatarVersion={avatarCacheVersion}
-              size="md"
-            />
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="doubao-chat-header__icon-btn"
+              aria-label={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+            >
+              <PanelLeft size={18} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
+              onClick={() => !loading && setPathPlanMessages([])}
+              disabled={loading}
+              className="doubao-chat-header__icon-btn"
+              aria-label="重新规划"
+            >
+              <SquarePen size={18} strokeWidth={1.75} />
+            </button>
           </div>
           <div className="doubao-chat-header__center">
             <h1 className="doubao-chat-header__title">路径规划</h1>
@@ -228,7 +253,7 @@ export default function PathPlan() {
             <div>
               <p className="chat-profile-banner__title">路径规划中（{userRounds}/2 轮以上可生成）</p>
               <p className="chat-profile-banner__desc">
-                待后端 POST /api/agent/path-plan 与 /api/learning-path/generate。当前为前端 Mock 规划。
+                补充课程、薄弱点与资源偏好后，点击「生成学习路径」查看三阶段规划与多模态资源。
               </p>
             </div>
           </div>
@@ -258,41 +283,62 @@ export default function PathPlan() {
           </div>
         </div>
 
-        {pathPlanMessages.length === 0 && (
-          <div className="doubao-quick-cmds">
-            {quickCmds.map((cmd) => (
-              <button
-                key={cmd}
-                type="button"
-                className="doubao-quick-cmd"
-                onClick={() => void sendMessage(cmd)}
-              >
-                {cmd}
-              </button>
-            ))}
+        <div className="doubao-composer">
+          <div className="doubao-composer__inner">
+            {showQuickCmds && (
+              <div className="doubao-composer__suggestions">
+                {quickCmds.map((cmd) => (
+                  <button
+                    key={cmd}
+                    type="button"
+                    onClick={() => void sendMessage(cmd)}
+                    disabled={loading}
+                    className="doubao-suggest-chip"
+                  >
+                    {cmd}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="doubao-composer__box">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="说明课程、薄弱点、资源偏好…"
+                className="doubao-composer__input"
+                rows={1}
+                disabled={loading}
+              />
+              <div className="doubao-composer__toolbar">
+                <div className="doubao-composer__tools">
+                  <button
+                    type="button"
+                    className="doubao-composer__tool"
+                    title="附件（待后端）"
+                    disabled
+                  >
+                    <Paperclip size={18} strokeWidth={1.75} />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void sendMessage(input)}
+                  disabled={loading || !input.trim()}
+                  className="doubao-composer__send"
+                  aria-label="发送"
+                >
+                  {loading ? (
+                    <Loader2 size={17} className="animate-spin" />
+                  ) : (
+                    <Send size={17} strokeWidth={2} />
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
-        )}
-
-        <footer className="doubao-chat-composer">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="说明课程、薄弱点、资源偏好…"
-            rows={1}
-            disabled={loading}
-          />
-          <button
-            type="button"
-            className="doubao-chat-send"
-            disabled={loading || !input.trim()}
-            onClick={() => void sendMessage(input)}
-            aria-label="发送"
-          >
-            <Send size={18} strokeWidth={1.75} />
-          </button>
-        </footer>
-      </main>
+        </div>
+      </div>
     </div>
   );
 }

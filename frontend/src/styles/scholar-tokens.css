@@ -19,11 +19,6 @@
   --scholar-shadow-card: 0 1px 0 rgb(255 255 255 / 0.75) inset, 0 1px 3px rgb(12 18 34 / 5%), 0 6px 20px rgb(10 101 120 / 8%);
   --scholar-shadow-elevated: 0 1px 0 rgb(255 255 255 / 0.65) inset, 0 12px 40px rgb(10 101 120 / 14%), 0 4px 12px rgb(12 18 34 / 6%);
 
-  /* 智能辅导 / 路径规划 · 对话画布（青墨底，避免整页纯白） */
-  --chat-canvas: #d4e4eb;
-  --chat-sidebar: #c8dce6;
-  --chat-main: #deebf0;
-
   /* 访客抽屉 / 聊天 */
   --guest-drawer-bg: var(--scholar-card);
   --guest-drawer-header: linear-gradient(
@@ -86,10 +81,6 @@
   --scholar-border: rgba(61, 79, 97, 0.55);
   --scholar-shadow-card: 0 1px 2px rgb(0 0 0 / 20%), 0 4px 16px rgb(0 0 0 / 15%);
   --scholar-shadow-elevated: 0 12px 40px rgb(0 0 0 / 35%);
-
-  --chat-canvas: #101820;
-  --chat-sidebar: #131c28;
-  --chat-main: #0e151d;
 
   --guest-drawer-bg: var(--scholar-card);
   --guest-drawer-header: linear-gradient(

@@ -8,9 +8,8 @@
  */
 
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Download, ShieldCheck } from "lucide-react";
-import ScholarPageShell from "../components/scholar/ScholarPageShell";
-import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import MarkdownContent from "../components/ui/MarkdownContent";
 import { useAppStore } from "../store/useAppStore";
 import { findResourceById, findTopicNameByResourceId } from "../lib/resources";
@@ -54,23 +53,17 @@ export default function ResourceDetail() {
     `## ${resource.title}\n\n${resource.description}\n\n### 知识要点\n\n1. 核心概念梳理\n2. 典型例题分析\n3. 易错点提醒\n\n> 参考资料：课程讲义第 3 章`;
 
   return (
-    <ScholarPageShell maxWidth="4xl">
-      <button type="button" onClick={() => navigate(-1)} className="btn-secondary mb-4 text-sm">
-        <ArrowLeft size={16} /> 返回
-      </button>
-
-      <ScholarPageHeader
-        badge="资源详情"
-        title={resource.title}
-        subtitle={`${topicName} · ${typeLabel[resource.type] ?? resource.type}`}
-        action={
-          <button type="button" className="btn-secondary">
-            <Download size={16} /> 导出
-          </button>
-        }
-      />
-
-      <div className="section-card mb-4 flex items-center gap-2 text-xs text-accent">
+    <ScholarDashboardLayout
+      badge={typeLabel[resource.type] ?? "资源"}
+      title={resource.title}
+      subtitle={topicName}
+      aside={
+        <button type="button" className="btn-secondary text-sm" onClick={() => navigate(-1)}>
+          <ArrowLeft size={16} /> 返回
+        </button>
+      }
+    >
+      <div className="section-card dash-panel mb-4 flex items-center gap-2 text-xs text-[var(--scholar-accent)]">
         <ShieldCheck size={14} /> 内容已校验
       </div>
 
@@ -111,6 +104,6 @@ export default function ResourceDetail() {
           回到学习路径
         </Link>
       </div>
-    </ScholarPageShell>
+    </ScholarDashboardLayout>
   );
 }

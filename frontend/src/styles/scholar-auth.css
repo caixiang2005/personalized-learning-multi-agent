@@ -1,61 +1,124 @@
 /**
- * Scholar · 认证页（紧凑宽度、表单居中）
+ * Scholar · 认证页（单框双栏，背景与首页一致：书海 + mesh + 氛围光晕）
  */
 
-.scholar-auth-shell {
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(1rem, 3vw, 1.75rem);
+.login-shell.landing-shell {
+  position: relative;
+  z-index: 1;
 }
 
-.login-shell__glow {
-  background:
-    radial-gradient(ellipse 45% 40% at 18% 28%, rgba(11, 110, 131, 0.16), transparent 58%),
-    radial-gradient(ellipse 40% 35% at 82% 72%, rgba(194, 120, 3, 0.1), transparent 55%) !important;
+.login-shell.landing-shell .login-layout {
+  position: relative;
+  z-index: 1;
 }
 
-.dark .login-shell__glow {
-  background:
-    radial-gradient(ellipse 45% 40% at 18% 28%, rgba(44, 184, 207, 0.12), transparent 58%),
-    radial-gradient(ellipse 40% 35% at 82% 72%, rgba(232, 168, 73, 0.08), transparent 55%) !important;
+.login-shell.landing-shell.app-page-scrim {
+  background: rgba(249, 250, 251, 0.22) !important;
 }
 
+.dark .login-shell.landing-shell.app-page-scrim {
+  background: rgba(17, 24, 39, 0.28) !important;
+}
+
+/* —— 单框双栏 —— */
 .login-layout {
-  max-width: 52rem !important;
-  gap: clamp(1rem, 2vw, 1.5rem) !important;
+  position: relative;
+  z-index: 1;
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  width: min(100%, 46rem) !important;
+  max-width: 46rem !important;
+  min-height: min(26rem, 62vh);
+  gap: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.52) !important;
+  border-radius: var(--ds-radius-lg) !important;
+  box-shadow:
+    0 8px 32px rgba(22, 93, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.62) !important;
+  background: rgba(255, 255, 255, 0.26) !important;
+  backdrop-filter: blur(26px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(1.35) !important;
+  overflow: hidden;
 }
 
-@media (min-width: 1024px) {
+.dark .login-layout {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(17, 24, 39, 0.32) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+@media (min-width: 900px) {
   .login-layout {
     grid-template-columns: 1fr 1fr !important;
     align-items: stretch;
   }
+
+  .login-brand {
+    border: none !important;
+    border-right: 2px solid color-mix(in srgb, var(--scholar-primary) 18%, var(--scholar-border)) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
+@media (max-width: 899px) {
+  .login-brand {
+    border: none !important;
+    border-bottom: 2px solid color-mix(in srgb, var(--scholar-primary) 18%, var(--scholar-border)) !important;
+    box-shadow: none !important;
+  }
 }
 
 .login-form-area {
-  align-items: center !important;
+  align-items: stretch !important;
   justify-content: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-brand {
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(1.125rem, 2vw, 1.5rem) clamp(1rem, 2vw, 1.375rem) !important;
+}
+
+.login-shell .login-layout .login-brand.landing-glass {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .login-glass-card,
 .scholar-auth-card {
   width: 100% !important;
-  max-width: 28rem !important;
-  padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.375rem, 2.5vw, 1.75rem) !important;
-  border-radius: var(--scholar-radius-md) !important;
-  border: 1px solid var(--scholar-border) !important;
-  background: color-mix(in srgb, var(--scholar-card) 94%, transparent) !important;
-  box-shadow: var(--scholar-shadow-elevated) !important;
-  backdrop-filter: blur(16px) saturate(1.15) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(1.15) !important;
-  transition: box-shadow 0.4s ease, border-color 0.3s ease;
+  max-width: none !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(1.125rem, 2vw, 1.5rem) clamp(1rem, 2vw, 1.375rem) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .login-glass-card:hover,
 .scholar-auth-card:hover {
-  border-color: color-mix(in srgb, var(--scholar-primary) 28%, var(--scholar-border)) !important;
+  transform: none;
 }
 
 .login-glass-card__head {
@@ -65,7 +128,7 @@
 
 .login-glass-card__title {
   text-align: left !important;
-  font-size: clamp(1.375rem, 2.5vw, 1.625rem) !important;
+  font-size: clamp(1.25rem, 2.2vw, 1.5rem) !important;
   letter-spacing: -0.02em !important;
   color: var(--scholar-text) !important;
 }
@@ -74,16 +137,7 @@
   text-align: left !important;
   font-size: 0.9375rem !important;
   color: var(--scholar-text-secondary) !important;
-  margin-bottom: 1.5rem !important;
-}
-
-.login-brand {
-  border: 1px solid var(--scholar-border) !important;
-  background: color-mix(in srgb, var(--scholar-card) 88%, transparent) !important;
-  box-shadow: var(--scholar-shadow-card) !important;
-  backdrop-filter: blur(12px) !important;
-  border-radius: var(--scholar-radius-md) !important;
-  padding: clamp(1.5rem, 2.5vw, 2rem) clamp(1.375rem, 2.5vw, 1.75rem) !important;
+  margin-bottom: 1.25rem !important;
 }
 
 .login-brand__title {
@@ -95,9 +149,16 @@
 }
 
 .login-mode-tabs {
-  border: 1px solid var(--scholar-border) !important;
-  background: color-mix(in srgb, var(--scholar-surface) 80%, var(--scholar-card)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
   border-radius: 12px !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.dark .login-mode-tabs {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(17, 24, 39, 0.28) !important;
 }
 
 .login-mode-tabs__btn--active {
@@ -112,15 +173,31 @@
 
 .login-glass-input {
   min-height: 2.75rem !important;
-  border: 1px solid var(--scholar-border) !important;
+  padding: 0.5rem 0.75rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.48) !important;
   border-radius: 10px !important;
-  background: var(--scholar-card) !important;
+  background: rgba(255, 255, 255, 0.32) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.dark .login-glass-input {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(17, 24, 39, 0.36) !important;
 }
 
 .login-glass-input:focus {
   border-color: var(--scholar-primary) !important;
   box-shadow: var(--glass-control-focus-ring) !important;
+  outline: none;
+}
+
+.login-glass-field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--scholar-text-secondary);
+  margin-bottom: 0.35rem;
 }
 
 .login-glass-submit,
@@ -149,7 +226,7 @@
 }
 
 .login-form-body {
-  min-height: 12rem;
+  min-height: 10rem;
 }
 
 @media (min-width: 640px) {

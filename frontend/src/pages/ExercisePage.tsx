@@ -12,8 +12,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle } from "lucide-react";
-import ScholarPageShell from "../components/scholar/ScholarPageShell";
-import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import { findResourceById } from "../lib/resources";
 import { useAppStore } from "../store/useAppStore";
 
@@ -60,13 +59,16 @@ export default function ExercisePage() {
   }
 
   return (
-    <ScholarPageShell maxWidth="4xl">
-      <button type="button" onClick={() => navigate(-1)} className="btn-secondary mb-4 text-sm">
-        <ArrowLeft size={16} /> 返回
-      </button>
-
-      <ScholarPageHeader badge="在线练习" title={resource.title} subtitle={resource.description} />
-
+    <ScholarDashboardLayout
+      badge="在线练习"
+      title={resource.title}
+      subtitle={resource.description}
+      aside={
+        <button type="button" className="btn-secondary text-sm" onClick={() => navigate(-1)}>
+          <ArrowLeft size={16} /> 返回
+        </button>
+      }
+    >
       <div className="space-y-6">
         {mockQuestions.map((q, idx) => (
           <div key={q.id} className="section-card">
@@ -133,6 +135,6 @@ export default function ExercisePage() {
           </>
         )}
       </div>
-    </ScholarPageShell>
+    </ScholarDashboardLayout>
   );
 }

@@ -80,14 +80,14 @@ function spawnBook(): SeaBook {
     x: Math.random(),
     y: Math.random(),
     depth,
-    rot: (Math.random() - 0.5) * 0.55,
+    rot: (Math.random() - 0.5) * 0.28,
     driftX: (Math.random() - 0.5) * 0.00014,
     driftY: (Math.random() - 0.5) * 0.0001,
     bobPhase: Math.random() * Math.PI * 2,
     bobAmp: 4 + Math.random() * 10,
     tint: tints[Math.floor(Math.random() * tints.length)]!,
-    baseW: 20 + depth * 16,
-    baseH: 28 + depth * 20,
+    baseW: 26 + depth * 18,
+    baseH: 34 + depth * 22,
   };
 }
 
@@ -95,6 +95,44 @@ function wrapCoord(v: number): number {
   if (v < -0.12) return v + 1.24;
   if (v > 1.12) return v - 1.24;
   return v;
+}
+
+/** 将颜色 alpha 与书本整体透明度合并，避免 globalAlpha × rgba 叠出竖条鬼影 */
+function withBookAlpha(color: string, bookAlpha: number): string {
+  const match = color.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
+  if (!match) return color;
+  const baseAlpha = match[4] !== undefined ? Number(match[4]) : 1;
+  return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${baseAlpha * bookAlpha})`;
+}
+
+function fillSeaBookShape(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  r: number
+) {
+  if (typeof ctx.roundRect === "function") {
+    ctx.beginPath();
+    ctx.roundRect(-w / 2, -h / 2, w, h, r);
+    ctx.fill();
+    return;
+  }
+  ctx.fillRect(-w / 2, -h / 2, w, h);
+}
+
+function strokeSeaBookShape(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  r: number
+) {
+  if (typeof ctx.roundRect === "function") {
+    ctx.beginPath();
+    ctx.roundRect(-w / 2 + 0.5, -h / 2 + 0.5, w - 1, h - 1, Math.max(0, r - 0.5));
+    ctx.stroke();
+    return;
+  }
+  ctx.strokeRect(-w / 2 + 0.5, -h / 2 + 0.5, w - 1, h - 1);
 }
 
 function drawSeaBook(
@@ -109,47 +147,38 @@ function drawSeaBook(
   isDark: boolean
 ) {
   const c = isDark ? TINTS_DARK[tint] : TINTS_LIGHT[tint];
-  const spineW = Math.max(3, w * 0.14);
-  const r = Math.min(3, w * 0.08);
+  const r = Math.min(2.5, w * 0.07);
+  const spineStop = 0.12;
+  const pageStop = 0.96;
 
   ctx.save();
-  ctx.translate(cx, cy);
+  ctx.translate(Math.round(cx), Math.round(cy));
   ctx.rotate(rot);
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha = 1;
 
-  // 日间：书页在封面后侧微露；暗色若用同样大偏移会在深底上像「叠了第二本书」
-  ctx.fillStyle = c.page;
-  if (isDark) {
-    const pageW = Math.max(2, w * 0.06);
-    ctx.fillRect(w / 2 - pageW - 0.5, -h / 2 + r * 0.45, pageW, h - r * 0.85);
-  } else {
-    ctx.fillRect(w * 0.08, -h / 2 + r * 0.5, w * 0.88, h - r);
-  }
+  const grad = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+  grad.addColorStop(0, withBookAlpha(c.spine, alpha));
+  grad.addColorStop(spineStop, withBookAlpha(c.spine, alpha));
+  grad.addColorStop(spineStop + 0.06, withBookAlpha(c.cover, alpha));
+  grad.addColorStop(pageStop, withBookAlpha(c.cover, alpha));
+  grad.addColorStop(1, withBookAlpha(c.page, alpha * 0.9));
 
-  ctx.fillStyle = c.cover;
-  if (typeof ctx.roundRect === "function") {
-    ctx.beginPath();
-    ctx.roundRect(-w / 2, -h / 2, w, h, r);
-    ctx.fill();
-  } else {
-    ctx.fillRect(-w / 2, -h / 2, w, h);
-  }
+  ctx.fillStyle = grad;
+  fillSeaBookShape(ctx, w, h, r);
 
-  ctx.fillStyle = c.spine;
-  ctx.fillRect(-w / 2, -h / 2 + r * 0.35, spineW, h - r * 0.7);
+  const titleY = -h / 2 + h * 0.2;
+  const titleH = Math.max(1.5, h * 0.06);
+  const titleX = -w / 2 + w * spineStop + 1.5;
+  const titleW = w * (pageStop - spineStop) * 0.55;
+  ctx.fillStyle = withBookAlpha(
+    `rgba(255, 255, 255, ${isDark ? 0.16 : 0.12})`,
+    alpha
+  );
+  ctx.fillRect(titleX, titleY, titleW, titleH);
 
-  ctx.fillStyle = `rgba(255, 255, 255, ${(isDark ? 0.22 : 0.18) * alpha})`;
-  ctx.fillRect(-w / 2 + spineW + 2, -h / 2 + h * 0.18, w * 0.55, h * 0.08);
-
-  ctx.strokeStyle = c.edge;
+  ctx.strokeStyle = withBookAlpha(c.edge, alpha * 0.85);
   ctx.lineWidth = isDark ? 1 : 0.85;
-  if (typeof ctx.roundRect === "function") {
-    ctx.beginPath();
-    ctx.roundRect(-w / 2 + 0.5, -h / 2 + 0.5, w - 1, h - 1, Math.max(0, r - 0.5));
-    ctx.stroke();
-  } else {
-    ctx.strokeRect(-w / 2 + 0.5, -h / 2 + 0.5, w - 1, h - 1);
-  }
+  strokeSeaBookShape(ctx, w, h, r);
 
   ctx.restore();
 }
@@ -291,7 +320,7 @@ export default function BookSeaBackground() {
         const depthMul = 0.65 + book.depth * 0.35;
         const cx = book.x * w + panX * depthMul;
         const cy = book.y * h + bob + panY * depthMul;
-        const tilt = reducedMotionLocal ? 0 : mouseRef.current.x * 0.035 * depthMul;
+        const tilt = reducedMotionLocal ? 0 : mouseRef.current.x * 0.02 * depthMul;
         const alpha = 0.22 + book.depth * 0.34;
 
         drawSeaBook(ctx, cx, cy, bw, bh, book.rot + tilt, book.tint, alpha, isDark);

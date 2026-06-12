@@ -1,12 +1,9 @@
 /**
  * @file PathDetail.tsx
- * @description 个性化学习路径详情：阶段 / 知识点 / 五类多模态资源推送
+ * @description 三栏路径视图：节点列表 · 图谱 · 详情与资源
  * @route /path/view
- *
- * 【待同步后端】GET /api/learning-path · PUT resource-status
  */
-
-import { useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   FileText,
@@ -14,14 +11,21 @@ import {
   ClipboardList,
   Video,
   Code2,
-  Filter,
   CheckCircle2,
   ArrowLeft,
   Route,
+  Lock,
+  Clock,
+  Target,
+  Activity,
+  Sparkles,
 } from "lucide-react";
-import ScholarPageShell from "../components/scholar/ScholarPageShell";
-import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
-import ResourceTypeStrip from "../components/scholar/ResourceTypeStrip";
+import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
+import PathGraphCanvas, {
+  flattenNodes,
+  type PathGraphNode,
+} from "../components/path/PathGraphCanvas";
+import PathTopicList from "../components/path/PathTopicList";
 import { useAppStore } from "../store/useAppStore";
 import { PATH_HUB_PATH, PATH_PLAN_PATH } from "../lib/pathRoutes";
 import type { MultimodalResource, ResourceType } from "../types";
@@ -52,17 +56,27 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  todo: "bg-gray-100 text-gray-600",
-  learning: "bg-primary/10 text-primary",
-  done: "bg-accent/10 text-accent",
-  mastered: "bg-green-100 text-green-700",
-  favorite: "bg-yellow-100 text-yellow-700",
+  todo: "path-res-badge--todo",
+  learning: "path-res-badge--learning",
+  done: "path-res-badge--done",
+  mastered: "path-res-badge--mastered",
+  favorite: "path-res-badge--favorite",
 };
 
 export default function PathDetail() {
   const { pathStages, learningPathMeta, updateResourceStatus } = useAppStore();
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [activeStage, setActiveStage] = useState(0);
+  const nodes = useMemo(() => flattenNodes(pathStages), [pathStages]);
+  const [selectedNode, setSelectedNode] = useState<PathGraphNode | null>(
+    () => nodes.find((n) => !n.locked) ?? nodes[0] ?? null
+  );
+
+  useEffect(() => {
+    if (!nodes.length) return;
+    if (!selectedNode || !nodes.some((n) => n.id === selectedNode.id)) {
+      setSelectedNode(nodes.find((n) => !n.locked) ?? nodes[0] ?? null);
+    }
+  }, [nodes, selectedNode]);
 
   const hasPath = pathStages.length > 0;
   if (!hasPath) {
@@ -76,111 +90,172 @@ export default function PathDetail() {
   );
   const overallProgress = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : 0;
 
-  const subtitle = learningPathMeta
-    ? `${learningPathMeta.course} · ${pathStages.length} 阶段 · 更新 ${learningPathMeta.generatedAt}`
-    : `共 ${pathStages.length} 阶段 · 当前：${pathStages[activeStage]?.title ?? ""}`;
+  const activeTopic = selectedNode
+    ? pathStages[selectedNode.stageIndex]?.topics[selectedNode.topicIndex]
+    : null;
+
+  const nodeIndex = selectedNode ? nodes.findIndex((n) => n.id === selectedNode.id) : -1;
+
+  const difficulty =
+    selectedNode && selectedNode.stageIndex === 0
+      ? "入门"
+      : selectedNode && selectedNode.stageIndex === pathStages.length - 1
+        ? "进阶"
+        : "巩固";
+
+  const prevNode = nodeIndex > 0 ? nodes[nodeIndex - 1] : null;
+
+  const filteredResources =
+    activeTopic?.resources.filter((r) => typeFilter === "all" || r.type === typeFilter) ?? [];
 
   return (
-    <ScholarPageShell>
-      <ScholarPageHeader
-        badge="路径智能体"
-        title={learningPathMeta?.title ?? "我的学习路径"}
-        subtitle={subtitle}
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Link to={PATH_HUB_PATH} className="btn-secondary">
-              <ArrowLeft size={16} /> 路径中心
-            </Link>
-            <Link to={PATH_PLAN_PATH} className="btn-secondary">
-              <Route size={16} /> 调整规划
-            </Link>
-          </div>
-        }
-      />
-
-      <div className="mb-6">
-        <ResourceTypeStrip />
-      </div>
-
-      <section className="section-card mb-8">
-        <div className="flex justify-between text-sm mb-2">
-          <span className="font-medium text-gray-700 dark:text-gray-300">整体完成度</span>
-          <span className="text-primary font-semibold">{overallProgress}%</span>
+    <ScholarDashboardLayout
+      badge="路径智能体"
+      title={learningPathMeta?.title ?? "我的学习路径"}
+      subtitle={`${learningPathMeta?.course ?? "我的课程"} · ${pathStages.length} 阶段 · ${totalTopics} 节点 · 完成 ${overallProgress}%`}
+      className="path-cockpit-page"
+      aside={
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Link to={PATH_HUB_PATH} className="btn-secondary text-sm">
+            <ArrowLeft size={15} /> 路径中心
+          </Link>
+          <Link to={PATH_PLAN_PATH} className="btn-secondary text-sm">
+            <Route size={15} /> 调整规划
+          </Link>
         </div>
-        <div className="progress-bar h-3">
-          <div className="progress-bar-fill" style={{ width: `${overallProgress}%` }} />
-        </div>
-        <p className="text-xs text-[var(--scholar-text-muted)] mt-2">
-          路径依据学习画像动态规划 · 资源状态变更将同步至效果评估（联调后由后端写入）
-        </p>
-      </section>
+      }
+    >
+      <div className="path-cockpit">
+        <aside className="path-cockpit__list section-card">
+          <PathTopicList
+            nodes={nodes}
+            selectedId={selectedNode?.id ?? null}
+            onSelect={setSelectedNode}
+          />
+        </aside>
 
-      <div className="flex flex-wrap gap-2 mb-8">
-        {pathStages.map((stage, i) => (
-          <button
-            key={stage.id}
-            type="button"
-            onClick={() => setActiveStage(i)}
-            className={`flex-1 min-w-[140px] p-4 rounded-xl text-left card-hover transition-all ${
-              activeStage === i
-                ? "section-card ring-2 ring-primary/30 !border-primary/40"
-                : "section-card opacity-80 hover:opacity-100"
-            }`}
-          >
-            <span className="text-xs text-primary font-medium">阶段 {i + 1}</span>
-            <p className="font-medium text-sm mt-1 text-gray-900 dark:text-white">{stage.title}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{stage.description}</p>
-          </button>
-        ))}
-      </div>
+        <section className="path-cockpit__graph section-card">
+          <PathGraphCanvas
+            stages={pathStages}
+            selectedId={selectedNode?.id ?? null}
+            onSelect={setSelectedNode}
+            title={learningPathMeta?.title}
+            overallProgress={overallProgress}
+            completedCount={doneTopics}
+            totalCount={totalTopics}
+          />
+        </section>
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <Filter size={16} className="text-gray-400" />
-        {["all", "document", "mindmap", "exercise", "video", "practice"].map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTypeFilter(t)}
-            className={typeFilter === t ? "chip !bg-primary/15 !border-primary" : "chip !text-gray-500 !border-gray-200"}
-          >
-            {typeLabels[t]}
-          </button>
-        ))}
-      </div>
-
-      {pathStages[activeStage]?.topics.map((topic) => (
-        <div key={topic.id} className="section-card mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">{topic.name}</h3>
-              <div className="flex items-center gap-2 mt-2">
-                <div className="w-40 progress-bar h-2">
-                  <div className="progress-bar-fill" style={{ width: `${topic.progress}%` }} />
-                </div>
-                <span className="text-xs text-gray-500">{topic.progress}%</span>
+        <aside className="path-cockpit__detail section-card">
+          {selectedNode && activeTopic ? (
+            <div className="path-detail-side">
+              <div className="path-detail-side__head">
+                {selectedNode.locked ? (
+                  <span className="path-detail-side__lock">
+                    <Lock size={14} /> 未解锁
+                  </span>
+                ) : (
+                  <span className="path-detail-side__unlock">可学习</span>
+                )}
+                <span className="path-detail-side__stage">节点 {nodeIndex + 1}</span>
               </div>
-            </div>
-          </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            {topic.resources
-              .filter((r) => typeFilter === "all" || r.type === typeFilter)
-              .map((resource) => (
-                <ResourceCard
-                  key={resource.id}
-                  resource={resource}
-                  topicId={topic.id}
-                  onStatusChange={updateResourceStatus}
-                />
-              ))}
-          </div>
-        </div>
-      ))}
-    </ScholarPageShell>
+              <h3 className="path-detail-side__title">{selectedNode.name}</h3>
+              <p className="path-detail-side__desc">
+                {selectedNode.stageTitle} · 路径智能体依据画像推送五类多模态资源
+              </p>
+
+              <div className="path-detail-metrics">
+                <div className="path-detail-metric">
+                  <Clock size={15} aria-hidden />
+                  <span className="path-detail-metric__label">预计</span>
+                  <span className="path-detail-metric__value">25 分钟</span>
+                </div>
+                <div className="path-detail-metric">
+                  <Target size={15} aria-hidden />
+                  <span className="path-detail-metric__label">难度</span>
+                  <span className="path-detail-metric__value">{difficulty}</span>
+                </div>
+                <div className="path-detail-metric">
+                  <Activity size={15} aria-hidden />
+                  <span className="path-detail-metric__label">进度</span>
+                  <span className="path-detail-metric__value">{selectedNode.progress}%</span>
+                </div>
+                <div className="path-detail-metric path-detail-metric--accent">
+                  <span className="path-detail-metric__label">资源</span>
+                  <span className="path-detail-metric__value">{activeTopic.resources.length} 项</span>
+                </div>
+              </div>
+
+              {prevNode && selectedNode.locked && (
+                <div className="path-detail-prereq">
+                  <p className="path-detail-prereq__label">前置节点</p>
+                  <button
+                    type="button"
+                    className="path-detail-prereq__item"
+                    onClick={() => setSelectedNode(prevNode)}
+                  >
+                    <Lock size={13} aria-hidden />
+                    {prevNode.name}
+                  </button>
+                </div>
+              )}
+
+              {selectedNode.locked && (
+                <p className="path-detail-side__warn">请先完成前置节点后再学习本知识点。</p>
+              )}
+
+              <div className="path-detail-side__resources">
+                <div className="path-detail-side__resources-head">
+                  <h4>推送资源</h4>
+                  <div className="path-detail-filters path-detail-filters--compact">
+                    {["all", "document", "mindmap", "exercise", "video", "practice"].map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTypeFilter(t)}
+                        className={typeFilter === t ? "chip chip--active" : "chip"}
+                      >
+                        {typeLabels[t]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <ul className="path-detail-side__resource-list">
+                  {filteredResources.map((resource) => (
+                    <li key={resource.id}>
+                      <ResourceRow
+                        resource={resource}
+                        topicId={activeTopic.id}
+                        onStatusChange={updateResourceStatus}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {!selectedNode.locked && (
+                <div className="path-detail-side__actions">
+                  <Link to="/chat" className="btn-primary text-sm w-full justify-center">
+                    <Sparkles size={15} /> 生成资源
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="path-detail-side path-detail-side--empty">
+              <p className="path-detail-side__empty-title">节点详情</p>
+              <p className="path-detail-side__empty-desc">在左侧列表或中间图谱中选择知识点，查看推送资源与学习进度。</p>
+            </div>
+          )}
+        </aside>
+      </div>
+    </ScholarDashboardLayout>
   );
 }
 
-function ResourceCard({
+function ResourceRow({
   resource,
   topicId,
   onStatusChange,
@@ -205,34 +280,23 @@ function ResourceCard({
   };
 
   return (
-    <div className="p-4 rounded-xl border border-gray-200/80 dark:border-gray-700/80 bg-white/70 dark:bg-gray-800/50 card-hover">
-      <div className="flex items-start gap-3">
-        <div className="icon-box shrink-0 !w-10 !h-10">
-          <Icon size={18} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[status]}`}>
-              {statusLabels[status]}
-            </span>
-          </div>
-          <h4 className="font-medium text-gray-900 dark:text-white mt-1">{resource.title}</h4>
-          <p className="text-sm text-gray-500">{resource.description}</p>
-          {resource.mermaid && (
-            <pre className="mt-2 p-2 bg-gray-50 dark:bg-gray-900 rounded text-xs font-mono overflow-x-auto">
-              {resource.mermaid}
-            </pre>
-          )}
-          <div className="flex gap-2 mt-3">
-            <button type="button" className="btn-primary text-xs py-1.5 px-3" onClick={openResource}>
-              查看
-            </button>
-            <button type="button" onClick={cycleStatus} className="btn-secondary text-xs py-1.5 px-3">
-              <CheckCircle2 size={12} /> 标记状态
-            </button>
-          </div>
-        </div>
+    <article className="path-side-res">
+      <div className="path-side-res__head">
+        <span className="path-side-res__icon" aria-hidden>
+          <Icon size={14} strokeWidth={1.75} />
+        </span>
+        <span className="path-side-res__title">{resource.title}</span>
+        <span className={`path-res-badge ${statusColors[status]}`}>{statusLabels[status]}</span>
       </div>
-    </div>
+      <p className="path-side-res__desc">{resource.description}</p>
+      <div className="path-side-res__actions">
+        <button type="button" className="btn-primary text-xs py-1 px-2.5" onClick={openResource}>
+          打开
+        </button>
+        <button type="button" onClick={cycleStatus} className="btn-secondary text-xs py-1 px-2.5">
+          <CheckCircle2 size={11} /> 标记
+        </button>
+      </div>
+    </article>
   );
 }

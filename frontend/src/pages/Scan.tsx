@@ -5,9 +5,8 @@
  */
 import { useCallback, useState } from "react";
 import { Loader2, ScanLine } from "lucide-react";
-import ScholarPageShell from "../components/scholar/ScholarPageShell";
-import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
-import GrowthQuickLinks from "../components/layout/GrowthQuickLinks";
+import ScanSidebar from "../components/scan/ScanSidebar";
+import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import StreamProgress from "../components/scholar/StreamProgress";
 import ScanUploadZone from "../components/scan/ScanUploadZone";
 import ScanResultPanel from "../components/scan/ScanResultPanel";
@@ -21,6 +20,15 @@ const phaseLabel: Record<ScanPhase, string> = {
   generate: "生成同类练习题",
   done: "完成",
 };
+
+const WORKFLOW = [
+  "上传或拍摄题目图片",
+  "OCR 识别文字与公式",
+  "AI 标注知识点并分步讲解",
+  "自动生成同类巩固练习",
+];
+
+const QUESTION_TYPES = ["选择题", "填空题", "计算推导", "几何作图"];
 
 export default function Scan() {
   const [preview, setPreview] = useState<string | null>(null);
@@ -58,19 +66,46 @@ export default function Scan() {
   const statusLabel = phase !== "idle" && phase !== "done" ? phaseLabel[phase] : null;
 
   return (
-    <ScholarPageShell maxWidth="4xl">
-      <ScholarPageHeader
-        badge="多模态 · 拍照搜题"
-        title="拍照搜题"
-        subtitle="上传题目图片，OCR 识别后由 AI 解析知识点、逐步讲解并生成同类练习"
-      />
-
-      <GrowthQuickLinks />
-
+    <ScholarDashboardLayout
+      badge="多模态 · 拍照搜题"
+      title="拍照搜题"
+      subtitle="上传题目图片，OCR 识别后由 AI 解析知识点、逐步讲解并生成同类练习"
+      sidebar={<ScanSidebar />}
+    >
       <ScanUploadZone preview={preview} disabled={busy} onFile={handleFile} />
 
+      {!result && !busy && (
+        <section className="section-card dash-panel mt-4">
+          <h2 className="dash-panel__title">识别流程与适用题型</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-[var(--scholar-text)] mb-3">识别流程</h3>
+              <ol className="dash-sidebar-workflow">
+                {WORKFLOW.map((step, i) => (
+                  <li key={step}>
+                    <span className="dash-sidebar-workflow__num">{i + 1}</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-[var(--scholar-text)] mb-3">适用题型</h3>
+              <div className="dash-sidebar-tags mb-4">
+                {QUESTION_TYPES.map((t) => (
+                  <span key={t} className="dash-sidebar-tag">{t}</span>
+                ))}
+              </div>
+              <p className="dash-panel__desc">
+                上传后系统将自动识别文字与公式，标注知识点并分步讲解，同时生成同类巩固练习。
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {busy && (
-        <div className="scholar-card p-4 mt-4" role="status" aria-live="polite">
+        <div className="section-card dash-panel p-4 mt-4" role="status" aria-live="polite">
           <div className="flex items-center gap-2 text-sm text-[var(--scholar-text-secondary)] mb-2">
             <Loader2 size={16} className="animate-spin text-[var(--scholar-primary)]" />
             <ScanLine size={16} className="text-[var(--scholar-accent)]" aria-hidden />
@@ -91,6 +126,6 @@ export default function Scan() {
           />
         </div>
       )}
-    </ScholarPageShell>
+    </ScholarDashboardLayout>
   );
 }

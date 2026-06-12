@@ -9,6 +9,7 @@
 @import "./styles/scholar-motion.css";
 @import "./styles/scholar-auth.css";
 @import "./styles/scholar-polish.css";
+@import "./styles/scholar-dashboard.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

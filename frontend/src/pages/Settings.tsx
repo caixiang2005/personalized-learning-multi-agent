@@ -1,17 +1,23 @@
 /**
  * @file Settings.tsx
- * @description 设置：显示偏好、退出登录。
- * @route /settings
- *
- * 账号资料编辑见 /account
+ * @description 设置：显示偏好、关于、退出登录。
  */
-
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, LogOut, Moon, Sun } from "lucide-react";
-import ScholarPageShell from "../components/scholar/ScholarPageShell";
-import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import { ArrowRight, LogOut, Moon, Sun, Info } from "lucide-react";
+import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import { logoutLocal } from "../lib/api/user";
 import { useAppStore } from "../store/useAppStore";
+
+const OPEN_SOURCE_STACK = [
+  { name: "React", license: "MIT" },
+  { name: "Vite", license: "MIT" },
+  { name: "Tailwind CSS", license: "MIT" },
+  { name: "Framer Motion", license: "MIT" },
+  { name: "Lucide React", license: "ISC" },
+  { name: "Zustand", license: "MIT" },
+  { name: "React Markdown", license: "MIT" },
+  { name: "Recharts", license: "MIT" },
+] as const;
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -25,9 +31,7 @@ export default function Settings() {
   };
 
   return (
-    <ScholarPageShell maxWidth="4xl">
-      <ScholarPageHeader title="设置" subtitle="显示偏好与账号安全" />
-
+    <ScholarDashboardLayout badge="系统" title="设置" subtitle="显示偏好、版本与技术栈">
       <Link to="/account" className="account-settings-link section-card mb-4 scholar-card--interactive">
         <div>
           <p className="account-settings-link__title">个人信息</p>
@@ -47,6 +51,24 @@ export default function Settings() {
         </button>
       </section>
 
+      <section className="section-card about-panel mb-4">
+        <div className="about-panel__head">
+          <p className="about-panel__title flex items-center gap-2">
+            <Info size={16} strokeWidth={1.75} aria-hidden />
+            关于
+          </p>
+          <p className="about-panel__sub">智慧学习中心 · 第十五届中国软件杯 A 组 · 版本 0.1.0</p>
+        </div>
+        <div className="about-panel__grid">
+          {OPEN_SOURCE_STACK.map((item) => (
+            <div key={item.name} className="about-panel__row">
+              <span className="about-panel__name">{item.name}</span>
+              <span className="about-panel__license">{item.license}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <button
         type="button"
         onClick={handleLogout}
@@ -54,6 +76,6 @@ export default function Settings() {
       >
         <LogOut size={18} /> 退出登录
       </button>
-    </ScholarPageShell>
+    </ScholarDashboardLayout>
   );
 }

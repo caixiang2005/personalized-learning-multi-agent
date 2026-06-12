@@ -8,37 +8,20 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Play,
   Route,
-  BrainCircuit,
-  Signpost,
-  Layers,
   ArrowRight,
   Sparkles,
+  BookOpen,
+  CheckCircle2,
+  Layers,
 } from "lucide-react";
-import ScholarPageShell from "../components/scholar/ScholarPageShell";
-import ScholarPageHeader from "../components/scholar/ScholarPageHeader";
+import PathHubSidebar from "../components/path/PathHubSidebar";
+import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
+import AnimeStagger from "../components/motion/AnimeStagger";
 import ResourceTypeStrip from "../components/scholar/ResourceTypeStrip";
 import { useAppStore } from "../store/useAppStore";
 import { needsProfileBuild } from "../lib/profileGate";
 import { resolvePathPlanTarget } from "../lib/pathGate";
 import { PATH_PLAN_PATH, PATH_VIEW_PATH } from "../lib/pathRoutes";
-
-const FLOW_STEPS = [
-  {
-    icon: BrainCircuit,
-    title: "完成学习画像",
-    desc: "画像智能体对话抽取 ≥6 维特征",
-  },
-  {
-    icon: Signpost,
-    title: "路径智能体规划",
-    desc: "分阶段路径 + 五类多模态资源推送",
-  },
-  {
-    icon: Layers,
-    title: "按阶段学习",
-    desc: "跟踪进度 · 动态调整推送策略",
-  },
-] as const;
 
 export default function LearningPath() {
   const navigate = useNavigate();
@@ -53,6 +36,11 @@ export default function LearningPath() {
   );
   const overallProgress = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : 0;
 
+  const totalResources = pathStages.reduce(
+    (a, s) => a + s.topics.reduce((n, t) => n + t.resources.length, 0),
+    0
+  );
+
   const startPlan = () => {
     const target = resolvePathPlanTarget(profileInitialized, profile);
     navigate(target.to, { state: target.state });
@@ -63,55 +51,58 @@ export default function LearningPath() {
     : "赛题核心：依托画像与路径智能体，规划科学学习步骤并精准推送多模态资源";
 
   return (
-    <ScholarPageShell>
-      <ScholarPageHeader
-        badge="路径规划"
-        title="个性化学习路径"
-        subtitle={subtitle}
-        action={
-          hasPath ? (
-            <Link to={PATH_VIEW_PATH} className="btn-primary">
-              <Play size={16} /> 进入我的路径
-            </Link>
-          ) : (
-            <button type="button" onClick={startPlan} className="btn-primary">
-              <Route size={16} /> {profileReady ? "开始路径规划" : "先完成画像"}
-            </button>
-          )
-        }
-      />
+    <ScholarDashboardLayout
+      badge="路径规划"
+      title="个性化学习路径"
+      subtitle={subtitle}
+      aside={
+        hasPath ? (
+          <Link to={PATH_VIEW_PATH} className="btn-primary text-sm">
+            <Play size={16} /> 进入我的路径
+          </Link>
+        ) : (
+          <button type="button" onClick={startPlan} className="btn-primary text-sm">
+            <Route size={16} /> {profileReady ? "开始路径规划" : "先完成画像"}
+          </button>
+        )
+      }
+      sidebar={<PathHubSidebar profileReady={profileReady} hasPath={hasPath} />}
+    >
+      {hasPath && (
+        <AnimeStagger className="dash-stats mb-6" staggerMs={60} y={12} delay={70}>
+          <div className="dash-stats__item">
+            <Layers size={16} strokeWidth={1.75} aria-hidden />
+            <span className="dash-stats__num">{pathStages.length}</span>
+            <span className="dash-stats__label">学习阶段</span>
+          </div>
+          <div className="dash-stats__item">
+            <BookOpen size={16} strokeWidth={1.75} aria-hidden />
+            <span className="dash-stats__num">{totalTopics}</span>
+            <span className="dash-stats__label">知识点</span>
+          </div>
+          <div className="dash-stats__item">
+            <Route size={16} strokeWidth={1.75} aria-hidden />
+            <span className="dash-stats__num">{totalResources}</span>
+            <span className="dash-stats__label">推送资源</span>
+          </div>
+          <div className="dash-stats__item">
+            <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden />
+            <span className="dash-stats__num">{overallProgress}%</span>
+            <span className="dash-stats__label">整体完成度</span>
+          </div>
+        </AnimeStagger>
+      )}
 
-      <div className="mb-6">
-        <ResourceTypeStrip />
-      </div>
-
-      <section className="path-hub-flow section-card mb-8" aria-label="学习路径流程">
-        <h2 className="path-hub-flow__title">三步开启个性化路径</h2>
-        <ol className="path-hub-flow__steps">
-          {FLOW_STEPS.map((step, i) => (
-            <li key={step.title} className="path-hub-flow__step">
-              <span className="path-hub-flow__index">{String(i + 1).padStart(2, "0")}</span>
-              <span className="path-hub-flow__icon">
-                <step.icon size={18} strokeWidth={1.75} />
-              </span>
-              <div>
-                <p className="path-hub-flow__step-title">{step.title}</p>
-                <p className="path-hub-flow__step-desc">{step.desc}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {!hasPath ? (
-        <section className="section-card text-center py-14 px-6">
-          <p className="text-lg font-medium text-gray-900 dark:text-white">尚未生成学习路径</p>
-          <p className="text-sm text-gray-500 mt-2 max-w-lg mx-auto leading-relaxed">
+      {!hasPath && (
+        <section className="section-card dash-panel">
+          <p className="text-xs font-medium text-[var(--scholar-primary)] mb-2">三步开启个性化路径</p>
+          <h2 className="text-lg font-semibold text-[var(--scholar-text)]">尚未生成学习路径</h2>
+          <p className="text-sm text-[var(--scholar-text-muted)] mt-2 leading-relaxed">
             路径由<strong className="font-medium text-[var(--scholar-text)]">路径规划智能体</strong>
-            结合你的六维画像生成，包含阶段划分与文档、导图、题库、视频、实操五类资源推送。
+            结合你的六维画像生成，按阶段推送文档、导图、题库、视频、实操等资源。
             {!profileReady && " 请先完成学习画像构建。"}
           </p>
-          <div className="flex flex-wrap justify-center gap-3 mt-6">
+          <div className="flex flex-wrap gap-3 mt-5">
             <button type="button" onClick={startPlan} className="btn-primary">
               <Route size={16} /> {profileReady ? "进入路径智能体" : "去完成画像"}
             </button>
@@ -121,9 +112,34 @@ export default function LearningPath() {
               </Link>
             )}
           </div>
+
+          <div className="mt-6 pt-5 border-t border-[color-mix(in_srgb,var(--scholar-border)_70%,transparent)]">
+            <h3 className="text-sm font-medium text-[var(--scholar-text)] mb-3">规划流程</h3>
+            <ol className="dash-sidebar-workflow">
+              <li>
+                <span className="dash-sidebar-workflow__num">1</span>
+                <span>完成学习画像（≥6 维特征）</span>
+              </li>
+              <li>
+                <span className="dash-sidebar-workflow__num">2</span>
+                <span>路径智能体划分阶段并推送资源</span>
+              </li>
+              <li>
+                <span className="dash-sidebar-workflow__num">3</span>
+                <span>按阶段学习，可随时重新规划</span>
+              </li>
+            </ol>
+          </div>
+
+          <div className="mt-6 pt-5 border-t border-[color-mix(in_srgb,var(--scholar-border)_70%,transparent)]">
+            <p className="text-sm text-[var(--scholar-text-muted)] mb-3">每个知识点可匹配的多模态材料</p>
+            <ResourceTypeStrip />
+          </div>
         </section>
-      ) : (
-        <section className="section-card p-6">
+      )}
+
+      {hasPath && (
+        <section className="section-card dash-panel">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium text-[var(--scholar-primary)] flex items-center gap-1">
@@ -153,8 +169,26 @@ export default function LearningPath() {
               <Route size={16} /> 重新规划
             </Link>
           </div>
+          <div className="mt-6 pt-5 border-t border-[color-mix(in_srgb,var(--scholar-border)_70%,transparent)]">
+            <p className="text-sm font-medium text-[var(--scholar-text)] mb-3">阶段概览</p>
+            <ul className="space-y-2">
+              {pathStages.map((stage, i) => (
+                <li
+                  key={stage.id}
+                  className="flex items-center justify-between gap-3 text-sm py-2 border-b border-[color-mix(in_srgb,var(--scholar-border)_50%,transparent)] last:border-0"
+                >
+                  <span className="text-[var(--scholar-text-secondary)]">
+                    阶段 {i + 1} · {stage.title}
+                  </span>
+                  <span className="text-xs text-[var(--scholar-text-muted)] shrink-0">
+                    {stage.topics.length} 节点
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       )}
-    </ScholarPageShell>
+    </ScholarDashboardLayout>
   );
 }

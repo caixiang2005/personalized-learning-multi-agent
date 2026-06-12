@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthBrandPanel from "../components/auth/AuthBrandPanel";
+import AuthPageBackground from "../components/auth/AuthPageBackground";
 import { AuthFormCard } from "../components/auth/AuthFormCard";
 import {
   register,
@@ -68,8 +69,8 @@ export default function Register() {
   const tipSuccess = tipText.includes("成功");
 
   return (
-    <div className="login-shell scholar-auth-shell app-page-scrim">
-      <div className="login-shell__glow" aria-hidden />
+    <div className="login-shell landing-shell app-page-scrim">
+      <AuthPageBackground />
       <div className="login-layout">
         <AuthBrandPanel />
         <section className="login-form-area">

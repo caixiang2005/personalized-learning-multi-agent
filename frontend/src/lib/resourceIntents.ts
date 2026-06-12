@@ -79,14 +79,27 @@ export function finalizeProfileBuild(
     .slice(0, 4)
     .map((name, i) => ({ name, count: Math.max(1, 10 - i * 2) }));
 
-  const learnerDimensions: ProfileDimension[] = LEARNER_DIMENSION_LABELS.map((d) => ({
-    key: d.key,
-    label: d.label,
-    value: Math.min(78, base + (d.key === "trend" ? 6 : 0)),
-    level: base >= 60 ? "medium" : "weak",
-    source: "对话画像构建",
-    trendDelta: depth * 2,
-  }));
+  const learnerDimensions: ProfileDimension[] = LEARNER_DIMENSION_LABELS.map((d, i) => {
+    const offsets: Record<string, number> = {
+      knowledge: 0,
+      exercises: -6,
+      focus: 4,
+      weakpoints: -12,
+      efficiency: -2,
+      trend: 8,
+    };
+    const value = Math.min(92, Math.max(38, base + (offsets[d.key] ?? 0) + (i % 2 === 0 ? 2 : 0)));
+    const level: ProfileDimension["level"] =
+      value >= 75 ? "strong" : value >= 55 ? "medium" : "weak";
+    return {
+      key: d.key,
+      label: d.label,
+      value,
+      level,
+      source: "对话画像构建",
+      trendDelta: depth * 2 + (i % 3),
+    };
+  });
 
   return {
     ...draft,
@@ -99,7 +112,7 @@ export function finalizeProfileBuild(
     weakPoints,
     rhythm: { period: "", duration: "" },
     goalProgress: draft.goal
-      ? { label: draft.goal, percent: 0 }
+      ? { label: draft.goal, percent: Math.min(20, depth * 6 + 4) }
       : { label: "", percent: 0 },
   };
 }
