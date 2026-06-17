@@ -6,6 +6,9 @@ from fastapi.responses import JSONResponse
 
 from api.unlogin import router as unlogin_router
 from api.chat import router as chat_router
+from api.profile_build import router as profile_build_router
+from api.path_plan import router as path_plan_router
+from api.exercise import router as exercise_router
 from services.logger import capture_exception
 
 
@@ -13,8 +16,9 @@ from services.logger import capture_exception
 async def lifespan(app: FastAPI):
     # 启动时预加载 embedding 模型（避免第一个请求卡死事件循环）
     try:
-        from services.chat_service import _get_embedder_async
-        await asyncio.wait_for(_get_embedder_async(), timeout=120)
+        from services.chat_service import _get_embedder
+        loop = asyncio.get_event_loop()
+        await asyncio.wait_for(loop.run_in_executor(None, _get_embedder), timeout=120)
     except Exception as e:
         print(f"[WARN] 预加载 embedding 模型失败（不影响业务，请求时会重试）: {e}")
     yield
@@ -27,6 +31,15 @@ app.include_router(unlogin_router)
 
 # 登录用户知识库聊天接口
 app.include_router(chat_router)
+
+# 画像构建智能体
+app.include_router(profile_build_router)
+
+# 路径规划智能体
+app.include_router(path_plan_router)
+
+# AI 练习生成与智能批改
+app.include_router(exercise_router)
 
 
 @app.exception_handler(Exception)

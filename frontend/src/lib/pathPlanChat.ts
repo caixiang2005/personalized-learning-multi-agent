@@ -108,9 +108,15 @@ export async function sendPathPlanMessage(
 
   if (useRemote) {
     try {
+      // 持久化 session_id
+      let sessionId = sessionStorage.getItem("path_plan_session_id");
+      if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        sessionStorage.setItem("path_plan_session_id", sessionId);
+      }
       const json = await postAgentChat(
         API.agent.pathPlan,
-        { user_input: userInput, session_id: crypto.randomUUID() },
+        { user_input: userInput, session_id: sessionId },
         { withAuth: true, timeoutMs: 120_000 }
       );
       return finish(json.data!.ai_reply);

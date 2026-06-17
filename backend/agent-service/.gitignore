@@ -1,0 +1,15 @@
+# agent-service 专属忽略
+# 若作为独立仓库使用需保留此项；从根目录管理时大部分由根 .gitignore 覆盖
+
+# 环境变量（含 DeepSeek API Key 等敏感信息）
+.env
+.env.local
+
+# Python 虚拟环境
+venv/
+.venv/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo

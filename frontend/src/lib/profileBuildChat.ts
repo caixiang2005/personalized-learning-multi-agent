@@ -23,6 +23,53 @@ export interface ProfileBuildChatResult {
   usedLocalAgent?: boolean;
 }
 
+/**
+ * 调用后端 finalize 接口完成画像构建（remote 模式）
+ * POST /api/agent/profile-build/finalize
+ */
+export async function finalizeProfileBuildRemote(
+  sessionId: string
+): Promise<{ code: number; msg: string; data?: any }> {
+  try {
+    const token = (await import("../lib/auth/token")).getToken();
+    const res = await fetch(
+      `${import.meta.env.VITE_API_BASE ?? "/api"}/agent/profile-build/finalize`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ session_id: sessionId }),
+      }
+    );
+    return await res.json();
+  } catch (err) {
+    return {
+      code: 500,
+      msg: err instanceof Error ? err.message : "网络异常",
+    };
+  }
+}
+
+/** 获取当前存储的 session_id（用于 finalize） */
+export function getProfileBuildSessionId(): string {
+  try {
+    const stored = sessionStorage.getItem("profile_build_session_id");
+    return stored || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setProfileBuildSessionId(id: string): void {
+  try {
+    sessionStorage.setItem("profile_build_session_id", id);
+  } catch {
+    // ignore
+  }
+}
+
 function summarizeDraft(draft: ProfileDraft): string[] {
   const lines: string[] = [];
   if (draft.major?.trim()) lines.push(`专业/课程：${draft.major.trim()}`);
@@ -113,9 +160,15 @@ export async function sendProfileBuildMessage(
 
   if (useRemote) {
     try {
+      // 保持同一会话使用同一个 session_id
+      let sessionId = getProfileBuildSessionId();
+      if (!sessionId) {
+        sessionId = crypto.randomUUID();
+        setProfileBuildSessionId(sessionId);
+      }
       const json = await postAgentChat(
         API.agent.profileBuild,
-        { user_input: userInput, session_id: crypto.randomUUID() },
+        { user_input: userInput, session_id: sessionId },
         { withAuth: true, timeoutMs: 120_000 }
       );
       return finish(json.data!.ai_reply);

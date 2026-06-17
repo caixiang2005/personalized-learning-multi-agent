@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Loader2, Send } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownContent from "../ui/MarkdownContent";
 import { PLAN_CHAT_REPLY, PLAN_CHAT_SEED } from "../../lib/mockDailyPlan";
 import { simulateStream } from "../../lib/stream";
 
@@ -65,7 +64,7 @@ export default function PlanChatPanel({ embedded = false }: Props) {
               <Loader2 size={14} className="animate-spin" />
             ) : (
               <div className="markdown-body text-sm">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
+                <MarkdownContent content={m.content} />
               </div>
             )}
           </div>

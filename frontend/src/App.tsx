@@ -3,7 +3,7 @@
  * @description 应用路由：登录页 + 受保护的主布局与子页面。
  * @backend 无
  */
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import AppMeshBackground from "./components/background/AppMeshBackground";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
@@ -22,17 +22,27 @@ import PathPlan from "./pages/PathPlan";
 import PathDetail from "./pages/PathDetail";
 import ResourceDetail from "./pages/ResourceDetail";
 import ExercisePage from "./pages/ExercisePage";
+import ExerciseBank from "./pages/ExerciseBank";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import DatabaseAdmin from "./pages/DatabaseAdmin";
 import Account from "./pages/Account";
 import AccountSecurity from "./pages/AccountSecurity";
 import NotFound from "./pages/NotFound";
+
+/** 只在受保护页面显示网格背景 */
+function MeshBackgroundGuard() {
+  const loc = useLocation();
+  const publicPaths = ["/", "/login", "/register", "/reset-password"];
+  if (publicPaths.includes(loc.pathname)) return null;
+  return <AppMeshBackground />;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthBootstrap>
-        <AppMeshBackground />
+        <MeshBackgroundGuard />
         <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -72,8 +82,10 @@ export default function App() {
           <Route path="/path/view" element={<PathDetail />} />
           <Route path="/resource/:id" element={<ResourceDetail />} />
           <Route path="/exercise/:id" element={<ExercisePage />} />
+          <Route path="/exercise/bank" element={<ExerciseBank />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/admin/db" element={<DatabaseAdmin />} />
         </Route>
         <Route path="*" element={<NotFound />} />
         </Routes>

@@ -1,0 +1,5 @@
+# learn-service 配置
+redis:
+  host: "8.153.204.117"
+  port: 6379
+  db: 0

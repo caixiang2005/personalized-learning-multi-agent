@@ -148,8 +148,41 @@ export default function PathPlan() {
     [loading, profile, userRounds, addPathPlanMessage, updatePathPlanMessage]
   );
 
-  const handleGeneratePath = () => {
+  const handleGeneratePath = async () => {
     if (!canGenerate) return;
+    // 尝试后端 agent finalize
+    const useRemote = import.meta.env.VITE_PATH_PLAN_API === "1";
+    if (useRemote) {
+      try {
+        const { postAgentChat } = await import("../lib/api/agent");
+        const sid = sessionStorage.getItem("path_plan_session_id");
+        if (sid) {
+          const res = await postAgentChat(
+            "/api/agent/path-plan/finalize",
+            { session_id: sid },
+            { withAuth: true, timeoutMs: 15000 }
+          );
+          if (res.code === 200 && res.data) {
+            const data = res.data;
+            const stages = data.stages ?? data.pathStages ?? [];
+            if (stages.length > 0) {
+              setLearningPath(stages, {
+                id: data.id ?? `path-${Date.now()}`,
+                title: data.title ?? "个性化学习路径",
+                course: data.course ?? "",
+                generatedAt: data.generatedAt ?? new Date().toISOString(),
+                source: "路径智能体规划",
+                overallProgress: data.overallProgress ?? 0,
+              });
+              navigate(PATH_VIEW_PATH);
+              return;
+            }
+          }
+        }
+      } catch {
+        // fallback to local
+      }
+    }
     const { stages, meta } = generateLearningPath(profile, draftRef.current, userRounds);
     setLearningPath(stages, meta);
     navigate(PATH_VIEW_PATH);
@@ -315,8 +348,7 @@ export default function PathPlan() {
                   <button
                     type="button"
                     className="doubao-composer__tool"
-                    title="附件（待后端）"
-                    disabled
+                    title="上传文件"
                   >
                     <Paperclip size={18} strokeWidth={1.75} />
                   </button>

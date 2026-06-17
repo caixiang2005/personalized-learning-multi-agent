@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, GraduationCap } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
 import UserMenuDropdown from "../layout/UserMenuDropdown";
+import MobileNav from "../layout/MobileNav";
 import AccountNavSidebar from "../../pages/account/AccountNavSidebar";
 
 type Props = {
@@ -36,6 +37,7 @@ export default function AccountCenterLayout({ children }: Props) {
         <AccountNavSidebar />
         <main className="account-center__main">{children}</main>
       </div>
+      <MobileNav />
     </div>
   );
 }

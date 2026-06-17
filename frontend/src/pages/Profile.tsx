@@ -4,8 +4,8 @@
  * @route /profile
  */
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Target, Sparkles, Brain, AlertTriangle, RefreshCw, RotateCcw } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { Target, Sparkles, Brain, AlertTriangle, RefreshCw, RotateCcw, Settings } from "lucide-react";
 import ProfileSidebar from "../components/profile/ProfileSidebar";
 import ProfileEmptyState from "../components/profile/ProfileEmptyState";
 import ProfileEmptySidebar from "../components/profile/ProfileEmptySidebar";
@@ -200,6 +200,27 @@ export default function Profile() {
             </div>
           )}
         </section>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6 mt-6">
+        <Link to="/account" className="section-card dash-panel flex items-center gap-4 no-underline hover:border-[var(--scholar-primary)]/30 transition-colors">
+          <div className="w-10 h-10 rounded-xl bg-[var(--scholar-bg)] flex items-center justify-center shrink-0">
+            <Settings size={20} className="text-[var(--scholar-text-secondary)]" />
+          </div>
+          <div>
+            <p className="font-medium text-[var(--scholar-text)]">个人信息设置</p>
+            <p className="text-sm text-[var(--scholar-text-muted)]">编辑头像、昵称、手机号等账号资料</p>
+          </div>
+        </Link>
+        <Link to="/settings" className="section-card dash-panel flex items-center gap-4 no-underline hover:border-[var(--scholar-primary)]/30 transition-colors">
+          <div className="w-10 h-10 rounded-xl bg-[var(--scholar-bg)] flex items-center justify-center shrink-0">
+            <Settings size={20} className="text-[var(--scholar-text-secondary)]" />
+          </div>
+          <div>
+            <p className="font-medium text-[var(--scholar-text)]">系统设置</p>
+            <p className="text-sm text-[var(--scholar-text-muted)]">主题切换、数据库管理等</p>
+          </div>
+        </Link>
       </div>
     </ScholarDashboardLayout>
   );

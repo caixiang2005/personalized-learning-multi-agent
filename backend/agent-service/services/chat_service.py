@@ -10,6 +10,7 @@ import os
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+import httpx
 from sentence_transformers import SentenceTransformer
 
 from core.prompts import KNOWLEDGE_CHAT_PROMPT
@@ -26,6 +27,8 @@ if _raw_url.endswith("/chat/completions"):
 _client = AsyncOpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url=_raw_url or None,
+    timeout=httpx.Timeout(timeout=120.0, connect=30.0),
+    max_retries=2,
 )
 MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
@@ -51,6 +54,9 @@ def _key(session_id: str) -> str:
 def _get_embedder() -> SentenceTransformer:
     global _embed_model
     if _embed_model is None:
+        # 国内访问 HuggingFace 受限时禁用在线检查
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
         _embed_model = SentenceTransformer(EMBED_MODEL_NAME)
     return _embed_model
 

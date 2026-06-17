@@ -42,8 +42,8 @@ declare module "axios" {
 }
 
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE ?? "/api",
-  timeout: 20000,
+  baseURL: "",  // baseURL 为空，API 全路径在 endpoints.ts 中已包含 /api 前缀
+  timeout: 120000,  // 120s — learn-service 会代理到 agent-service 调用 DeepSeek，响应较慢
   headers: { "Content-Type": "application/json" },
 });
 

@@ -44,6 +44,7 @@ interface AppState {
   /** GET getProfile · avatarUrl */
   userAvatarUrl: string | null;
   avatarCacheVersion: number;
+  setSessions: (sessions: ChatSession[]) => void;
   setLoggedIn: (v: boolean) => void;
   setUser: (user: UserInfo | null) => void;
   setUserAvatar: (url: string | null, bumpVersion?: boolean) => void;
@@ -113,6 +114,7 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       userAvatarUrl: null,
       avatarCacheVersion: 0,
+      setSessions: (sessions) => set({ sessions }),
       setLoggedIn: (v) => set({ isLoggedIn: v }),
       setUser: (user) =>
         set((s) => ({
@@ -192,8 +194,10 @@ export const useAppStore = create<AppState>()(
       partialize: (s) => ({
         isLoggedIn: s.isLoggedIn,
         darkMode: s.darkMode,
+        user: s.user,
         profile: s.profile,
         profileInitialized: s.profileInitialized,
+        sessions: s.sessions,
         pathStages: s.pathStages,
         pathPlanMessages: s.pathPlanMessages,
         learningPathMeta: s.learningPathMeta,

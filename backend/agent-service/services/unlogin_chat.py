@@ -2,6 +2,7 @@ import os
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
+import httpx
 
 from core.prompts import UNLOGIN_GUIDE_AGENT_PROMPT
 from services.logger import capture_exception, log_error
@@ -16,6 +17,8 @@ if _raw_url.endswith("/chat/completions"):
 client = AsyncOpenAI(
     api_key=os.getenv("DEEPSEEK_API_KEY"),
     base_url=_raw_url or None,
+    timeout=httpx.Timeout(timeout=120.0, connect=30.0),
+    max_retries=2,
 )
 
 MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")

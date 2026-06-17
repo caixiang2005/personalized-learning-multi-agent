@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, GraduationCap, LogOut } from "lucide-react";
 import ThemeToggle from "../ui/ThemeToggle";
+import MobileNav from "../layout/MobileNav";
 import { logoutLocal } from "../../lib/api/user";
 import { useAppStore } from "../../store/useAppStore";
 
@@ -51,7 +52,8 @@ export default function AccountStandaloneLayout({ children }: Props) {
         </div>
       </header>
 
-      <main className="account-standalone__main flex-1">{children}</main>
+      <main className="account-standalone__main flex-1 pb-14 md:pb-0">{children}</main>
+      <MobileNav />
     </div>
   );
 }

@@ -1,18 +1,20 @@
 /**
  * @file DailyPlan.tsx
- * @description AI 每日学习计划：推送 · 对话 · 练习 · 进度
+ * @description AI 每日学习计划：从后端拉取真实数据，支持任务完成度切换。
  * @route /plan
+ * @backend GET /api/plan/daily · POST /api/plan/tasks/:id/toggle
  */
-import { useMemo, useState } from "react";
-import { CalendarDays, Target, ListChecks, CheckCircle2, Clock, Lightbulb } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  CalendarDays, Target, ListChecks, CheckCircle2, Clock, Lightbulb, Loader2, RefreshCw,
+} from "lucide-react";
 import PlanSidebar from "../components/plan/PlanSidebar";
 import ScholarDashboardLayout, { DashboardHealthAside } from "../components/dashboard/ScholarDashboardLayout";
 import AnimeStagger from "../components/motion/AnimeStagger";
 import PlanTaskCard from "../components/plan/PlanTaskCard";
-import {
-  getDefaultDailyPlan,
-  recalcPlanProgress,
-} from "../lib/mockDailyPlan";
+import { fetchDailyPlan, toggleTaskApi } from "../lib/api/learn";
+import { getDefaultDailyPlan, recalcPlanProgress } from "../lib/mockDailyPlan";
+import type { DailyPlan as DailyPlanType, DailyPlanTask } from "../types";
 
 const PLAN_TIPS = [
   "优先完成对话类任务，针对易错点向助手提问",
@@ -20,33 +22,110 @@ const PLAN_TIPS = [
   "每完成一项任务，系统会自动更新今日完成度",
 ];
 
+function renderSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="flex gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-20 flex-1 rounded-xl bg-gray-200 dark:bg-gray-800" />
+        ))}
+      </div>
+      <div className="h-36 rounded-xl bg-gray-200 dark:bg-gray-800" />
+      <div className="h-48 rounded-xl bg-gray-200 dark:bg-gray-800" />
+    </div>
+  );
+}
+
 export default function DailyPlan() {
-  const [plan, setPlan] = useState(getDefaultDailyPlan);
+  const [plan, setPlan] = useState<DailyPlanType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  const overall = useMemo(() => recalcPlanProgress(plan.tasks), [plan.tasks]);
+  const loadPlan = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchDailyPlan();
+      if (res.code === 200) {
+        setPlan(res.data);
+      } else {
+        setPlan(getDefaultDailyPlan());
+        setError(res.msg);
+      }
+    } catch {
+      setPlan(getDefaultDailyPlan());
+      setError("后端未就绪，显示示例计划");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const doneCount = plan.tasks.filter((t) => t.done).length;
-  const totalMin = plan.tasks.reduce((s, t) => s + t.durationMin, 0);
-  const doneMin = plan.tasks.filter((t) => t.done).reduce((s, t) => s + t.durationMin, 0);
+  useEffect(() => { loadPlan(); }, [loadPlan]);
 
-  const toggleTask = (id: string) => {
+  const overall = useMemo(
+    () => (plan ? recalcPlanProgress(plan.tasks) : 0),
+    [plan]
+  );
+  const doneCount = useMemo(
+    () => (plan ? plan.tasks.filter((t) => t.done).length : 0),
+    [plan]
+  );
+  const totalMin = useMemo(
+    () => (plan ? plan.tasks.reduce((s, t) => s + t.durationMin, 0) : 0),
+    [plan]
+  );
+  const doneMin = useMemo(
+    () => (plan ? plan.tasks.filter((t) => t.done).reduce((s, t) => s + t.durationMin, 0) : 0),
+    [plan]
+  );
+
+  const toggleTask = async (id: string) => {
+    setTogglingId(id);
+    const prev = plan?.tasks.find((t) => t.id === id);
+    const newDone = !prev?.done;
+
+    // 乐观更新 UI
     setPlan((p) => {
+      if (!p) return p;
       const tasks = p.tasks.map((t) =>
-        t.id === id ? { ...t, done: !t.done, progress: !t.done ? 100 : 0 } : t
+        t.id === id ? { ...t, done: newDone, progress: newDone ? 100 : 0 } : t
       );
       return { ...p, tasks, overallProgress: recalcPlanProgress(tasks) };
     });
+
+    try {
+      await toggleTaskApi(id, newDone);
+    } catch {
+      // 回滚
+      setPlan((p) => {
+        if (!p) return p;
+        const tasks = p.tasks.map((t) =>
+          t.id === id ? { ...t, done: !newDone, progress: !newDone ? 0 : 100 } : t
+        );
+        return { ...p, tasks, overallProgress: recalcPlanProgress(tasks) };
+      });
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const scrollToChat = () => {
     document.getElementById("plan-sidebar-chat")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  if (loading) {
+    return (
+      <ScholarDashboardLayout badge="AI 每日计划" title="今日学习计划" subtitle="加载中…">
+        {renderSkeleton()}
+      </ScholarDashboardLayout>
+    );
+  }
+
+  if (!plan) return null;
+
   const formattedDate = new Date(plan.date).toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
+    year: "numeric", month: "long", day: "numeric", weekday: "long",
   });
 
   return (
@@ -54,9 +133,22 @@ export default function DailyPlan() {
       badge="AI 每日计划"
       title="今日学习计划"
       subtitle={plan.summary}
-      aside={<DashboardHealthAside score={overall} label="今日完成度" />}
+      aside={
+        <div className="flex items-center gap-2">
+          <DashboardHealthAside score={overall} label="今日完成度" />
+          <button type="button" onClick={loadPlan} className="btn-secondary text-xs py-1 px-2" title="刷新">
+            <RefreshCw size={14} />
+          </button>
+        </div>
+      }
       sidebar={<PlanSidebar plan={plan} />}
     >
+      {error && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300">
+          ⚠️ {error}
+        </div>
+      )}
+
       <AnimeStagger className="dash-stats mb-6" staggerMs={60} y={12} delay={70}>
         <div className="dash-stats__item">
           <ListChecks size={16} strokeWidth={1.75} aria-hidden />
@@ -103,12 +195,8 @@ export default function DailyPlan() {
             <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36" aria-hidden>
               <circle cx="18" cy="18" r="15" fill="none" stroke="var(--scholar-border)" strokeWidth="3" />
               <circle
-                cx="18"
-                cy="18"
-                r="15"
-                fill="none"
-                stroke="var(--scholar-primary)"
-                strokeWidth="3"
+                cx="18" cy="18" r="15" fill="none"
+                stroke="var(--scholar-primary)" strokeWidth="3"
                 strokeDasharray={`${overall} 100`}
                 className="transition-all duration-700"
               />
@@ -124,7 +212,7 @@ export default function DailyPlan() {
       <section className="mb-6">
         <h2 className="text-base font-semibold text-[var(--scholar-text)] mb-3">今日知识点推送</h2>
         <div className="grid gap-3 sm:grid-cols-2">
-          {plan.knowledgePush.map((kp) => (
+          {(plan.knowledgePush ?? []).map((kp) => (
             <article key={kp.id} className="scholar-cap-card">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--scholar-accent)]">
                 {kp.tag}
@@ -143,7 +231,7 @@ export default function DailyPlan() {
             <PlanTaskCard
               key={task.id}
               task={task}
-              onToggle={toggleTask}
+              onToggle={() => toggleTask(task.id)}
               onChat={scrollToChat}
             />
           ))}

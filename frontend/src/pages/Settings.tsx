@@ -1,9 +1,9 @@
 /**
  * @file Settings.tsx
- * @description 设置：显示偏好、关于、退出登录。
+ * @description 设置中心：账号、偏好、系统信息导航。
  */
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, LogOut, Moon, Sun, Info } from "lucide-react";
+import { ArrowRight, LogOut, Moon, Sun, Info, Shield, User, Database, Palette } from "lucide-react";
 import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import { logoutLocal } from "../lib/api/user";
 import { useAppStore } from "../store/useAppStore";
@@ -19,6 +19,28 @@ const OPEN_SOURCE_STACK = [
   { name: "Recharts", license: "MIT" },
 ] as const;
 
+const SETTING_SECTIONS = [
+  {
+    title: "账号与安全",
+    items: [
+      { to: "/account", icon: User, label: "个人资料", desc: "编辑昵称、手机号、头像" },
+      { to: "/account/security", icon: Shield, label: "账号安全", desc: "修改密码、查看登录信息" },
+    ],
+  },
+  {
+    title: "偏好设置",
+    items: [
+      { to: "/profile", icon: Palette, label: "学习画像", desc: "查看六维画像与薄弱知识点" },
+    ],
+  },
+  {
+    title: "开发者",
+    items: [
+      { to: "/admin/db", icon: Database, label: "数据库管理", desc: "浏览数据表、执行 SQL 查询" },
+    ],
+  },
+];
+
 export default function Settings() {
   const navigate = useNavigate();
   const { darkMode, toggleDarkMode, setLoggedIn, setUser } = useAppStore();
@@ -31,18 +53,34 @@ export default function Settings() {
   };
 
   return (
-    <ScholarDashboardLayout badge="系统" title="设置" subtitle="显示偏好、版本与技术栈">
-      <Link to="/account" className="account-settings-link section-card mb-4 scholar-card--interactive">
-        <div>
-          <p className="account-settings-link__title">个人信息</p>
-          <p className="account-settings-link__desc">编辑昵称、专业方向与学习背景</p>
-        </div>
-        <ArrowRight size={18} strokeWidth={1.75} />
-      </Link>
+    <ScholarDashboardLayout badge="系统" title="设置" subtitle="账号管理、显示偏好与系统信息">
+      {SETTING_SECTIONS.map((section) => (
+        <section key={section.title} className="section-card mb-4">
+          <h3 className="font-semibold mb-3 text-sm text-[var(--scholar-text-secondary)]">{section.title}</h3>
+          <div className="space-y-1">
+            {section.items.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[var(--scholar-bg)] transition-colors no-underline"
+              >
+                <span className="w-9 h-9 rounded-lg bg-[var(--scholar-bg)] flex items-center justify-center text-[var(--scholar-text-secondary)] shrink-0">
+                  <item.icon size={17} strokeWidth={1.75} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-[var(--scholar-text)]">{item.label}</p>
+                  <p className="text-xs text-[var(--scholar-text-muted)]">{item.desc}</p>
+                </div>
+                <ArrowRight size={15} className="text-[var(--scholar-text-muted)] shrink-0" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      ))}
 
       <section className="section-card mb-4">
-        <h3 className="font-semibold mb-4">显示</h3>
-        <button type="button" onClick={toggleDarkMode} className="account-theme-toggle">
+        <h3 className="font-semibold mb-4 text-sm text-[var(--scholar-text-secondary)]">显示</h3>
+        <button type="button" onClick={toggleDarkMode} className="account-theme-toggle w-full">
           <span className="flex items-center gap-2 text-sm">
             {darkMode ? <Moon size={18} /> : <Sun size={18} />}
             {darkMode ? "深色模式" : "浅色模式"}

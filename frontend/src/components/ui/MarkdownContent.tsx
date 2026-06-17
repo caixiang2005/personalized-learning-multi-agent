@@ -34,6 +34,7 @@ function MarkdownLink({
   children,
   ...rest
 }: AnchorHTMLAttributes<HTMLAnchorElement>) {
+  // B站视频链接由 splitMarkdownWithVideos 提取为卡片，此处不再重复渲染
   if (href && /bilibili\.com\/video\//i.test(href)) {
     return null;
   }
@@ -45,7 +46,6 @@ function MarkdownLink({
       rel="noopener noreferrer"
       className="markdown-link"
       title={href ? `${href}（新窗口打开）` : undefined}
-      {...rest}
     >
       {resolveLinkLabel(href, children)}
       <ExternalLink className="markdown-link__icon" size={12} strokeWidth={2} aria-hidden />

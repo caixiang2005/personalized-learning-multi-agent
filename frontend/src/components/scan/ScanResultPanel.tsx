@@ -1,6 +1,5 @@
 import { BookOpen, Layers, ListOrdered, Sparkles } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import MarkdownContent from "../ui/MarkdownContent";
 import type { ScanResult } from "../../types";
 
 type Props = {
@@ -43,7 +42,7 @@ export default function ScanResultPanel({ result, analysisStream, analyzing }: P
           {analyzing && !analysis ? (
             <span className="text-[var(--scholar-text-muted)]">解析生成中…</span>
           ) : (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{analysis}</ReactMarkdown>
+            <MarkdownContent content={analysis} />
           )}
         </div>
       </section>

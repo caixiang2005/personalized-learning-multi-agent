@@ -102,6 +102,14 @@ export const API = {
     get: (id: string) => `${API_BASE}/exercises/${id}`,
     /** POST /:id/submit { answers } → 批改结果并更新画像 */
     submit: (id: string) => `${API_BASE}/exercises/${id}/submit`,
+    /** POST /generate 新增：AI 生成练习题 */
+    generate: `${API_BASE}/exercises/generate`,
+    /** POST /:id/ai-review 新增：AI 智能批改 */
+    aiReview: (id: string) => `${API_BASE}/exercises/${id}/ai-review`,
+    /** POST /save 新增：保存练习结果 */
+    save: `${API_BASE}/exercises/save`,
+    /** GET 当前用户的所有练习记录 */
+    my: `${API_BASE}/exercises`,
   },
 
   /** 学习效果评估 */
@@ -134,6 +142,38 @@ export const API = {
     profileBuild: `${API_BASE}/agent/profile-build`,
     /** POST 路径规划智能体 · 分阶段路径与资源推送（待 agent-service 实现） */
     pathPlan: `${API_BASE}/agent/path-plan`,
+  },
+
+  /** 学习规划 */
+  plan: {
+    /** GET 今日学习计划 */
+    daily: `${API_BASE}/plan/daily`,
+    /** POST /tasks/{taskId}/toggle { done } */
+    toggleTask: (taskId: string) => `${API_BASE}/plan/tasks/${taskId}/toggle`,
+  },
+
+  /** 聊天会话管理 */
+  chatSessions: {
+    /** GET 会话列表 */
+    list: `${API_BASE}/chat/sessions`,
+    /** GET /:sessionId/messages */
+    messages: (sessionId: string) => `${API_BASE}/chat/sessions/${sessionId}/messages`,
+    /** POST /create { title, course } */
+    create: `${API_BASE}/chat/sessions/create`,
+    /** DELETE /:sessionId */
+    delete: (sessionId: string) => `${API_BASE}/chat/sessions/${sessionId}`,
+    /** POST /send { session_id, content } → { ai_reply, resources } */
+    send: `${API_BASE}/chat/send`,
+  },
+
+  /** 数据库管理（learn-service :8002，开发调试用） */
+  dbAdmin: {
+    /** GET 表列表 */
+    tables: `${API_BASE}/admin/db/tables`,
+    /** GET 表数据 */
+    tableData: (name: string) => `${API_BASE}/admin/db/table/${name}`,
+    /** POST 自定义查询 */
+    query: `${API_BASE}/admin/db/query`,
   },
 } as const;
 

@@ -16,6 +16,8 @@ import {
   Clock,
   Layers,
   Bot,
+  Settings,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import ProfileBuildSection from "../components/home/ProfileBuildSection";
@@ -38,6 +40,9 @@ const TOOL_LINKS: { to: string; label: string; desc: string; icon: LucideIcon }[
   { to: "/analytics", label: "效果评估", desc: "学习数据与薄弱点分析", icon: BarChart3 },
   { to: "/plan", label: "今日计划", desc: "每日任务与节奏安排", icon: CalendarCheck },
   { to: "/scan", label: "拍照搜题", desc: "拍照识别 · 逐步讲解", icon: Camera },
+  { to: "/exercise/ai-generate", label: "AI 出题", desc: "智能生成练习题 · AI 批改", icon: ClipboardList },
+  { to: "/exercise/bank", label: "习题银行", desc: "查看历史练习记录", icon: Brain },
+  { to: "/settings", label: "系统设置", desc: "账号安全 · 显示偏好", icon: Settings },
 ];
 
 function formatTodayLabel() {

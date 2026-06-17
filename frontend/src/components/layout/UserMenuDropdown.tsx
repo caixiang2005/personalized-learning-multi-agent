@@ -22,6 +22,7 @@ const mainLinks = [
   { to: "/profile", label: "学习画像", icon: Sparkles },
   { to: "/path", label: "学习路径", icon: ClipboardList },
   { to: "/account/security", label: "账号安全", icon: Shield },
+  { to: "/settings", label: "系统设置", icon: Sun },
 ];
 
 export default function UserMenuDropdown() {

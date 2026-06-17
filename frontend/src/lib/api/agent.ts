@@ -89,6 +89,7 @@ export async function postAgentChat(
     if (err instanceof DOMException && err.name === "AbortError") {
       throw new AgentApiError("请求超时，请稍后再试", 408);
     }
+    // TypeError: 连接被拒绝（ms 级快速返回）
     throw new AgentApiError(err instanceof Error ? err.message : "网络异常", 0);
   } finally {
     clearTimeout(timer);

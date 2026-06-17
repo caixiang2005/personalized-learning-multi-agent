@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { getToken } from "../../lib/auth/token";
 import { fetchUserInfo, logoutLocal, UserApiError } from "../../lib/api/user";
 import { hydrateAccountProfile } from "../../lib/api/account";
+import { bootstrapAppData } from "../../lib/dataBootstrap";
 import { useAppStore } from "../../store/useAppStore";
 
 export default function AuthBootstrap({ children }: { children: ReactNode }) {
@@ -27,6 +28,8 @@ export default function AuthBootstrap({ children }: { children: ReactNode }) {
         setUser(info);
         setLoggedIn(true);
         await hydrateAccountProfile();
+        // 并行拉取学习核心数据（画像、路径、会话）
+        await bootstrapAppData();
       } catch (e) {
         if (e instanceof UserApiError && e.code === 401) {
           logoutLocal();

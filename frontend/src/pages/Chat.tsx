@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Home,
   X,
+  Trash2,
 } from "lucide-react";
 import MessageBubble from "../components/chat/MessageBubble";
 import UserAvatar from "../components/account/UserAvatar";
@@ -35,7 +36,11 @@ import {
   needsProfileBuild as checkNeedsProfileBuild,
   type ProfileTutorGateLocationState,
 } from "../lib/profileGate";
-import type { ChatMessage } from "../types";
+import { fetchChatSessions, createChatSession, deleteChatSession, sendChatMessage } from "../lib/api/learn";
+import { simulateStream } from "../lib/stream";
+import type { ChatMessage, ChatSession } from "../types";
+import MultiAgentPipeline from "../components/chat/MultiAgentPipeline";
+import { useMultiAgent } from "../hooks/useMultiAgent";
 
 const tutorQuickCmds = [
   "Python 列表推导式怎么用？",
@@ -90,6 +95,7 @@ export default function Chat() {
     setMessages,
     setProfile,
     setProfileInitialized,
+    setSessions,
     profileInitialized,
     sessions,
     profile,
@@ -101,11 +107,14 @@ export default function Chat() {
   } = useAppStore();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [activeSession, setActiveSession] = useState("1");
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const autoBootRef = useRef(false);
   const tutorMigrationRef = useRef(false);
+  const { stages: agentStages, startPipeline: startAgentPipeline, advancePipeline: advanceAgentPipeline, resetPipeline: resetAgentPipeline } = useMultiAgent({ autoReset: true, resetDelay: 2000 });
 
   const isProfileAgentPage = location.pathname === PROFILE_BUILD_PATH;
   const gateState = location.state as ProfileTutorGateLocationState | null;
@@ -132,10 +141,10 @@ export default function Chat() {
     }
     const firstUser = messages.find((m) => m.role === "user");
     if (firstUser?.content) return truncateTitle(firstUser.content);
-    const active = sessions.find((s) => s.id === activeSession);
+    const active = sessions.find((s) => s.id === activeSessionId);
     if (active?.title) return truncateTitle(active.title);
     return "新对话";
-  }, [messages, sessions, activeSession, isProfileBuild, profileUserRounds]);
+  }, [messages, sessions, activeSessionId, isProfileBuild, profileUserRounds]);
 
   const displayName = profile.name || user?.username || "用户";
   const username = user?.username ?? "用户";
@@ -178,6 +187,83 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [displayMessages, loading]);
 
+  // 加载后端会话列表
+  useEffect(() => {
+    if (isProfileBuild || !user) return;
+    setSessionLoading(true);
+    fetchChatSessions()
+      .then((res) => {
+        if (res.code === 200 && Array.isArray(res.data)) {
+          setSessions(res.data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setSessionLoading(false));
+  }, [isProfileBuild, user, setSessions]);
+
+  const handleSelectSession = async (sessionId: string) => {
+    setActiveSessionId(sessionId);
+    try {
+      const { fetchSessionMessages } = await import("../lib/api/learn");
+      const res = await fetchSessionMessages(sessionId);
+      if (res.code === 200 && Array.isArray(res.data?.messages)) {
+        setMessages(res.data.messages.map((m: any) => ({
+          id: `msg-${m.id}`,
+          role: m.role,
+          content: m.content,
+          timestamp: new Date(m.createdAt ?? m.created_at).getTime(),
+          verified: true,
+        })), "tutor");
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleCreateSession = async () => {
+    if (loading) return;
+    try {
+      const res = await createChatSession("新对话", "");
+      if (res.code === 200 && res.data) {
+        const newSession: ChatSession = {
+          id: res.data.id ?? res.data.sessionId,
+          title: "新对话",
+          course: "",
+          updatedAt: "刚刚",
+        };
+        setSessions([newSession, ...sessions]);
+        setActiveSessionId(newSession.id);
+        setMessages([], "tutor");
+        resetAgentSessionId();
+      }
+    } catch {
+      // fallback: 本地创建
+      const fallbackId = `local-${Date.now()}`;
+      const newSession: ChatSession = {
+        id: fallbackId,
+        title: "新对话",
+        course: "",
+        updatedAt: "刚刚",
+      };
+      setSessions([newSession, ...sessions]);
+      setActiveSessionId(fallbackId);
+      setMessages([], "tutor");
+      resetAgentSessionId();
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await deleteChatSession(sessionId);
+    } catch { /* ignore */ }
+    setSessions(sessions.filter((s) => s.id !== sessionId));
+    if (activeSessionId === sessionId) {
+      setActiveSessionId(null);
+      setMessages([], "tutor");
+    }
+  };
+
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -209,6 +295,21 @@ export default function Chat() {
         });
       }
 
+      // 非画像会话：自动创建后端会话，直接获取 sessionId 避免 React 状态异步
+      let sessionId = activeSessionId;
+      if (!isProfileBuild && !sessionId && user) {
+        try {
+          const res = await createChatSession("新对话", "");
+          if (res.code === 200 && res.data) {
+            sessionId = res.data.id ?? res.data.sessionId;
+            setActiveSessionId(sessionId);
+            setSessions([{
+              id: sessionId, title: "新对话", course: "", updatedAt: "刚刚",
+            }, ...sessions]);
+          }
+        } catch { /* ignore */ }
+      }
+
       addMessage(
         {
           id: `u-${Date.now()}`,
@@ -234,24 +335,71 @@ export default function Chat() {
         chatChannel
       );
 
-      const result = isProfileBuild
-        ? await sendProfileBuildMessage(
-            trimmed,
-            (partial) => updateMessage(assistantId, { content: partial }, chatChannel),
-            {
-              major: profile.major,
-              goal: profile.goal,
-              level: profile.level,
-            },
-            profileUserRounds + 1
-          )
-        : await sendAgentMessage(trimmed, (partial) =>
-            updateMessage(assistantId, { content: partial }, chatChannel)
-          );
+      // 用 ref 跟踪流水线状态，避免 React 状态异步导致 agentStages.length 为 0
+      const pipelineStarted = !isProfileBuild;
+      if (pipelineStarted) {
+        startAgentPipeline(["profile", "document", "exercise"], "分析问题中…");
+      }
 
-      updateMessage(assistantId, { streaming: false }, chatChannel);
-      if (result.usedFallback && !isProfileBuild) setUsedFallback(true);
-      setLoading(false);
+      try {
+        const result = isProfileBuild
+          ? await sendProfileBuildMessage(
+              trimmed,
+              (partial) => updateMessage(assistantId, { content: partial }, chatChannel),
+              {
+                major: profile.major,
+                goal: profile.goal,
+                level: profile.level,
+              },
+              profileUserRounds + 1
+            )
+          : sessionId
+            ? await (async () => {
+                // 通过后端 chat sessions API 发送，使用打字机效果
+                try {
+                  const res = await sendChatMessage(sessionId, trimmed);
+                  if (res.code === 200) {
+                    const reply = res.data?.aiReply ?? res.data?.ai_reply ?? "";
+                    // 打字机流式输出
+                    await simulateStream(reply, (partial) =>
+                      updateMessage(assistantId, { content: partial }, chatChannel), 18
+                    );
+                    return { usedFallback: false };
+                  }
+                  throw new Error(res.msg);
+                } catch {
+                  // fallback 到 agent-service 直接对话（自带流式效果）
+                  const fallbackResult = await sendAgentMessage(trimmed, (partial) =>
+                    updateMessage(assistantId, { content: partial }, chatChannel)
+                  );
+                  return fallbackResult;
+                }
+              })()
+            : await sendAgentMessage(trimmed, (partial) =>
+                updateMessage(assistantId, { content: partial }, chatChannel)
+              );
+
+        updateMessage(assistantId, { streaming: false }, chatChannel);
+        // 推进多 Agent 流水线（用 pipelineStarted 替代 agentStages.length > 0）
+        if (pipelineStarted) {
+          advanceAgentPipeline("profile", "document");
+          setTimeout(() => {
+            advanceAgentPipeline("document", "exercise");
+          }, 400);
+          setTimeout(() => {
+            advanceAgentPipeline("exercise");
+          }, 800);
+          setTimeout(() => {
+            resetAgentPipeline();
+          }, 1500);
+        }
+        if (result.usedFallback && !isProfileBuild) setUsedFallback(true);
+      } catch {
+        // 兜底：任何未捕获异常，确保消息不卡死
+        updateMessage(assistantId, { content: "⚠️ 请求异常，请稍后再试", streaming: false }, chatChannel);
+      } finally {
+        setLoading(false);
+      }
     },
     [
       loading,
@@ -263,9 +411,14 @@ export default function Chat() {
       profile.level,
       profile.name,
       user?.username,
+      user,
+      activeSessionId,
+      sessions,
       addMessage,
       updateMessage,
       setProfile,
+      setSessions,
+      setActiveSessionId,
     ]
   );
 
@@ -289,8 +442,29 @@ export default function Chat() {
     }
   };
 
-  const handleCompleteProfile = () => {
+  const handleCompleteProfile = async () => {
     if (!canCompleteProfile) return;
+
+    const useRemote = import.meta.env.VITE_PROFILE_BUILD_API === "1";
+    if (useRemote) {
+      try {
+        const { getProfileBuildSessionId } = await import("../lib/profileBuildChat");
+        const sessionId = getProfileBuildSessionId();
+        if (sessionId) {
+          const { finalizeProfileBuildRemote } = await import("../lib/profileBuildChat");
+          const result = await finalizeProfileBuildRemote(sessionId);
+          if (result.code === 200 && result.data) {
+            setProfile(result.data);
+            setProfileInitialized(true);
+            navigate("/profile");
+            return;
+          }
+        }
+      } catch {
+        // fallback to local
+      }
+    }
+
     const finalized = finalizeProfileBuild(
       {
         name: profile.name || user?.username || "学习者",
@@ -358,17 +532,32 @@ export default function Chat() {
         <div className="doubao-sidebar__section">
           <p className="doubao-sidebar__section-title">历史对话</p>
           <div className="doubao-sidebar__history">
+            {sessionLoading && sessions.length === 0 && (
+              <p className="text-xs text-[var(--scholar-text-muted)] px-2 py-3">加载中…</p>
+            )}
+            {!sessionLoading && sessions.length === 0 && (
+              <p className="text-xs text-[var(--scholar-text-muted)] px-2 py-3">暂无历史对话</p>
+            )}
             {sessions.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setActiveSession(s.id)}
-                className={`doubao-sidebar__history-item ${
-                  activeSession === s.id ? "doubao-sidebar__history-item--active" : ""
-                }`}
-              >
-                {s.title}
-              </button>
+              <div key={s.id} className="doubao-sidebar__history-item-wrapper">
+                <button
+                  type="button"
+                  onClick={() => handleSelectSession(s.id)}
+                  className={`doubao-sidebar__history-item ${
+                    activeSessionId === s.id ? "doubao-sidebar__history-item--active" : ""
+                  }`}
+                >
+                  <span className="truncate">{s.title}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleDeleteSession(s.id, e)}
+                  className="doubao-sidebar__history-del"
+                  title="删除会话"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -505,6 +694,12 @@ export default function Chat() {
           </div>
         )}
 
+        {!isProfileBuild && loading && agentStages.length > 0 && (
+          <div className="px-4 py-3 border-b border-[var(--scholar-border)]">
+            <MultiAgentPipeline stages={agentStages} compact title="多智能体协同处理中" />
+          </div>
+        )}
+
         <div className="doubao-chat-thread">
           <div className="doubao-chat-thread__inner">
             {displayMessages.map((m) => (
@@ -552,8 +747,7 @@ export default function Chat() {
                   <button
                     type="button"
                     className="doubao-composer__tool"
-                    title="附件（待后端）"
-                    disabled
+                    title="上传文件"
                   >
                     <Paperclip size={18} strokeWidth={1.75} />
                   </button>
