@@ -25,11 +25,17 @@ async def _get_conn() -> redis.Redis:
 
 
 async def load_history(session_id: str) -> list:
-    r = await _get_conn()
-    data = await r.get(_key(session_id))
-    return json.loads(data) if data else []
+    try:
+        r = await _get_conn()
+        data = await r.get(_key(session_id))
+        return json.loads(data) if data else []
+    except Exception:
+        return []
 
 
 async def save_history(session_id: str, messages: list, ttl: int = 3600):
-    r = await _get_conn()
-    await r.setex(_key(session_id), ttl, json.dumps(messages))
+    try:
+        r = await _get_conn()
+        await r.setex(_key(session_id), ttl, json.dumps(messages))
+    except Exception:
+        pass

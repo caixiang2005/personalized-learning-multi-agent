@@ -71,12 +71,13 @@ async def log_api_errors_middleware(request: Request, call_next):
 
     try:
         payload = json.loads(body)
-        code = payload.get("code")
-        msg = payload.get("msg", "")
-        if isinstance(code, int) and code != 200 and response.status_code != 500:
-            if not (code == 401 and request.url.path in _SKIP_401_LOG_PATHS):
-                log_api_response(code, str(msg), context, session_id=session_id)
-    except (json.JSONDecodeError, TypeError):
+        if isinstance(payload, dict):
+            code = payload.get("code")
+            msg = payload.get("msg", "")
+            if isinstance(code, int) and code != 200 and response.status_code != 500:
+                if not (code == 401 and request.url.path in _SKIP_401_LOG_PATHS):
+                    log_api_response(code, str(msg), context, session_id=session_id)
+    except (json.JSONDecodeError, TypeError, AttributeError):
         pass
 
     headers = {k: v for k, v in response.headers.items() if k.lower() != "content-length"}

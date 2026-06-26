@@ -7,6 +7,7 @@
  */
 import { apiClient } from "./client";
 import { API } from "./endpoints";
+import { getToken } from "../auth/token";
 
 // ─── 画像 ───
 
@@ -163,4 +164,54 @@ export function sendChatMessage(sessionId: string, content: string) {
   return apiClient
     .post(API.chatSessions.send, { session_id: sessionId, content })
     .then((r) => r.data);
+}
+
+/** SSE 流式发送消息 — 实时接收多智能体管道进度事件 */
+export async function* sendChatMessageStream(
+  sessionId: string,
+  content: string,
+): AsyncGenerator<Record<string, unknown>, void, unknown> {
+  const token = getToken();
+  const response = await fetch(`${API.chatSessions.send}/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ session_id: sessionId, content }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+        try {
+          const data = JSON.parse(trimmed.slice(6));
+          yield data;
+        } catch {
+          // skip unparseable lines
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }

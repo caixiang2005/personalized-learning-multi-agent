@@ -29,6 +29,11 @@
   --guest-bubble-user: linear-gradient(145deg, var(--scholar-primary) 0%, var(--scholar-primary-light) 100%);
   --guest-bubble-assistant: var(--scholar-surface);
 
+  /* 智能辅导 · 豆包式布局底板色 */
+  --chat-canvas: var(--scholar-bg);
+  --chat-sidebar: color-mix(in srgb, var(--scholar-card) 92%, var(--scholar-bg));
+  --chat-main: var(--scholar-card);
+
   --color-primary: var(--scholar-primary);
   --color-accent: var(--scholar-accent);
   --color-surface: var(--scholar-surface);
@@ -90,6 +95,11 @@
   );
   --guest-bubble-user: linear-gradient(145deg, var(--scholar-primary-deep) 0%, var(--scholar-primary) 100%);
   --guest-bubble-assistant: color-mix(in srgb, var(--scholar-surface) 88%, var(--scholar-primary) 12%);
+
+  /* 智能辅导 · 豆包式布局底板色（暗黑） */
+  --chat-canvas: var(--scholar-bg);
+  --chat-sidebar: color-mix(in srgb, var(--scholar-card) 94%, var(--scholar-bg));
+  --chat-main: var(--scholar-card);
 
   --color-surface: var(--scholar-surface);
   --color-border: var(--scholar-border);

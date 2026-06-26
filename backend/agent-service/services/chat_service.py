@@ -143,7 +143,94 @@ def build_context(chunks: list[dict]) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-# ── 主流程：接收问题 → 检索 → 生成回答 ──
+# ── 流式管道：接收问题 → 嵌入 → 检索 → 上下文 → LLM → 存储（实时 SSE 推送）──
+
+async def stream_knowledge_reply(
+    user_input: str,
+    session_id: str,
+):
+    """带知识库增强的流式对话，每个阶段 yield 进度事件。
+
+    yield 格式: {"type": "stage", "stage": "<id>", "status": "processing|done|error", "detail": "…"}
+                {"type": "token", "content": "…"}
+                {"type": "done", "reply": "完整回复"}
+    """
+    if not _client.api_key:
+        yield {"type": "stage", "stage": "error", "status": "error", "detail": "API Key 未配置"}
+        yield {"type": "done", "reply": "服务配置错误，请联系管理员。"}
+        return
+
+    # ── Stage 1: 知识检索（嵌入 + 向量搜索）──
+    yield {"type": "stage", "stage": "search", "status": "processing", "detail": "向量化问题语义…"}
+    chunks = []
+    try:
+        query_vec = await embed_text(user_input)
+        yield {"type": "stage", "stage": "search", "status": "processing", "detail": "检索知识库…"}
+        chunks = await search_knowledge(query_vec)
+    except Exception as e:
+        await capture_exception(e, session_id, "知识库检索失败")
+        chunks = []
+    yield {"type": "stage", "stage": "search", "status": "done",
+           "detail": f"检索到 {len(chunks)} 条相关知识"}
+
+    # ── Stage 2: 上下文构建（加载历史 + 拼接知识）──
+    yield {"type": "stage", "stage": "context", "status": "processing", "detail": "加载对话历史…"}
+    try:
+        history = await load_history(session_id)
+    except Exception as e:
+        await capture_exception(e, session_id, "Redis load_history 失败")
+        history = []
+    context = build_context(chunks)
+    system_prompt = KNOWLEDGE_CHAT_PROMPT
+    if context:
+        system_prompt += f"\n\n## 本次检索到的知识上下文\n{context}"
+    if not chunks:
+        system_prompt += "\n\n【注意】本次未检索到相关知识库内容，请用你自己的知识回答，并告知用户。"
+    yield {"type": "stage", "stage": "context", "status": "done",
+           "detail": f"加载 {len(history)} 条历史 · {len(chunks)} 条参考"}
+
+    # ── Stage 3: AI 生成（DeepSeek 流式调用）──
+    yield {"type": "stage", "stage": "generate", "status": "processing", "detail": "DeepSeek 生成回答…"}
+    history.append({"role": "user", "content": user_input})
+    messages = [{"role": "system", "content": system_prompt}, *history]
+
+    full_reply = ""
+    try:
+        stream = await _client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            temperature=0.7,
+            max_tokens=2048,
+            stream=True,
+        )
+        async for chunk in stream:
+            delta = (chunk.choices[0].delta.content or "") if (chunk.choices and chunk.choices[0].delta) else ""
+            if delta:
+                full_reply += delta
+                yield {"type": "token", "content": delta}
+    except Exception as e:
+        await capture_exception(e, session_id, "DeepSeek API 调用失败")
+        full_reply = "抱歉，系统繁忙，请稍后再试。"
+        yield {"type": "token", "content": full_reply}
+
+    yield {"type": "stage", "stage": "generate", "status": "done",
+           "detail": f"生成 {len(full_reply)} 字符"}
+
+    # ── Stage 4: 记忆存储 ──
+    yield {"type": "stage", "stage": "memory", "status": "processing", "detail": "存储对话记忆…"}
+    history.append({"role": "assistant", "content": full_reply})
+    history = history[-(MAX_HISTORY_ROUNDS * 2 + 1):]
+    try:
+        await save_history(session_id, history)
+        yield {"type": "stage", "stage": "memory", "status": "done", "detail": "对话已保存"}
+    except Exception as e:
+        await capture_exception(e, session_id, "Redis save_history 失败")
+        yield {"type": "stage", "stage": "memory", "status": "error", "detail": "记忆保存失败"}
+
+    yield {"type": "done", "reply": full_reply}
+
+
+# ── 主流程：接收问题 → 检索 → 生成回答（非流式，兼容旧调用）──
 
 async def get_knowledge_reply(
     user_input: str,

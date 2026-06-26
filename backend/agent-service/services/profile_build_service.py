@@ -289,7 +289,7 @@ async def get_profile_build_reply(user_input: str, session_id: str) -> str:
             "learnerDimensions": dimensions,
             "cognitiveStyle": cognitive,
             "weakPoints": [{"name": w, "count": 5} for w in profile.get("weakPoints", [])],
-            "healthScore": round(sum(d.get("value", 50) for d in dimensions) / len(dimensions)),
+            "healthScore": round(sum(d.get("value", 50) for d in dimensions) / max(len(dimensions), 1)),
         }
         await save_session(session_id, state)
 
@@ -370,7 +370,7 @@ async def finalize_profile(session_id: str, token: str) -> dict:
             "learnerDimensions": dimensions,
             "cognitiveStyle": profile.get("cognitiveStyle", []),
             "weakPoints": [{"name": w, "count": 5} for w in profile.get("weakPoints", [])],
-            "healthScore": round(sum(d.get("value", 50) for d in dimensions) / len(dimensions)),
+            "healthScore": round(sum(d.get("value", 50) for d in dimensions) / max(len(dimensions), 1)),
         }
 
     # 调用 learn-service 保存画像

@@ -36,7 +36,7 @@ def _path_to_dict(path: LearningPath) -> dict[str, Any]:
 
 def get_learning_path(token: str) -> dict:
     """GET /api/learning-path — 获取当前用户学习路径。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -62,7 +62,7 @@ def get_learning_path(token: str) -> dict:
 
 def update_resource_status(token: str, topic_id: str, resource_id: str, status: str) -> dict:
     """PUT /api/learning-path/resource-status — 更新资源学习状态。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -80,12 +80,22 @@ def update_resource_status(token: str, topic_id: str, resource_id: str, status: 
             return {"code": 400, "msg": "暂无学习路径", "data": {}}
 
         updated = False
-        for stage in path.stages:
+        for stage in (path.stages or []):
+            if not isinstance(stage, dict):
+                continue
             topics = stage.get("topics", [])
+            if not isinstance(topics, list):
+                continue
             for topic in topics:
+                if not isinstance(topic, dict):
+                    continue
                 if topic.get("id") == topic_id:
                     resources = topic.get("resources", [])
+                    if not isinstance(resources, list):
+                        continue
                     for res in resources:
+                        if not isinstance(res, dict):
+                            continue
                         if res.get("id") == resource_id:
                             res["status"] = status
                             updated = True
@@ -97,9 +107,15 @@ def update_resource_status(token: str, topic_id: str, resource_id: str, status: 
         # 重新计算整体进度
         total = 0
         done = 0
-        for stage in path.stages:
-            for topic in stage.get("topics", []):
-                for res in topic.get("resources", []):
+        for stage in (path.stages or []):
+            if not isinstance(stage, dict):
+                continue
+            for topic in (stage.get("topics") or []):
+                if not isinstance(topic, dict):
+                    continue
+                for res in (topic.get("resources") or []):
+                    if not isinstance(res, dict):
+                        continue
                     total += 1
                     if res.get("status") in ("done", "mastered"):
                         done += 1
@@ -118,7 +134,7 @@ def generate_learning_path(token: str, course: str, goal: str) -> dict:
 
     注意：此处仅创建空路径骨架，具体路径内容由 path-plan Agent 填充。
     """
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 

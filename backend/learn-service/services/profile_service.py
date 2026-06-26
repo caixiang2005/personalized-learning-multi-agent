@@ -77,7 +77,7 @@ def _default_profile_dict(user_id: int, name: str = "") -> dict[str, Any]:
 
 def get_profile(token: str) -> dict:
     """GET /api/profile — 获取当前用户画像。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -102,7 +102,7 @@ def get_profile(token: str) -> dict:
 
 def update_profile(token: str, updates: dict[str, Any]) -> dict:
     """PUT /api/profile — 更新画像字段（部分更新）。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -157,7 +157,7 @@ def update_profile(token: str, updates: dict[str, Any]) -> dict:
 
 def patch_profile(token: str, note: str) -> dict:
     """POST /api/profile/patch — 用户补充学习状态，触发画像重算。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -200,7 +200,7 @@ def patch_profile(token: str, note: str) -> dict:
 
 def get_dimensions(token: str) -> dict:
     """GET /api/profile/dimensions — 获取画像维度详情与健康度。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 

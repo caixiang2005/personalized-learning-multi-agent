@@ -4,26 +4,16 @@
  */
 import { useCallback, useRef, useState } from "react";
 import type { AgentStage, AgentStatus } from "../components/chat/MultiAgentPipeline";
-import { Brain, Route, FileText, GitBranch, ClipboardList, Film, Code2, type LucideIcon } from "lucide-react";
-
-// 预定义的智能体模板
-export const AGENT_TEMPLATES: Record<string, { name: string; icon: LucideIcon }> = {
-  profile: { name: "画像分析", icon: Brain },
-  path: { name: "路径规划", icon: Route },
-  document: { name: "文档生成", icon: FileText },
-  mindmap: { name: "导图生成", icon: GitBranch },
-  exercise: { name: "题库生成", icon: ClipboardList },
-  video: { name: "多模态讲解", icon: Film },
-  practice: { name: "实操案例", icon: Code2 },
-};
+import { AGENT_TEMPLATES } from "../components/chat/MultiAgentPipeline";
+import { Brain } from "lucide-react";
 
 export interface UseMultiAgentOptions {
-  autoReset?: boolean;       // 完成后自动重置
-  resetDelay?: number;       // 自动重置延迟（ms）
+  autoReset?: boolean;
+  resetDelay?: number;
 }
 
 export function useMultiAgent(options: UseMultiAgentOptions = {}) {
-  const { autoReset = false, resetDelay = 3000 } = options;
+  const { autoReset = true, resetDelay = 3000 } = options;
   const [stages, setStages] = useState<AgentStage[]>([]);
   const timerRef = useRef<number | null>(null);
 
@@ -39,8 +29,7 @@ export function useMultiAgent(options: UseMultiAgentOptions = {}) {
     ));
   }, []);
 
-  const startPipeline = useCallback((agentIds: string[], inputDetail?: string) => {
-    // 清除旧定时器
+  const startPipeline = useCallback((agentIds: string[], firstDetail?: string) => {
     if (timerRef.current) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -53,7 +42,9 @@ export function useMultiAgent(options: UseMultiAgentOptions = {}) {
         name: template?.name ?? id,
         icon: template?.icon ?? Brain,
         status: (index === 0 ? "processing" : "idle") as AgentStatus,
-        detail: index === 0 && inputDetail ? inputDetail : undefined,
+        description: template?.desc,
+        detail: index === 0 && firstDetail ? firstDetail : undefined,
+        progress: index === 0 ? 10 : 0,
       };
     });
     setStages(newStages);
@@ -62,17 +53,15 @@ export function useMultiAgent(options: UseMultiAgentOptions = {}) {
   const advancePipeline = useCallback((completedId: string, nextId?: string) => {
     setStages(prev => {
       const updated = prev.map(s => {
-        if (s.id === completedId) return { ...s, status: "done" as AgentStatus };
-        if (nextId && s.id === nextId) return { ...s, status: "processing" as AgentStatus };
+        if (s.id === completedId) return { ...s, status: "done" as AgentStatus, progress: 100 };
+        if (nextId && s.id === nextId) return { ...s, status: "processing" as AgentStatus, progress: 10 };
         return s;
       });
 
-      // 检查是否全部完成
       const allDone = updated.every(s => s.status === "done" || s.status === "error");
       if (allDone && autoReset) {
-        timerRef.current = window.setTimeout(() => {
-          setStages([]);
-        }, resetDelay);
+        if (timerRef.current) window.clearTimeout(timerRef.current);
+        timerRef.current = window.setTimeout(() => setStages([]), resetDelay);
       }
 
       return updated;
@@ -81,7 +70,9 @@ export function useMultiAgent(options: UseMultiAgentOptions = {}) {
 
   const failPipeline = useCallback((failedId: string, errorDetail?: string) => {
     setStages(prev => prev.map(s =>
-      s.id === failedId ? { ...s, status: "error" as AgentStatus, detail: errorDetail } : s
+      s.id === failedId
+        ? { ...s, status: "error" as AgentStatus, detail: errorDetail }
+        : s
     ));
   }, []);
 

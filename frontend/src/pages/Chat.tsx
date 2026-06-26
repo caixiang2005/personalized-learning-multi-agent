@@ -36,8 +36,7 @@ import {
   needsProfileBuild as checkNeedsProfileBuild,
   type ProfileTutorGateLocationState,
 } from "../lib/profileGate";
-import { fetchChatSessions, createChatSession, deleteChatSession, sendChatMessage } from "../lib/api/learn";
-import { simulateStream } from "../lib/stream";
+import { fetchChatSessions, createChatSession, deleteChatSession, sendChatMessage, sendChatMessageStream } from "../lib/api/learn";
 import type { ChatMessage, ChatSession } from "../types";
 import MultiAgentPipeline from "../components/chat/MultiAgentPipeline";
 import { useMultiAgent } from "../hooks/useMultiAgent";
@@ -157,9 +156,10 @@ export default function Chat() {
     setUsedFallback(false);
   };
 
-  useEffect(() => {
-    autoBootRef.current = false;
-  }, [chatChannel]);
+  // 注意：不要在 chatChannel 变化时重置 autoBootRef
+  // StrictMode 双重挂载会导致 chatChannel effect 运行两次，将 autoBootRef 重置为 false，
+  // 从而允许 auto-send effect 重复发送 intent 消息
+  // autoBootRef 只在组件初始化时为 false，之后由 auto-send effect 自行管理
 
   useEffect(() => {
     setGateBannerDismissed(false);
@@ -189,16 +189,26 @@ export default function Chat() {
 
   // 加载后端会话列表
   useEffect(() => {
-    if (isProfileBuild || !user) return;
+    if (isProfileBuild || !user) {
+      setSessionLoading(false);
+      return;
+    }
+    let cancelled = false;
     setSessionLoading(true);
     fetchChatSessions()
       .then((res) => {
+        if (cancelled) return;
         if (res.code === 200 && Array.isArray(res.data)) {
-          setSessions(res.data);
+          setSessions(res.data.length > 0 ? res.data : []);
         }
       })
-      .catch(() => {})
-      .finally(() => setSessionLoading(false));
+      .catch(() => {
+        if (!cancelled) setSessions([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSessionLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [isProfileBuild, user, setSessions]);
 
   const handleSelectSession = async (sessionId: string) => {
@@ -295,7 +305,7 @@ export default function Chat() {
         });
       }
 
-      // 非画像会话：自动创建后端会话，直接获取 sessionId 避免 React 状态异步
+      // 非画像会话：自动创建后端会话
       let sessionId = activeSessionId;
       if (!isProfileBuild && !sessionId && user) {
         try {
@@ -303,11 +313,14 @@ export default function Chat() {
           if (res.code === 200 && res.data) {
             sessionId = res.data.id ?? res.data.sessionId;
             setActiveSessionId(sessionId);
-            setSessions([{
-              id: sessionId, title: "新对话", course: "", updatedAt: "刚刚",
-            }, ...sessions]);
+            // 同时更新侧边栏 + 刷新列表
+            setSessions((prev) => [{
+              id: sessionId!, title: "新对话", course: "", updatedAt: "刚刚",
+            }, ...prev]);
           }
-        } catch { /* ignore */ }
+        } catch (e) {
+          console.warn("[Chat] 创建会话失败，使用无会话模式:", e);
+        }
       }
 
       addMessage(
@@ -335,10 +348,13 @@ export default function Chat() {
         chatChannel
       );
 
-      // 用 ref 跟踪流水线状态，避免 React 状态异步导致 agentStages.length 为 0
+      // 多智能体流水线 — 用户可见 AI 思考过程
       const pipelineStarted = !isProfileBuild;
       if (pipelineStarted) {
-        startAgentPipeline(["profile", "document", "exercise"], "分析问题中…");
+        startAgentPipeline(
+          ["search", "context", "generate", "memory"],
+          "正在向量化检索知识库…"
+        );
       }
 
       try {
@@ -355,20 +371,64 @@ export default function Chat() {
             )
           : sessionId
             ? await (async () => {
-                // 通过后端 chat sessions API 发送，使用打字机效果
                 try {
-                  const res = await sendChatMessage(sessionId, trimmed);
-                  if (res.code === 200) {
-                    const reply = res.data?.aiReply ?? res.data?.ai_reply ?? "";
-                    // 打字机流式输出
-                    await simulateStream(reply, (partial) =>
-                      updateMessage(assistantId, { content: partial }, chatChannel), 18
-                    );
-                    return { usedFallback: false };
+                  // 真实 SSE 流式管道：agent-service 每个阶段实时推送进度
+                  const streamGen = sendChatMessageStream(sessionId, trimmed);
+                  let fullContent = "";
+
+                  for await (const event of streamGen) {
+                    if (event.type === "stage") {
+                      const stage = event.stage as string;
+                      const status = event.status as string;
+                      // 驱动多智能体管道可视化
+                      if (status === "processing") {
+                        // 标记当前阶段为处理中
+                        const stageOrder = ["search", "context", "generate", "memory"];
+                        const prevIdx = stageOrder.indexOf(stage) - 1;
+                        // 完成前一阶段
+                        if (prevIdx >= 0) {
+                          advanceAgentPipeline(stageOrder[prevIdx], stage);
+                        }
+                      } else if (status === "done") {
+                        // 当前阶段完成，推进到下一阶段
+                        const stageOrder = ["search", "context", "generate", "memory"];
+                        const idx = stageOrder.indexOf(stage);
+                        const nextId = idx >= 0 && idx < stageOrder.length - 1 ? stageOrder[idx + 1] : undefined;
+                        if (nextId) {
+                          advanceAgentPipeline(stage, nextId);
+                        } else {
+                          advanceAgentPipeline(stage);
+                        }
+                      } else if (status === "error") {
+                        advanceAgentPipeline(stage);
+                      }
+                    } else if (event.type === "token") {
+                      // 实时 token 流式输出
+                      fullContent += (event.content as string) || "";
+                      updateMessage(assistantId, { content: fullContent }, chatChannel);
+                    } else if (event.type === "done") {
+                      fullContent = (event.reply as string) || fullContent;
+                      updateMessage(assistantId, { content: fullContent }, chatChannel);
+                    }
                   }
-                  throw new Error(res.msg);
+
+                  if (!fullContent) throw new Error("empty reply");
+                  return { usedFallback: false };
                 } catch {
-                  // fallback 到 agent-service 直接对话（自带流式效果）
+                  // SSE 失败 → fallback 到 learn-service 非流式（仍会持久化消息到DB）
+                  if (pipelineStarted) {
+                    for (const s of ["search", "context", "generate", "memory"]) {
+                      advanceAgentPipeline(s);
+                    }
+                  }
+                  try {
+                    const res = await sendChatMessage(sessionId, trimmed);
+                    if (res.code === 200 && res.data?.aiReply) {
+                      updateMessage(assistantId, { content: res.data.aiReply }, chatChannel);
+                      return { usedFallback: true };
+                    }
+                  } catch { /* ignore */ }
+                  // 最终兜底：直接调用 agent-service
                   const fallbackResult = await sendAgentMessage(trimmed, (partial) =>
                     updateMessage(assistantId, { content: partial }, chatChannel)
                   );
@@ -380,18 +440,11 @@ export default function Chat() {
               );
 
         updateMessage(assistantId, { streaming: false }, chatChannel);
-        // 推进多 Agent 流水线（用 pipelineStarted 替代 agentStages.length > 0）
+        // 多 Agent 流水线全部完成
         if (pipelineStarted) {
-          advanceAgentPipeline("profile", "document");
-          setTimeout(() => {
-            advanceAgentPipeline("document", "exercise");
-          }, 400);
-          setTimeout(() => {
-            advanceAgentPipeline("exercise");
-          }, 800);
-          setTimeout(() => {
-            resetAgentPipeline();
-          }, 1500);
+          advanceAgentPipeline("review");
+          // 展示完成状态 2.5s 后自动收起
+          setTimeout(() => resetAgentPipeline(), 2500);
         }
         if (result.usedFallback && !isProfileBuild) setUsedFallback(true);
       } catch {
@@ -399,6 +452,16 @@ export default function Chat() {
         updateMessage(assistantId, { content: "⚠️ 请求异常，请稍后再试", streaming: false }, chatChannel);
       } finally {
         setLoading(false);
+        // 非画像会话：后台静默刷新会话列表（获取后端更新的标题等）
+        if (!isProfileBuild && user) {
+          fetchChatSessions()
+            .then((res) => {
+              if (res.code === 200 && Array.isArray(res.data)) {
+                setSessions(res.data);
+              }
+            })
+            .catch(() => {});
+        }
       }
     },
     [
@@ -445,7 +508,7 @@ export default function Chat() {
   const handleCompleteProfile = async () => {
     if (!canCompleteProfile) return;
 
-    const useRemote = import.meta.env.VITE_PROFILE_BUILD_API === "1";
+    const useRemote = import.meta.env.VITE_PROFILE_BUILD_API !== "0"; // 默认启用后端
     if (useRemote) {
       try {
         const { getProfileBuildSessionId } = await import("../lib/profileBuildChat");
@@ -530,13 +593,37 @@ export default function Chat() {
 
         {!isProfileBuild && (
         <div className="doubao-sidebar__section">
-          <p className="doubao-sidebar__section-title">历史对话</p>
+          <div className="flex items-center justify-between px-2 mb-1">
+            <p className="doubao-sidebar__section-title">历史对话</p>
+            <button
+              type="button"
+              onClick={() => {
+                setSessionLoading(true);
+                fetchChatSessions()
+                  .then((res) => {
+                    if (res.code === 200 && Array.isArray(res.data)) {
+                      setSessions(res.data);
+                    }
+                  })
+                  .catch(() => {})
+                  .finally(() => setSessionLoading(false));
+              }}
+              className="text-[10px] text-[var(--scholar-text-muted)] hover:text-[var(--scholar-primary)] transition-colors"
+              title="刷新列表"
+            >
+              刷新
+            </button>
+          </div>
           <div className="doubao-sidebar__history">
-            {sessionLoading && sessions.length === 0 && (
-              <p className="text-xs text-[var(--scholar-text-muted)] px-2 py-3">加载中…</p>
+            {sessionLoading && (
+              <p className="text-xs text-[var(--scholar-text-muted)] px-2 py-3 flex items-center gap-1.5">
+                <Loader2 size={12} className="animate-spin" /> 加载中…
+              </p>
             )}
             {!sessionLoading && sessions.length === 0 && (
-              <p className="text-xs text-[var(--scholar-text-muted)] px-2 py-3">暂无历史对话</p>
+              <p className="text-xs text-[var(--scholar-text-muted)] px-2 py-3">
+                发送消息后自动保存
+              </p>
             )}
             {sessions.map((s) => (
               <div key={s.id} className="doubao-sidebar__history-item-wrapper">
@@ -678,19 +765,37 @@ export default function Chat() {
               <div>
                 <p className="chat-profile-banner__title">画像构建中（{profileUserRounds}/2 轮以上可完成）</p>
                 <p className="chat-profile-banner__desc">
-                  画像智能体为前端多轮引导（待后端 /api/agent/profile-build）。请补充专业、目标与薄弱点。
+                  画像智能体将与你多轮对话，收集专业、目标与薄弱点信息后生成六维学习画像。
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              className="chat-profile-banner__btn"
-              disabled={!canCompleteProfile}
-              onClick={handleCompleteProfile}
-            >
-              完成画像构建
-              <ArrowRight size={14} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="chat-profile-banner__skip"
+                onClick={() => {
+                  // 快速生成基础画像后跳转
+                  const quick = finalizeProfileBuild(
+                    { name: profile.name || user?.username || "学习者", major: profile.major || "", goal: profile.goal || "", level: profile.level || "" },
+                    Math.max(profileUserRounds, 1)
+                  );
+                  setProfile(quick);
+                  setProfileInitialized(true);
+                  navigate("/chat");
+                }}
+              >
+                跳过，直接辅导
+              </button>
+              <button
+                type="button"
+                className="chat-profile-banner__btn"
+                disabled={!canCompleteProfile}
+                onClick={handleCompleteProfile}
+              >
+                完成画像构建
+                <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
         )}
 

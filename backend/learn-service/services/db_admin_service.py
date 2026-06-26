@@ -21,7 +21,7 @@ def _extract_token(authorization: str | None) -> str:
 
 def _check_admin(token: str) -> int | None:
     """验证用户身份，未来可加 admin 角色校验"""
-    return resolve_user_id_from_token(token)
+    return resolve_user_id_from_token(_extract_token(token))
 
 
 def list_tables(token: str) -> dict:

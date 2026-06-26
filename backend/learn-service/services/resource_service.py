@@ -41,7 +41,7 @@ def _resource_to_dict(r: LearningResource) -> dict[str, Any]:
 
 def get_resource(token: str, resource_id: int) -> dict:
     """GET /api/resources/{id} — 获取资源详情。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -63,7 +63,7 @@ def get_resource(token: str, resource_id: int) -> dict:
 
 def get_exercise(token: str, exercise_id: int) -> dict:
     """GET /api/exercises/{id} — 获取练习题目列表。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -90,7 +90,7 @@ def get_exercise(token: str, exercise_id: int) -> dict:
 
 def submit_exercise(token: str, exercise_id: int, answers: list[dict]) -> dict:
     """POST /api/exercises/{id}/submit — 提交练习并批改。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -162,7 +162,7 @@ def save_exercise_result(
     title: str = "",
 ) -> dict:
     """POST /api/exercises/save — 保存 AI 生成练习的结果到数据库。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -200,7 +200,7 @@ def save_exercise_result(
 
 def generate_exercises(token: str, body) -> dict:
     """POST /api/exercises/generate — 通过 agent-service 生成练习题。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -229,7 +229,7 @@ def ai_review_exercise(
     user_answers: list[dict],
 ) -> dict:
     """POST /api/exercises/{id}/ai-review — 通过 agent-service 智能批改。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -251,7 +251,7 @@ def ai_review_exercise(
 
 def get_my_exercises(token: str) -> dict:
     """GET /api/exercises — 获取当前用户的所有练习记录。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 

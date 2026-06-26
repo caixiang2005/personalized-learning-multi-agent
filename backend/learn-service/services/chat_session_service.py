@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import uuid
 from datetime import datetime
@@ -198,6 +199,10 @@ def send_message(token: str, session_id: str, content: str) -> dict:
         db.add(user_msg)
         db.flush()
 
+        # 1.5 自动更新会话标题（取首条用户消息的前20字）
+        if session.title == "新对话" or not session.title:
+            session.title = content[:20].replace("\n", " ").strip() or "新对话"
+
         # 2. 调用 agent-service 获取 AI 回复
         ai_reply = _call_agent_service(user_id, session_id, content)
 
@@ -225,6 +230,93 @@ def send_message(token: str, session_id: str, content: str) -> dict:
                 "resources": [],
             },
         }
+
+
+async def send_message_stream(
+    token: str, session_id: str, content: str,
+):
+    """POST /api/chat/send/stream — SSE 流式版本：代理 agent-service SSE 管道。
+
+    yield: (event_type: str, data: str) 元组，调用方自行格式化为 SSE。
+    """
+    user_id = resolve_user_id_from_token(_strip_bearer(token))
+    if user_id is None:
+        yield ("error", '{"code":401,"msg":"登录已失效"}')
+        return
+
+    now = datetime.now()
+    session: ChatSession | None = None
+
+    # 1. 同步：保存用户消息到 DB
+    with get_db() as db:
+        session = db.query(ChatSession).filter(
+            ChatSession.id == session_id,
+            ChatSession.user_id == user_id,
+        ).first()
+        if session is None:
+            yield ("error", '{"code":404,"msg":"会话不存在"}')
+            return
+
+        user_msg = ChatMessage(
+            session_id=session_id, user_id=user_id,
+            role="user", content=content, created_at=now,
+        )
+        db.add(user_msg)
+
+        # 自动更新会话标题（取首条用户消息的前20字）
+        if session.title == "新对话" or not session.title:
+            session.title = content[:20].replace("\n", " ").strip() or "新对话"
+
+        db.flush()
+
+    # 2. 流式代理 agent-service SSE
+    full_reply = ""
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            async with client.stream(
+                "POST",
+                f"{AGENT_SERVICE_URL}/api/agent/chat/stream",
+                json={
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "user_input": content,
+                },
+            ) as resp:
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]  # 去掉 "data: " 前缀
+                    yield ("data", data_str)
+
+                    # 解析 done 事件获取完整回复
+                    try:
+                        event = json.loads(data_str)
+                        if event.get("type") == "done":
+                            full_reply = event.get("reply", "")
+                    except (json.JSONDecodeError, KeyError):
+                        pass
+    except Exception as e:
+        yield ("data", json.dumps({
+            "type": "stage", "stage": "network", "status": "error",
+            "detail": f"agent-service 连接失败: {str(e)}",
+        }, ensure_ascii=False))
+        full_reply = "抱歉，我暂时无法回答你的问题，请稍后再试。"
+        yield ("data", json.dumps({"type": "done", "reply": full_reply}, ensure_ascii=False))
+
+    # 3. 保存 AI 回复到 DB
+    try:
+        with get_db() as db:
+            ai_msg = ChatMessage(
+                session_id=session_id, user_id=user_id,
+                role="assistant", content=full_reply,
+                created_at=datetime.now(),
+            )
+            db.add(ai_msg)
+            session.message_count += 2
+            session.updated_at = datetime.now()
+            db.flush()
+    except Exception:
+        pass  # 静默失败，不影响用户
 
 
 def _call_agent_service(user_id: int, session_id: str, content: str) -> str:

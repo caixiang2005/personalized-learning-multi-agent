@@ -4,7 +4,7 @@
  * @route /exercise/bank
  * @backend GET /api/exercises
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ClipboardList, CheckCircle2, AlertCircle, Loader2,
@@ -28,6 +28,7 @@ export default function ExerciseBank() {
   const [exercises, setExercises] = useState<ExerciseRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadedRef = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -40,13 +41,17 @@ export default function ExerciseBank() {
         setError(res.msg || "获取失败");
       }
     } catch {
-      setError("后端未就绪，请启动 learn-service");
+      setError("后端未就绪，请启动 learn-service(:8002)");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    load();
+  }, [load]);
 
   const avgScore = exercises.length
     ? Math.round(exercises.reduce((s, e) => s + (e.score ?? 0), 0) / exercises.length)

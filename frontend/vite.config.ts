@@ -3,15 +3,15 @@
  *
  * 代理路由规则（长前缀优先匹配）：
  *   /api/agent        → agent-service :8003
- *   /api/profile      → learn-service :8005
- *   /api/learning-path → learn-service :8005
- *   /api/plan         → learn-service :8005
- *   /api/chat         → learn-service :8005
- *   /api/analytics    → learn-service :8005
- *   /api/resources    → learn-service :8005
- *   /api/exercises    → learn-service :8005
- *   /api/admin      → learn-service :8005
- *   /static          → user-service :8001
+ *   /api/profile      → learn-service :8002
+ *   /api/learning-path → learn-service :8002
+ *   /api/plan         → learn-service :8002
+ *   /api/chat         → learn-service :8002
+ *   /api/analytics    → learn-service :8002
+ *   /api/resources    → learn-service :8002
+ *   /api/exercises    → learn-service :8002
+ *   /api/admin        → learn-service :8002
+ *   /static           → user-service :8001
  *   /api/* (fallback) → user-service :8001
  */
 import { defineConfig } from "vite";
@@ -30,35 +30,35 @@ export default defineConfig({
       },
       // learn-service 学习业务（长路径优先匹配）
       "/api/profile": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       "/api/learning-path": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       "/api/plan": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       "/api/chat": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       "/api/analytics": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       "/api/resources": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       "/api/exercises": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       "/api/admin": {
-        target: "http://127.0.0.1:8005",
+        target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },
       // user-service 静态头像

@@ -68,6 +68,8 @@ export default function ExercisePage() {
   const [score, setScore] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [aiReview, setAiReview] = useState<AiReviewResult[] | null>(null);
+  const loadedRef = useRef(false);
+  const generatingRef = useRef(false);
   const [aiReviewing, setAiReviewing] = useState(false);
 
   // AI 出题
@@ -97,10 +99,20 @@ export default function ExercisePage() {
     }
   }, [id, isAiGenerate]);
 
-  useEffect(() => { if (!isAiGenerate) loadExercise(); else setLoading(false); }, [loadExercise, isAiGenerate]);
+  useEffect(() => {
+    if (!isAiGenerate) {
+      if (loadedRef.current) return;
+      loadedRef.current = true;
+      loadExercise();
+    } else {
+      setLoading(false);
+    }
+  }, [loadExercise, isAiGenerate]);
 
   // AI 生成题目
   const handleAiGenerate = async () => {
+    if (generatingRef.current) return; // 防止双击 / StrictMode 重复调用
+    generatingRef.current = true;
     setGenerating(true);
     setAiQuestions(null);
     setSubmitted(false);
@@ -153,6 +165,7 @@ export default function ExercisePage() {
       ]);
     } finally {
       setGenerating(false);
+      generatingRef.current = false;
       // 3 秒后自动隐藏流水线
       setTimeout(() => setAgentStages([]), 3000);
     }

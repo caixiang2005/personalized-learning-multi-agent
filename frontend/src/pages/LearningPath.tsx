@@ -4,6 +4,7 @@
  * @route /path
  */
 
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Play,
@@ -13,6 +14,9 @@ import {
   BookOpen,
   CheckCircle2,
   Layers,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import PathHubSidebar from "../components/path/PathHubSidebar";
 import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
@@ -22,23 +26,61 @@ import { useAppStore } from "../store/useAppStore";
 import { needsProfileBuild } from "../lib/profileGate";
 import { resolvePathPlanTarget } from "../lib/pathGate";
 import { PATH_PLAN_PATH, PATH_VIEW_PATH } from "../lib/pathRoutes";
+import { fetchLearningPath } from "../lib/api/learn";
+
+interface PathStage {
+  id: string;
+  title: string;
+  topics: { id: string; title: string; progress: number; resources: unknown[] }[];
+}
+
+interface PathData {
+  id: string;
+  title: string;
+  course: string;
+  description: string;
+  stages: PathStage[];
+  overallProgress: number;
+  generatedAt: string;
+}
 
 export default function LearningPath() {
   const navigate = useNavigate();
-  const { pathStages, learningPathMeta, profile, profileInitialized } = useAppStore();
-  const hasPath = pathStages.length > 0;
+  const { profile, profileInitialized } = useAppStore();
+  const [pathData, setPathData] = useState<PathData | null>(null);
+  const [pathLoading, setPathLoading] = useState(true);
+  const [pathError, setPathError] = useState<string | null>(null);
+
+  const loadPath = useCallback(async () => {
+    setPathLoading(true);
+    setPathError(null);
+    try {
+      const res = await fetchLearningPath();
+      if (res.code === 200 && res.data) {
+        setPathData(res.data);
+      } else {
+        setPathData(null);
+      }
+    } catch {
+      setPathError("加载失败");
+      setPathData(null);
+    } finally {
+      setPathLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadPath(); }, [loadPath]);
+
   const profileReady = !needsProfileBuild(profileInitialized, profile);
-
-  const totalTopics = pathStages.reduce((a, s) => a + s.topics.length, 0);
-  const doneTopics = pathStages.reduce(
-    (a, s) => a + s.topics.filter((t) => t.progress >= 80).length,
-    0
+  const hasPath = pathData !== null && (pathData.stages?.length ?? 0) > 0;
+  const stages = pathData?.stages ?? [];
+  const totalTopics = stages.reduce((a, s) => a + (s.topics?.length ?? 0), 0);
+  const doneTopics = stages.reduce(
+    (a, s) => a + (s.topics ?? []).filter((t) => t.progress >= 80).length, 0
   );
-  const overallProgress = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : 0;
-
-  const totalResources = pathStages.reduce(
-    (a, s) => a + s.topics.reduce((n, t) => n + t.resources.length, 0),
-    0
+  const overallProgress = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : (pathData?.overallProgress ?? 0);
+  const totalResources = stages.reduce(
+    (a, s) => a + (s.topics ?? []).reduce((n, t) => n + (t.resources?.length ?? 0), 0), 0
   );
 
   const startPlan = () => {
@@ -47,8 +89,18 @@ export default function LearningPath() {
   };
 
   const subtitle = hasPath
-    ? `${learningPathMeta?.course ?? "我的课程"} · ${pathStages.length} 阶段 · 完成度 ${overallProgress}%`
+    ? `${pathData?.course ?? "我的课程"} · ${stages.length} 阶段 · 完成度 ${overallProgress}%`
     : "赛题核心：依托画像与路径智能体，规划科学学习步骤并精准推送多模态资源";
+
+  if (pathLoading) {
+    return (
+      <ScholarDashboardLayout badge="路径规划" title="个性化学习路径" subtitle="加载中…">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 size={28} className="animate-spin text-[var(--scholar-primary)]" />
+        </div>
+      </ScholarDashboardLayout>
+    );
+  }
 
   return (
     <ScholarDashboardLayout
@@ -56,23 +108,36 @@ export default function LearningPath() {
       title="个性化学习路径"
       subtitle={subtitle}
       aside={
-        hasPath ? (
-          <Link to={PATH_VIEW_PATH} className="btn-primary text-sm">
-            <Play size={16} /> 进入我的路径
-          </Link>
-        ) : (
-          <button type="button" onClick={startPlan} className="btn-primary text-sm">
-            <Route size={16} /> {profileReady ? "开始路径规划" : "先完成画像"}
-          </button>
-        )
+        <div className="flex items-center gap-2">
+          {pathError && (
+            <button type="button" onClick={loadPath} className="btn-secondary text-sm">
+              <RefreshCw size={14} /> 重试
+            </button>
+          )}
+          {hasPath ? (
+            <Link to={PATH_VIEW_PATH} className="btn-primary text-sm">
+              <Play size={16} /> 进入我的路径
+            </Link>
+          ) : (
+            <button type="button" onClick={startPlan} className="btn-primary text-sm">
+              <Route size={16} /> {profileReady ? "开始路径规划" : "先完成画像"}
+            </button>
+          )}
+        </div>
       }
       sidebar={<PathHubSidebar profileReady={profileReady} hasPath={hasPath} />}
     >
+      {pathError && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
+          <AlertCircle size={14} /> {pathError}
+        </div>
+      )}
+
       {hasPath && (
         <AnimeStagger className="dash-stats mb-6" staggerMs={60} y={12} delay={70}>
           <div className="dash-stats__item">
             <Layers size={16} strokeWidth={1.75} aria-hidden />
-            <span className="dash-stats__num">{pathStages.length}</span>
+            <span className="dash-stats__num">{stages.length}</span>
             <span className="dash-stats__label">学习阶段</span>
           </div>
           <div className="dash-stats__item">
@@ -146,11 +211,11 @@ export default function LearningPath() {
                 <Sparkles size={14} /> 已生成路径
               </p>
               <h3 className="text-lg font-semibold text-[var(--scholar-text)] mt-1">
-                {learningPathMeta?.title ?? "我的学习路径"}
+                {pathData?.title ?? "我的学习路径"}
               </h3>
               <p className="text-sm text-[var(--scholar-text-muted)] mt-1">
-                {pathStages.length} 个阶段 · {totalTopics} 个知识点 · 更新于{" "}
-                {learningPathMeta?.generatedAt ?? "—"}
+                {stages.length} 个阶段 · {totalTopics} 个知识点 · 更新于{" "}
+                {pathData?.generatedAt ?? "—"}
               </p>
             </div>
             <div className="text-right">
@@ -172,7 +237,7 @@ export default function LearningPath() {
           <div className="mt-6 pt-5 border-t border-[color-mix(in_srgb,var(--scholar-border)_70%,transparent)]">
             <p className="text-sm font-medium text-[var(--scholar-text)] mb-3">阶段概览</p>
             <ul className="space-y-2">
-              {pathStages.map((stage, i) => (
+              {stages.map((stage, i) => (
                 <li
                   key={stage.id}
                   className="flex items-center justify-between gap-3 text-sm py-2 border-b border-[color-mix(in_srgb,var(--scholar-border)_50%,transparent)] last:border-0"

@@ -94,7 +94,18 @@ function normalizePersistedProfile(
       pathStages: [],
     };
   }
-  return { profile, profileInitialized, pathStages };
+  // 守卫 profile 内部所有数组字段，防止 localStorage 残留非数组数据导致 crash
+  return {
+    profile: {
+      ...profile,
+      learnerDimensions: Array.isArray(profile.learnerDimensions) ? profile.learnerDimensions : [],
+      dimensions: Array.isArray(profile.dimensions) ? profile.dimensions : [],
+      weakPoints: Array.isArray(profile.weakPoints) ? profile.weakPoints : [],
+      cognitiveStyle: Array.isArray(profile.cognitiveStyle) ? profile.cognitiveStyle : [],
+    },
+    profileInitialized,
+    pathStages: Array.isArray(pathStages) ? pathStages : [],
+  };
 }
 
 export const useAppStore = create<AppState>()(
@@ -213,9 +224,14 @@ export const useAppStore = create<AppState>()(
         return {
           ...current,
           ...p,
+          // 不持久化 UI 状态，始终用默认值
+          sidebarCollapsed: false,
+          // 守卫数组字段：防止 localStorage 残留非数组数据导致 .map/.filter crash
+          sessions: Array.isArray(p.sessions) ? p.sessions : current.sessions,
+          pathStages: Array.isArray(normalized.pathStages) ? normalized.pathStages : current.pathStages,
+          pathPlanMessages: Array.isArray(p.pathPlanMessages) ? p.pathPlanMessages : current.pathPlanMessages,
           profile: normalized.profile,
           profileInitialized: normalized.profileInitialized,
-          pathStages: normalized.pathStages,
         };
       },
       onRehydrateStorage: () => (state, error) => {
@@ -229,6 +245,9 @@ export const useAppStore = create<AppState>()(
           state.profile = normalized.profile;
           state.profileInitialized = normalized.profileInitialized;
           state.pathStages = normalized.pathStages;
+          // 守卫所有数组字段
+          state.sessions = Array.isArray(state.sessions) ? state.sessions : [];
+          state.pathPlanMessages = Array.isArray(state.pathPlanMessages) ? state.pathPlanMessages : [];
         }
       },
     }

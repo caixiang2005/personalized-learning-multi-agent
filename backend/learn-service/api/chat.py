@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Header
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from services.chat_session_service import (
@@ -7,6 +8,7 @@ from services.chat_session_service import (
     create_session,
     delete_session,
     send_message,
+    send_message_stream,
 )
 
 router = APIRouter(tags=["聊天会话"])
@@ -69,3 +71,32 @@ def handle_send_message(
     authorization: str | None = Header(default=None),
 ):
     return send_message(_extract(authorization), body.session_id, body.content)
+
+
+@router.post("/api/chat/send/stream")
+async def handle_send_message_stream(
+    body: SendMessageBody,
+    authorization: str | None = Header(default=None),
+):
+    """SSE 流式发送消息 — 实时推送多智能体管道进度 + token 流"""
+
+    async def sse_generator():
+        async for event_type, data in send_message_stream(
+            token=_extract(authorization),
+            session_id=body.session_id,
+            content=body.content,
+        ):
+            if event_type == "error":
+                yield f"event: error\ndata: {data}\n\n"
+            else:
+                yield f"data: {data}\n\n"
+
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

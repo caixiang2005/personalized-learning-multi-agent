@@ -22,7 +22,7 @@ def _extract_token(authorization: str | None) -> str:
 
 def get_overview(token: str, range_days: int = 7) -> dict:
     """GET /api/analytics/overview — 学习效果概览。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -83,7 +83,7 @@ def get_overview(token: str, range_days: int = 7) -> dict:
 
 def get_weak_points(token: str) -> dict:
     """GET /api/analytics/weak-points — 薄弱点与推荐资源。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -121,7 +121,7 @@ def get_weak_points(token: str) -> dict:
 
 def get_suggestions(token: str) -> dict:
     """GET /api/analytics/suggestions — 学习优化建议。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 

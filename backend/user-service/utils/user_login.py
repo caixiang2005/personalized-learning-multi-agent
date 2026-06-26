@@ -78,6 +78,12 @@ def _record_last_login(user_id: int) -> None:
     """登录成功时更新 user_info.last_login_time（北京时间）。"""
     with get_db() as db:
         profile = db.get(UserProfile, user_id)
+        if profile is None:
+            # 兼容旧用户：没有 user_info 记录时创建一条
+            user = db.get(User, user_id)
+            if user is not None:
+                profile = UserProfile(user_id=user_id, username=user.username)
+                db.add(profile)
         if profile is not None:
             profile.last_login_time = _beijing_now()
 
@@ -133,6 +139,15 @@ def register_user(email: str, username: str, password: str, code: str) -> dict:
         )
         db.add(user)
         db.flush()
+
+        # 同步创建 user_info 记录（头像、昵称、专业等字段）
+        profile = UserProfile(
+            user_id=user.user_id,
+            username=username,
+        )
+        db.add(profile)
+        db.flush()
+
         return {"code": 200, "msg": "注册成功", "data": _user_payload(user)}
 
 

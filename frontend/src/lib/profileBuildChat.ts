@@ -148,7 +148,7 @@ export async function sendProfileBuildMessage(
   draft: ProfileDraft,
   userRound: number
 ): Promise<ProfileBuildChatResult> {
-  const useRemote = import.meta.env.VITE_PROFILE_BUILD_API === "1";
+  const useRemote = import.meta.env.VITE_PROFILE_BUILD_API !== "0"; // 默认启用后端
 
   const finish = async (
     reply: string,
@@ -175,7 +175,7 @@ export async function sendProfileBuildMessage(
     } catch (err) {
       const msg = err instanceof AgentApiError ? err.message : "画像智能体请求失败";
       const local = buildProfileAgentReply(userInput, draft, userRound);
-      return finish(`⚠️ ${msg}\n\n${local}`, {
+      return finish(`⚠️ 后端画像智能体暂不可用，使用本地引导。\n\n${local}`, {
         usedFallback: true,
         usedLocalAgent: true,
       });

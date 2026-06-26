@@ -87,7 +87,7 @@ export const GROWTH_PATHS = GROWTH_NAV.map((i) => i.to);
 export const PROFILE_BUILD_PATH = "/profile-build";
 
 export function isHomePath(pathname: string): boolean {
-  return pathname === "/home" || pathname === PROFILE_BUILD_PATH;
+  return pathname === "/home";
 }
 
 export function isGrowthPath(pathname: string): boolean {

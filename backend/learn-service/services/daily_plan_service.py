@@ -11,9 +11,18 @@ from utils.database import DailyPlan, LearnerProfile, get_db
 from utils.redis import resolve_user_id_from_token
 
 
+def _extract_token(token: str | None) -> str:
+    if not token:
+        return ""
+    parts = token.split(" ", 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer":
+        return parts[1].strip()
+    return token.strip()
+
+
 def get_daily_plan(token: str) -> dict:
     """GET /api/plan/daily — 获取当日学习计划。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
@@ -79,7 +88,7 @@ def get_daily_plan(token: str) -> dict:
 
 def toggle_task(token: str, task_id: str, done: bool) -> dict:
     """POST /api/plan/tasks/{task_id}/toggle — 切换任务完成状态。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 

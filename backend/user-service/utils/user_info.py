@@ -107,7 +107,10 @@ def upload_user_avatar(token: str, content_type: str, data: bytes) -> dict:
 
             profile = _get_profile(db, user_id)
             if profile is None:
-                return {"code": 400, "msg": "个人信息不存在", "data": {}}
+                # 兼容旧用户：注册时未同步创建 user_info，在此兜底创建
+                profile = UserProfile(user_id=user_id, username=user.username)
+                db.add(profile)
+                db.flush()
 
             old_url = profile.avatar_url
             target.write_bytes(data)
@@ -154,7 +157,10 @@ def update_user_profile(token: str, updates: dict[str, Any]) -> dict:
 
         profile = _get_profile(db, user_id)
         if profile is None:
-            return {"code": 400, "msg": "个人信息不存在", "data": {}}
+            # 兼容旧用户：注册时未同步创建 user_info，在此兜底创建
+            profile = UserProfile(user_id=user_id, username=user.username)
+            db.add(profile)
+            db.flush()
 
         try:
             if "phoneNumber" in updates:

@@ -290,13 +290,15 @@ async def finalize_path_plan(session_id: str, token: str) -> dict:
 
     # 调用 learn-service 保存学习路径
     learn_service_url = os.getenv("LEARN_SERVICE_URL", "http://127.0.0.1:8002")
+    info = state.get("info", {})
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.put(
+            resp = await client.post(
                 f"{learn_service_url}/api/learning-path/generate",
                 json={
-                    "stages": path_data.get("stages", []),
+                    "course": info.get("course_focus", "") or path_data.get("course", ""),
+                    "goal": ", ".join(info.get("priority_areas", [])) or path_data.get("description", ""),
                 },
                 headers={"Authorization": f"Bearer {token}"},
             )

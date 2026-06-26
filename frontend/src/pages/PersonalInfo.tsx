@@ -2,6 +2,8 @@
  * @file PersonalInfo.tsx
  * @description 个人信息页 · 对接 GET getProfile / POST updateProfile / POST uploadAvatar
  * @route /account
+ *
+ * 模块：学习数据概览 · 头像上传 · 账号信息 · 可编辑资料 · 修改密码 · 快捷入口 · 退出登录
  */
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -15,10 +17,15 @@ import {
   Loader2,
   Lock,
   LogOut,
+  MessageSquare,
+  Route,
   Sparkles,
+  Target,
+  TrendingUp,
   User,
+  Zap,
 } from "lucide-react";
-import AccountStandaloneLayout from "../components/account/AccountStandaloneLayout";
+import AccountCenterLayout from "../components/account/AccountCenterLayout";
 import ChangePasswordForm from "../components/account/ChangePasswordForm";
 import DsButton from "../components/ui/DsButton";
 import DsCard from "../components/ui/DsCard";
@@ -30,6 +37,7 @@ import { useAccountPage } from "../hooks/useAccountPage";
 import { useAppStore } from "../store/useAppStore";
 
 import { GENDER_OPTIONS, genderLabel } from "../lib/gender";
+
 function maskPhone(phone: string) {
   if (phone.length < 7) return phone;
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
@@ -39,25 +47,82 @@ function formatDateTime(iso: string | null) {
   if (!iso) return "—";
   try {
     return new Date(iso).toLocaleString("zh-CN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit",
     });
-  } catch {
-    return iso;
-  }
+  } catch { return iso; }
 }
 
 function formatRegisterDate(iso: string | null) {
   if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleDateString("zh-CN");
-  } catch {
-    return iso.slice(0, 10);
-  }
+  try { return new Date(iso).toLocaleDateString("zh-CN"); }
+  catch { return iso.slice(0, 10); }
 }
+
+/* ══════════════════════ 子组件 ══════════════════════ */
+
+/** 学习数据概览卡片 */
+function StatCard({ label, value, icon: Icon, suffix = "", color = "primary" }: {
+  label: string; value: number | string; icon: typeof Target;
+  suffix?: string; color?: "primary" | "accent" | "green" | "amber";
+}) {
+  const colorMap = {
+    primary: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30",
+    accent: "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30",
+    green: "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30",
+    amber: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30",
+  };
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm dark:border-gray-800 dark:bg-gray-900/50">
+      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${colorMap[color]}`}>
+        <Icon size={18} strokeWidth={1.75} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">{label}</p>
+        <p className="text-lg font-bold text-gray-900 dark:text-white">
+          {typeof value === "number" && !suffix ? value : value}{suffix}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** 只读元信息条目 */
+function MetaItem({ label, value, icon: Icon }: {
+  label: string; value: string; icon?: typeof Calendar;
+}) {
+  return (
+    <div className="personal-info__meta-item">
+      <dt className="personal-info__meta-label">
+        {Icon && <Icon size={13} strokeWidth={1.75} className="shrink-0 opacity-70" />}
+        {label}
+      </dt>
+      <dd className="personal-info__meta-value">{value}</dd>
+    </div>
+  );
+}
+
+/** 可展开操作行 */
+function ActionRow({ icon: Icon, title, desc, onClick, open }: {
+  icon: typeof Lock; title: string; desc: string;
+  onClick: () => void; open?: boolean;
+}) {
+  return (
+    <button type="button" onClick={onClick} className="personal-info__action-row">
+      <span className="icon-box personal-info__action-icon">
+        <Icon size={18} strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="block text-sm font-medium text-[#1D2129] dark:text-gray-100">{title}</span>
+        <span className="block text-xs text-[#86909C] dark:text-gray-400 mt-0.5 truncate">{desc}</span>
+      </span>
+      <ChevronRight size={18}
+        className={`shrink-0 text-[#86909C] transition-transform ${open ? "rotate-90" : ""}`} />
+    </button>
+  );
+}
+
+/* ══════════════════════ 主组件 ══════════════════════ */
 
 export default function PersonalInfo() {
   const navigate = useNavigate();
@@ -65,19 +130,9 @@ export default function PersonalInfo() {
   const setUser = useAppStore((s) => s.setUser);
 
   const {
-    profile,
-    loading,
-    saving,
-    uploadingAvatar,
-    error,
-    dirty,
-    save,
-    uploadAvatar,
-    patchForm,
-    form,
-    avatarVersion,
-    saveSuccess,
-    setSaveSuccess,
+    profile, stats, loading, saving, uploadingAvatar,
+    error, dirty, save, uploadAvatar, patchForm, form,
+    avatarVersion, saveSuccess, setSaveSuccess,
   } = useAccountPage();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -102,13 +157,14 @@ export default function PersonalInfo() {
     await save();
   };
 
+  /* ── 加载态 ── */
   if (loading || !profile) {
     return (
-      <AccountStandaloneLayout>
-        <div className="personal-info personal-info--loading">
+      <AccountCenterLayout>
+        <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 text-primary animate-spin" aria-label="加载中" />
         </div>
-      </AccountStandaloneLayout>
+      </AccountCenterLayout>
     );
   }
 
@@ -120,14 +176,33 @@ export default function PersonalInfo() {
     : null;
 
   return (
-    <AccountStandaloneLayout>
-      <div className="personal-info">
+    <AccountCenterLayout>
+      <div className="personal-info space-y-5">
+
+        {/* ═══ 页头 ═══ */}
         <header className="personal-info__header">
           <p className="personal-info__eyebrow">账号资料</p>
           <h1 className="personal-info__title">个人信息</h1>
-          <p className="personal-info__sub">资料保存在 user_info，与登录账号信息分开维护</p>
+          <p className="personal-info__sub">管理你的账号资料与学习数据，所有修改实时同步</p>
         </header>
 
+        {/* ═══ 学习数据概览 ═══ */}
+        {stats && (
+          <section>
+            <h2 className="personal-info__section-title mb-3">
+              <TrendingUp size={16} strokeWidth={1.75} />
+              学习数据概览
+            </h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard label="健康分" value={stats.healthScore} icon={Zap} color="accent" suffix="分" />
+              <StatCard label="目标进度" value={stats.goalProgress} icon={Target} color="green" suffix="%" />
+              <StatCard label="路径进度" value={stats.pathProgress} icon={Route} color="primary" suffix="%" />
+              <StatCard label="对话次数" value={stats.sessionCount} icon={MessageSquare} color="amber" />
+            </div>
+          </section>
+        )}
+
+        {/* ═══ 头像卡片 ═══ */}
         <DsCard className="personal-info__avatar-card">
           <div className="personal-info__avatar-wrap">
             <button
@@ -151,13 +226,9 @@ export default function PersonalInfo() {
                   <Camera size={14} strokeWidth={2} />
                 )}
               </span>
-              <input
-                ref={fileRef}
-                type="file"
+              <input ref={fileRef} type="file"
                 accept="image/jpeg,image/png,image/webp,image/gif"
-                className="sr-only"
-                onChange={handleAvatar}
-              />
+                className="sr-only" onChange={handleAvatar} />
             </button>
             <div className="personal-info__avatar-meta">
               <p className="personal-info__name">{displayName}</p>
@@ -168,9 +239,10 @@ export default function PersonalInfo() {
               <p className="personal-info__username">@{profile.username}</p>
             </div>
           </div>
-          <p className="personal-info__avatar-hint">JPG / PNG / WEBP / GIF，最大 2MB</p>
+          <p className="personal-info__avatar-hint">支持 JPG / PNG / WEBP / GIF，最大 2MB</p>
         </DsCard>
 
+        {/* ═══ 账号信息（只读） ═══ */}
         <DsCard className="personal-info__readonly">
           <h2 className="personal-info__section-title">
             <User size={16} strokeWidth={1.75} />
@@ -180,193 +252,108 @@ export default function PersonalInfo() {
             <MetaItem label="用户名" value={profile.username} />
             <MetaItem label="登录邮箱" value={profile.email} />
             <MetaItem label="性别" value={genderLabel(profile.gender)} />
-            <MetaItem
-              label="注册时间"
-              value={formatRegisterDate(profile.registerTime)}
-              icon={Calendar}
-            />
-            <MetaItem
-              label="最近登录"
-              value={formatDateTime(profile.lastLoginTime)}
-              icon={Clock}
-            />
+            <MetaItem label="注册时间" value={formatRegisterDate(profile.registerTime)} icon={Calendar} />
+            <MetaItem label="最近登录" value={formatDateTime(profile.lastLoginTime)} icon={Clock} />
           </dl>
         </DsCard>
 
+        {/* ═══ 可编辑资料 ═══ */}
         <DsCard className="personal-info__form">
           <h2 className="personal-info__section-title">
             <Sparkles size={16} strokeWidth={1.75} />
-            可编辑资料
+            编辑资料
           </h2>
           <div className="personal-info__fields space-y-5">
             <DsInput
-              label="昵称"
-              value={form.nickname}
+              label="昵称" value={form.nickname}
               onChange={(e) => patchForm({ nickname: e.target.value })}
-              placeholder="在平台内展示的名称"
-              maxLength={32}
+              placeholder="在平台内展示的名称" maxLength={32}
               hint="对应接口字段 nickname，最多 32 字"
             />
             <DsInput
-              label="手机号"
-              type="tel"
-              inputMode="numeric"
+              label="手机号" type="tel" inputMode="numeric"
               value={form.phoneNumber}
-              onChange={(e) =>
-                patchForm({ phoneNumber: e.target.value.replace(/\D/g, "").slice(0, 11) })
-              }
+              onChange={(e) => patchForm({ phoneNumber: e.target.value.replace(/\D/g, "").slice(0, 11) })}
               placeholder="11 位大陆手机号"
               hint={form.phoneNumber ? `当前：${maskPhone(form.phoneNumber)}` : "留空可清空绑定"}
             />
             <div className="personal-info__field-row">
               <DsSelect
-                label="性别"
-                value={form.gender}
+                label="性别" value={form.gender}
                 onChange={(e) => patchForm({ gender: e.target.value })}
-                hint={`当前：${genderLabel(profile.gender)} · 数据库存 0/1/2 编码`}
+                hint={`当前：${genderLabel(profile.gender)} · 数据库编码 0=未知 1=男 2=女`}
               >
                 {GENDER_OPTIONS.map((o) => (
-                  <option key={o.value || "unset"} value={o.value}>
-                    {o.label}
-                  </option>
+                  <option key={o.value || "unset"} value={o.value}>{o.label}</option>
                 ))}
               </DsSelect>
               <DsInput
-                label="生日"
-                type="date"
-                value={form.birthday}
+                label="生日" type="date" value={form.birthday}
                 onChange={(e) => patchForm({ birthday: e.target.value })}
                 max={new Date().toISOString().slice(0, 10)}
               />
             </div>
             <DsInput
-              label="专业 / 课程方向"
-              value={form.major}
+              label="专业 / 课程方向" value={form.major}
               onChange={(e) => patchForm({ major: e.target.value })}
-              placeholder="例：计算机科学"
-              maxLength={32}
-              hint="最多 32 字"
+              placeholder="例：计算机科学" maxLength={32} hint="最多 32 字"
             />
             <DsTextarea
-              label="个性签名"
-              value={form.signature}
+              label="个性签名" value={form.signature}
               onChange={(e) => patchForm({ signature: e.target.value })}
-              placeholder="写一句介绍自己的话…"
-              maxLength={100}
-              hint={`${form.signature.length}/100 · 对应 signature`}
+              placeholder="写一句介绍自己的话…" maxLength={100}
+              hint={`${form.signature.length}/100 · 对应 signature 字段`}
             />
           </div>
 
+          {/* 保存状态反馈 */}
           {(error || saveSuccess) && (
-            <p
-              role="status"
-              className={`personal-info__status mt-4 ${
-                error ? "personal-info__status--error" : "personal-info__status--ok"
-              }`}
-            >
-              {error ?? "资料已保存"}
+            <p role="status" className={`personal-info__status mt-4 ${
+              error ? "personal-info__status--error" : "personal-info__status--ok"
+            }`}>
+              {error ?? "✅ 资料已保存"}
             </p>
           )}
 
-          <DsButton
-            fullWidth
-            disabled={!dirty || saving}
-            onClick={handleSave}
-            className="mt-5"
-          >
-            {saving ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                保存中…
-              </>
-            ) : (
-              "保存资料"
-            )}
+          <DsButton fullWidth disabled={!dirty || saving} onClick={handleSave} className="mt-5">
+            {saving ? <><Loader2 size={16} className="animate-spin" /> 保存中…</> : "保存资料"}
           </DsButton>
         </DsCard>
 
+        {/* ═══ 快捷操作 ═══ */}
         <DsCard padding="none" className="personal-info__actions overflow-hidden">
-          <ActionRow
-            icon={Lock}
-            title="修改密码"
-            desc="通过邮箱验证码重置"
-            onClick={() => setShowPassword((v) => !v)}
-            open={showPassword}
-          />
+          <ActionRow icon={Lock} title="修改密码"
+            desc="通过邮箱验证码重置登录密码"
+            onClick={() => setShowPassword((v) => !v)} open={showPassword} />
           {showPassword && (
             <div className="personal-info__panel">
               <ChangePasswordForm
-                defaultEmail={profile.email}
-                embedded
-                compact
+                defaultEmail={profile.email} embedded compact
                 onCancel={() => setShowPassword(false)}
                 onSuccess={() => setShowPassword(false)}
               />
             </div>
           )}
-          <ActionRow
-            icon={GraduationCap}
-            title="学习画像"
-            desc="在「学习画像」页查看与更新学习特征"
-            onClick={() => navigate("/profile")}
-          />
+
+          <ActionRow icon={Sparkles} title="学习画像"
+            desc="查看与更新你的学习特征、薄弱点与六维能力"
+            onClick={() => navigate("/profile")} />
+
+          <ActionRow icon={Route} title="学习路径"
+            desc="管理你的学习路径与课程进度"
+            onClick={() => navigate("/path")} />
+
+          <ActionRow icon={GraduationCap} title="效果评估"
+            desc="查看学习分析、活动热力图与建议"
+            onClick={() => navigate("/analytics")} />
         </DsCard>
 
+        {/* ═══ 退出登录 ═══ */}
         <DsButton variant="danger" fullWidth onClick={logout} className="personal-info__logout">
-          <LogOut size={18} />
-          退出登录
+          <LogOut size={18} /> 退出登录
         </DsButton>
+
       </div>
-    </AccountStandaloneLayout>
-  );
-}
-
-function MetaItem({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon?: typeof Calendar;
-}) {
-  return (
-    <div className="personal-info__meta-item">
-      <dt className="personal-info__meta-label">
-        {Icon && <Icon size={13} strokeWidth={1.75} className="shrink-0 opacity-70" />}
-        {label}
-      </dt>
-      <dd className="personal-info__meta-value">{value}</dd>
-    </div>
-  );
-}
-
-function ActionRow({
-  icon: Icon,
-  title,
-  desc,
-  onClick,
-  open,
-}: {
-  icon: typeof Lock;
-  title: string;
-  desc: string;
-  onClick: () => void;
-  open?: boolean;
-}) {
-  return (
-    <button type="button" onClick={onClick} className="personal-info__action-row">
-      <span className="icon-box personal-info__action-icon">
-        <Icon size={18} strokeWidth={1.75} />
-      </span>
-      <span className="min-w-0 flex-1 text-left">
-        <span className="block text-sm font-medium text-[#1D2129] dark:text-gray-100">{title}</span>
-        <span className="block text-xs text-[#86909C] dark:text-gray-400 mt-0.5 truncate">{desc}</span>
-      </span>
-      <ChevronRight
-        size={18}
-        className={`shrink-0 text-[#86909C] transition-transform ${open ? "rotate-90" : ""}`}
-      />
-    </button>
+    </AccountCenterLayout>
   );
 }
