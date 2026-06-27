@@ -4,17 +4,17 @@
  * @route /plan
  * @backend GET /api/plan/daily · POST /api/plan/tasks/:id/toggle
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays, Target, ListChecks, CheckCircle2, Clock, Lightbulb, Loader2, RefreshCw,
+  CalendarDays, Target, ListChecks, CheckCircle2, Clock, Lightbulb, RefreshCw, AlertCircle,
 } from "lucide-react";
 import PlanSidebar from "../components/plan/PlanSidebar";
 import ScholarDashboardLayout, { DashboardHealthAside } from "../components/dashboard/ScholarDashboardLayout";
 import AnimeStagger from "../components/motion/AnimeStagger";
 import PlanTaskCard from "../components/plan/PlanTaskCard";
 import { fetchDailyPlan, toggleTaskApi } from "../lib/api/learn";
-import { getDefaultDailyPlan, recalcPlanProgress } from "../lib/mockDailyPlan";
-import type { DailyPlan as DailyPlanType, DailyPlanTask } from "../types";
+import { recalcPlanProgress } from "../lib/mockDailyPlan";
+import type { DailyPlan as DailyPlanType } from "../types";
 
 const PLAN_TIPS = [
   "优先完成对话类任务，针对易错点向助手提问",
@@ -36,26 +36,39 @@ function renderSkeleton() {
   );
 }
 
+function renderErrorState(message: string, onRetry: () => void) {
+  return (
+    <div className="section-card dash-panel text-center py-16 px-6">
+      <AlertCircle size={40} className="mx-auto mb-4 text-amber-500" aria-hidden />
+      <p className="text-[var(--scholar-text)] font-medium mb-2">无法加载今日计划</p>
+      <p className="text-sm text-[var(--scholar-text-muted)] mb-6">{message}</p>
+      <button type="button" onClick={onRetry} className="btn-primary inline-flex items-center gap-2">
+        <RefreshCw size={16} aria-hidden />
+        重试
+      </button>
+    </div>
+  );
+}
+
 export default function DailyPlan() {
   const [plan, setPlan] = useState<DailyPlanType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const loadPlan = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetchDailyPlan();
-      if (res.code === 200) {
+      if (res.code === 200 && res.data) {
         setPlan(res.data);
       } else {
-        setPlan(getDefaultDailyPlan());
-        setError(res.msg);
+        setPlan(null);
+        setError(res.msg || "获取计划失败");
       }
     } catch {
-      setPlan(getDefaultDailyPlan());
-      setError("后端未就绪，显示示例计划");
+      setPlan(null);
+      setError("无法连接 learn-service，请确认后端 :8002 已启动");
     } finally {
       setLoading(false);
     }
@@ -81,11 +94,9 @@ export default function DailyPlan() {
   );
 
   const toggleTask = async (id: string) => {
-    setTogglingId(id);
     const prev = plan?.tasks.find((t) => t.id === id);
     const newDone = !prev?.done;
 
-    // 乐观更新 UI
     setPlan((p) => {
       if (!p) return p;
       const tasks = p.tasks.map((t) =>
@@ -97,7 +108,6 @@ export default function DailyPlan() {
     try {
       await toggleTaskApi(id, newDone);
     } catch {
-      // 回滚
       setPlan((p) => {
         if (!p) return p;
         const tasks = p.tasks.map((t) =>
@@ -105,8 +115,6 @@ export default function DailyPlan() {
         );
         return { ...p, tasks, overallProgress: recalcPlanProgress(tasks) };
       });
-    } finally {
-      setTogglingId(null);
     }
   };
 
@@ -122,7 +130,13 @@ export default function DailyPlan() {
     );
   }
 
-  if (!plan) return null;
+  if (!plan) {
+    return (
+      <ScholarDashboardLayout badge="AI 每日计划" title="今日学习计划" subtitle="加载失败">
+        {renderErrorState(error ?? "未知错误", loadPlan)}
+      </ScholarDashboardLayout>
+    );
+  }
 
   const formattedDate = new Date(plan.date).toLocaleDateString("zh-CN", {
     year: "numeric", month: "long", day: "numeric", weekday: "long",
@@ -143,12 +157,6 @@ export default function DailyPlan() {
       }
       sidebar={<PlanSidebar plan={plan} />}
     >
-      {error && (
-        <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300">
-          ⚠️ {error}
-        </div>
-      )}
-
       <AnimeStagger className="dash-stats mb-6" staggerMs={60} y={12} delay={70}>
         <div className="dash-stats__item">
           <ListChecks size={16} strokeWidth={1.75} aria-hidden />

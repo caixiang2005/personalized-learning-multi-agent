@@ -2,7 +2,7 @@
  * @file ExercisePage.tsx
  * @description 在线练习：AI 出题、作答提交、AI 批改、画像同步
  * @route /exercise/:id
- * @backend GET /api/exercises/:id · POST /api/exercises/:id/submit · POST /api/exercises/generate · POST /api/agent/exercise/review
+ * @backend GET /api/exercises/:id · POST …/submit · POST …/sync-profile · POST …/generate
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -12,8 +12,10 @@ import {
 } from "lucide-react";
 import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import MultiAgentPipeline, { type AgentStage } from "../components/chat/MultiAgentPipeline";
-import { fetchExercise, submitExerciseApi, generateExerciseApi, aiReviewExerciseApi, saveExerciseResultApi } from "../lib/api/learn";
+import { fetchExercise, submitExerciseApi, generateExerciseApi, aiReviewExerciseApi, saveExerciseResultApi, syncExerciseProfileApi } from "../lib/api/learn";
+import { ApiClientError } from "../lib/api/client";
 import { findResourceById } from "../lib/resources";
+import { applyExerciseProfilePatch } from "../lib/profileSync";
 import { useAppStore } from "../store/useAppStore";
 
 interface Question {
@@ -53,11 +55,43 @@ function renderSkeleton() {
   );
 }
 
+function computeScore(questions: Question[], answers: Record<string, string>): number {
+  if (!questions.length) return 0;
+  let correct = 0;
+  questions.forEach((q) => {
+    const userAns = answers[q.id]?.trim().toLowerCase() ?? "";
+    const correctAns = (q.correctAnswer ?? q.answer ?? "").trim().toLowerCase();
+    if (userAns && correctAns && userAns === correctAns) correct++;
+  });
+  return Math.round((correct / questions.length) * 100);
+}
+
+function buildLocalAiReview(
+  questions: Question[],
+  answers: Record<string, string>
+): AiReviewResult[] {
+  return questions.map((q) => {
+    const userAns = answers[q.id]?.trim() ?? "";
+    const correctAns = (q.correctAnswer ?? q.answer ?? "").trim();
+    const isCorrect = userAns.toLowerCase() === correctAns.toLowerCase();
+    return {
+      questionId: q.id,
+      isCorrect,
+      userAnswer: userAns,
+      correctAnswer: correctAns,
+      explanation: q.explanation ?? "无详细解析",
+      mistakeReason: isCorrect ? undefined : "答案不匹配",
+      knowledgePoint: q.title,
+    };
+  });
+}
+
 export default function ExercisePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const pathStages = useAppStore((s) => s.pathStages);
   const profile = useAppStore((s) => s.profile);
+  const setProfile = useAppStore((s) => s.setProfile);
   const resource = id && id !== "ai-generate" ? findResourceById(pathStages, id) : null;
 
   const [exerciseData, setExerciseData] = useState<ExerciseData | null>(null);
@@ -154,8 +188,12 @@ export default function ExercisePage() {
       setAgentStages(prev => prev.map(s =>
         s.status === "processing" ? { ...s, status: "error" as const, detail: err instanceof Error ? err.message : "生成失败" } : s
       ));
-      const msg = err instanceof Error ? err.message : "AI 出题失败";
-      setError(`${msg} · 使用本地题目（请确保 learn-service(:8002) 和 agent-service(:8003) 已重启）`);
+      const apiMsg = err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "AI 出题失败";
+      const hint =
+        err instanceof ApiClientError && err.code === 401
+          ? "学习服务未识别登录态（请确认 learn-service 已启动且 Redis 可用）"
+          : apiMsg;
+      setError(`${hint} · 已使用本地题目`);
       // 使用本地备选题
       setAiQuestions([
         { id: "q1", type: "choice", title: "栈的特点是？", options: ["FIFO", "LIFO", "随机存取", "双向"], correctAnswer: "LIFO", explanation: "栈是后进先出（LIFO）的数据结构" },
@@ -186,77 +224,79 @@ export default function ExercisePage() {
       answer: answers[q.id] ?? "",
     }));
 
+    const localScore = computeScore(questions, answers);
+    setScore(localScore);
+
+    const mergeProfile = (raw: unknown) => {
+      const patch = applyExerciseProfilePatch(raw as Record<string, unknown>);
+      if (patch) setProfile(patch);
+    };
+
+    let reviewResults: AiReviewResult[] | null = null;
+    let finalScore = localScore;
+
     try {
       if (!isAiGenerate) {
-        // 非 AI 模式：后端评分
         const res = await submitExerciseApi(id, answerList as Record<string, string>[]);
         if (res.code === 200) {
-          setScore(res.data.score);
-        } else {
-          calcLocalScore();
+          finalScore = res.data?.score ?? localScore;
+          setScore(finalScore);
         }
-      } else {
-        calcLocalScore();
       }
 
-      // AI 智能批改（支持所有模式）
-      if (questions.length > 0) {
-        setAiReviewing(true);
-        try {
-          const res = await aiReviewExerciseApi(
-            id ?? "ai-generate",
-            questions as Record<string, unknown>[],
-            answerList as Record<string, unknown>[]
-          );
-          if (res.code === 200 && res.data?.results) {
-            setAiReview(res.data.results);
-          }
-        } catch {
-          // fallback: 本地生成评语
-          const localReview: AiReviewResult[] = questions.map((q) => {
-            const userAns = answers[q.id]?.trim() ?? "";
-            const correctAns = (q.correctAnswer ?? q.answer ?? "").trim();
-            const isCorrect = userAns.toLowerCase() === correctAns.toLowerCase();
-            return {
-              questionId: q.id,
-              isCorrect,
-              userAnswer: userAns,
-              correctAnswer: correctAns,
-              explanation: q.explanation ?? "无详细解析",
-              mistakeReason: isCorrect ? undefined : "答案不匹配",
-              knowledgePoint: q.title,
-            };
-          });
-          setAiReview(localReview);
-        } finally {
-          setAiReviewing(false);
+      setAiReviewing(true);
+      try {
+        const res = await aiReviewExerciseApi(
+          id ?? "ai-generate",
+          questions as unknown as Record<string, unknown>[],
+          answerList as Record<string, unknown>[]
+        );
+        if (res.code === 200 && res.data?.results?.length) {
+          reviewResults = res.data.results as AiReviewResult[];
+          setAiReview(reviewResults);
+          const correct = reviewResults.filter((r) => r.isCorrect).length;
+          finalScore = Math.round((correct / reviewResults.length) * 100);
+          setScore(finalScore);
+        } else {
+          reviewResults = buildLocalAiReview(questions, answers);
+          setAiReview(reviewResults);
         }
+      } catch {
+        reviewResults = buildLocalAiReview(questions, answers);
+        setAiReview(reviewResults);
+      } finally {
+        setAiReviewing(false);
+      }
+
+      if (isAiGenerate) {
+        await saveExerciseResultApi({
+          questions: questions as unknown as Record<string, unknown>[],
+          answers: answerList as Record<string, unknown>[],
+          score: finalScore,
+          topic_id: exerciseData?.topicId ?? "",
+          title: resourceTitle,
+          ai_review: reviewResults as unknown as Record<string, unknown>[] | undefined,
+        }).catch(() => {});
+      }
+
+      const syncRes = await syncExerciseProfileApi({
+        score: finalScore,
+        questions: questions as unknown as Record<string, unknown>[],
+        answers: answerList as unknown as Record<string, unknown>[],
+        ai_review: reviewResults as unknown as Record<string, unknown>[] | undefined,
+        topic_id: exerciseData?.topicId ?? "",
+      });
+      if (syncRes.code === 200) {
+        mergeProfile(syncRes.data?.profile);
       }
     } catch {
-      calcLocalScore();
+      setScore(localScore);
+      reviewResults = buildLocalAiReview(questions, answers);
+      setAiReview(reviewResults);
+    } finally {
+      setSubmitted(true);
+      setSubmitting(false);
     }
-
-    // 保存 AI 出题结果到数据库
-    if (isAiGenerate && questions.length > 0 && score !== null) {
-      saveExerciseResultApi({
-        questions: questions as Record<string, unknown>[],
-        answers: answerList as Record<string, unknown>[],
-        score,
-      }).catch(() => {}); // 静默失败，不影响用户体验
-    }
-
-    setSubmitted(true);
-    setSubmitting(false);
-  };
-
-  const calcLocalScore = () => {
-    let correct = 0;
-    questions.forEach((q) => {
-      const userAns = answers[q.id]?.trim().toLowerCase() ?? "";
-      const correctAns = (q.correctAnswer ?? q.answer ?? "").trim().toLowerCase();
-      if (userAns && correctAns && userAns === correctAns) correct++;
-    });
-    setScore(Math.round((correct / questions.length) * 100));
   };
 
   const handleRetry = () => {
@@ -477,8 +517,13 @@ export default function ExercisePage() {
                 {score >= 80 ? "优秀！" : score >= 60 ? "继续加油！" : "需要多练习"}
               </p>
               <p className="text-sm text-gray-500">
-                {correctCount}/{questions.length} 题正确 · 掌握度将同步至学习画像
+                {correctCount}/{questions.length} 题正确 · 掌握度已同步至学习画像
               </p>
+              {profile.weakPoints.length > 0 && (
+                <p className="text-xs text-[var(--scholar-text-muted)] mt-1">
+                  薄弱点：{profile.weakPoints.slice(0, 3).map((w) => `${w.name}(${w.count})`).join(" · ")}
+                </p>
+              )}
               {aiReviewing && (
                 <p className="text-xs text-[var(--scholar-primary)] mt-1 flex items-center gap-1">
                   <Loader2 size={12} className="animate-spin" /> AI 正在生成详细批改…

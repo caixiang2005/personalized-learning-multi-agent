@@ -104,18 +104,14 @@ export async function uploadAccountAvatar(file: File): Promise<string> {
   return data.avatarUrl;
 }
 
-/** GET /api/user/stats（后端未实现时 fallback mock） */
+/** GET /api/user/stats */
 export async function getUserStats(): Promise<UserStatsDto> {
   if (USE_MOCK) {
     await mockDelay(300);
     return mockStats();
   }
-  try {
-    const res = await apiClient.get("/user/stats", { skipLoading: true });
-    return unwrap<UserStatsDto>(res);
-  } catch {
-    return mockStats();
-  }
+  const res = await apiClient.get("/user/stats", { skipLoading: true });
+  return unwrap<UserStatsDto>(res);
 }
 
 function syncAccountToStore(data: UserProfileData, bumpAvatar = false) {

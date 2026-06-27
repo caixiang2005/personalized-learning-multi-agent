@@ -35,7 +35,7 @@ export default function AccountCenterLayout({ children }: Props) {
 
       <div className="account-center__body">
         <AccountNavSidebar />
-        <main className="account-center__main">{children}</main>
+        <main className="account-center__main has-mobile-nav-pad">{children}</main>
       </div>
       <MobileNav />
     </div>

@@ -2,26 +2,32 @@
  * @file Analytics.tsx
  * @description 学习效果评估：从后端拉取真实数据，含图表展示、薄弱点分析、优化建议。
  * @route /analytics
- * @backend GET /api/analytics/overview · /api/analytics/weak-points · /api/analytics/suggestions
+ * @backend GET /api/analytics/overview · /weak-points · /suggestions · /activity
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { Clock, Activity, TrendingUp, Target, BarChart2, AlertTriangle, Loader2 } from "lucide-react";
+import { Clock, Activity, TrendingUp, Target, BarChart2, AlertTriangle } from "lucide-react";
 import AnalyticsSidebar from "../components/analytics/AnalyticsSidebar";
 import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import AnimeStagger from "../components/motion/AnimeStagger";
-import ActivityHeatmap from "../components/charts/ActivityHeatmap";
+import ActivityHeatmap, { type ActivityDay } from "../components/charts/ActivityHeatmap";
 import { useAppStore } from "../store/useAppStore";
 import {
   fetchAnalyticsOverview,
   fetchWeakPoints,
   fetchSuggestions,
+  fetchAnalyticsActivity,
 } from "../lib/api/learn";
-import { analyticsData as mockAnalyticsData } from "../lib/mockData";
+import {
+  buildStudyHours,
+  buildAccuracyData,
+  buildCompareData,
+  emptyActivityGrid,
+} from "../lib/analyticsDisplay";
 
 const ranges = ["近 7 天", "近 30 天", "自定义"];
 
@@ -45,43 +51,6 @@ interface WeakPointItem {
   count: number;
 }
 
-interface WeakPointsData {
-  weakPoints: WeakPointItem[];
-  learnerDimensions: Record<string, unknown>[];
-}
-
-interface SuggestionsData {
-  suggestions: string[];
-}
-
-/** 从后端或 mock 数据构建学习时长数组 */
-function buildStudyHours(dailyRecords: { date: string; metrics: Record<string, unknown> }[]) {
-  if (!dailyRecords || dailyRecords.length === 0) return mockAnalyticsData.studyHours;
-  return dailyRecords.slice(-7).map((r) => ({
-    day: r.date.slice(5),
-    hours: typeof r.metrics.hours === "number" ? r.metrics.hours : Math.random() * 2,
-  }));
-}
-
-/** 从后端或 mock 数据构建正确率数组 */
-function buildAccuracyData(learnerDimensions: Record<string, unknown>[]) {
-  if (!learnerDimensions || learnerDimensions.length === 0) return mockAnalyticsData.accuracy;
-  return learnerDimensions.map((d, i) => ({
-    week: `第${i + 1}次`,
-    rate: typeof d.value === "number" ? d.value : 60 + Math.random() * 30,
-  }));
-}
-
-/** 从薄弱点数据构建对比数据 */
-function buildCompareData(weakPoints: WeakPointItem[]) {
-  if (!weakPoints || weakPoints.length === 0) return mockAnalyticsData.accuracy;
-  return weakPoints.slice(0, 6).map((w) => ({
-    subject: w.name.length > 6 ? w.name.slice(0, 6) + "…" : w.name,
-    before: Math.max(20, 60 - w.count * 2),
-    after: Math.min(90, 60 - w.count * 1.5 + 10),
-  }));
-}
-
 function renderSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
@@ -103,13 +72,13 @@ function renderSkeleton() {
 
 export default function Analytics() {
   const navigate = useNavigate();
-  const { profile, user } = useAppStore();
+  const { profile } = useAppStore();
   const [range, setRange] = useState("近 7 天");
 
-  // 三个并行 API 调用
   const [overview, setOverview] = useState<OverviewData | null>(null);
-  const [weakData, setWeakData] = useState<WeakPointsData | null>(null);
-  const [suggestions, setSuggestions] = useState<SuggestionsData | null>(null);
+  const [weakData, setWeakData] = useState<{ weakPoints: WeakPointItem[] } | null>(null);
+  const [suggestions, setSuggestions] = useState<{ suggestions: string[] } | null>(null);
+  const [activityGrid, setActivityGrid] = useState<ActivityDay[]>([]);
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -118,16 +87,29 @@ export default function Analytics() {
     setErr(null);
     const rangeDays = range === "近 30 天" ? 30 : 7;
     Promise.all([
-      fetchAnalyticsOverview(rangeDays).catch(() => null),
-      fetchWeakPoints().catch(() => null),
-      fetchSuggestions().catch(() => null),
-    ]).then(([o, w, s]) => {
-      if (o?.code === 200) setOverview(o.data);
-      if (w?.code === 200) setWeakData(w.data);
-      if (s?.code === 200) setSuggestions(s.data);
-      if (!o && !w && !s) setErr("后端未就绪，显示 Mock 数据");
-      setBusy(false);
-    });
+      fetchAnalyticsOverview(rangeDays),
+      fetchWeakPoints(),
+      fetchSuggestions(),
+      fetchAnalyticsActivity(12),
+    ])
+      .then(([o, w, s, a]) => {
+        if (o?.code === 200) setOverview(o.data);
+        if (w?.code === 200) setWeakData(w.data);
+        if (s?.code === 200) setSuggestions(s.data);
+        if (a?.code === 200 && Array.isArray(a.data?.activityGrid)) {
+          setActivityGrid(a.data.activityGrid);
+        } else {
+          setActivityGrid(emptyActivityGrid(12));
+        }
+        if (o?.code !== 200 && w?.code !== 200 && s?.code !== 200) {
+          setErr("无法连接 learn-service，请确认 :8002 已启动");
+        }
+      })
+      .catch(() => {
+        setErr("无法连接 learn-service，请确认 :8002 已启动");
+        setActivityGrid(emptyActivityGrid(12));
+      })
+      .finally(() => setBusy(false));
   }, [range]);
 
   const studyHours = useMemo(
@@ -135,19 +117,25 @@ export default function Analytics() {
     [overview]
   );
   const accuracyData = useMemo(
-    () => buildAccuracyData(overview?.learnerDimensions ?? []),
+    () =>
+      buildAccuracyData(
+        overview?.learnerDimensions ?? [],
+        overview?.metrics.avgScore
+      ),
     [overview]
   );
   const compareData = useMemo(
-    () => buildCompareData(weakData?.weakPoints ?? []),
-    [weakData]
+    () => buildCompareData(weakData?.weakPoints ?? profile.weakPoints ?? []),
+    [weakData, profile.weakPoints]
   );
 
   const weekHours = studyHours.reduce((s, d) => s + (d.hours ?? 0), 0);
-  const latestAccuracy = accuracyData[accuracyData.length - 1]?.rate ?? 68;
-  const weakPoints = weakData?.weakPoints ?? profile.weakPoints;
+  const latestAccuracy =
+    accuracyData[accuracyData.length - 1]?.rate ??
+    Math.round(overview?.metrics.avgScore ?? 0);
+  const weakPoints = weakData?.weakPoints ?? profile.weakPoints ?? [];
   const maxWeakCount = Math.max(...weakPoints.map((w) => w.count), 1);
-  const suggestionsList = suggestions?.suggestions ?? mockAnalyticsData.suggestions;
+  const suggestionsList = suggestions?.suggestions ?? [];
 
   if (busy) {
     return (
@@ -169,6 +157,7 @@ export default function Analytics() {
               key={r}
               type="button"
               onClick={() => setRange(r)}
+              disabled={r === "自定义"}
               className={range === r ? "btn-primary text-sm py-2" : "btn-secondary text-sm py-2"}
             >
               {r}
@@ -176,7 +165,15 @@ export default function Analytics() {
           ))}
         </div>
       }
-      sidebar={<AnalyticsSidebar range={range} />}
+      sidebar={
+        <AnalyticsSidebar
+          range={range}
+          weekHours={weekHours}
+          latestAccuracy={latestAccuracy}
+          suggestions={suggestionsList}
+          activityGrid={activityGrid}
+        />
+      }
     >
       {err && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300">
@@ -192,7 +189,7 @@ export default function Analytics() {
         </div>
         <div className="dash-stats__item">
           <TrendingUp size={16} strokeWidth={1.75} aria-hidden />
-          <span className="dash-stats__num">{latestAccuracy}%</span>
+          <span className="dash-stats__num">{latestAccuracy || "—"}%</span>
           <span className="dash-stats__label">练习正确率</span>
         </div>
         <div className="dash-stats__item">
@@ -212,43 +209,59 @@ export default function Analytics() {
           <div className="flex items-center gap-2 text-[var(--scholar-text-muted)] text-sm mb-3">
             <Clock size={16} /> 学习时长
           </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={studyHours}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey="hours" fill="var(--scholar-primary)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {studyHours.length === 0 ? (
+            <p className="text-sm text-[var(--scholar-text-muted)] py-12 text-center">
+              该周期暂无学习记录，完成练习或辅导对话后将自动统计。
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={studyHours}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="hours" fill="var(--scholar-primary)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="section-card dash-panel">
-          <p className="text-sm text-[var(--scholar-text-muted)] mb-3">正确率变化</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={accuracyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="week" tick={{ fontSize: 11 }} />
-              <YAxis domain={[50, 100]} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Line type="monotone" dataKey="rate" stroke="var(--scholar-accent-cool)" strokeWidth={2} dot={{ fill: "var(--scholar-accent-cool)" }} />
-            </LineChart>
-          </ResponsiveContainer>
+          <p className="text-sm text-[var(--scholar-text-muted)] mb-3">正确率 / 六维得分</p>
+          {accuracyData.length === 0 ? (
+            <p className="text-sm text-[var(--scholar-text-muted)] py-12 text-center">
+              完成练习或构建画像后，将展示各维度得分。
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={accuracyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="rate" stroke="var(--scholar-accent-cool)" strokeWidth={2} dot={{ fill: "var(--scholar-accent-cool)" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         <div className="section-card dash-panel">
           <p className="text-sm text-[var(--scholar-text-muted)] mb-2">薄弱点掌握对比</p>
-          <ResponsiveContainer width="100%" height={160}>
-            <BarChart data={compareData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="subject" tick={{ fontSize: 10 }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="before" fill="#94a3b8" name="之前" radius={[2, 2, 0, 0]} />
-              <Bar dataKey="after" fill="var(--scholar-primary)" name="现在" radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {compareData.length === 0 ? (
+            <p className="text-sm text-[var(--scholar-text-muted)] py-12 text-center">暂无薄弱点对比数据。</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={compareData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="subject" tick={{ fontSize: 10 }} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="before" fill="#94a3b8" name="之前" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="after" fill="var(--scholar-primary)" name="现在" radius={[2, 2, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
@@ -257,8 +270,8 @@ export default function Analytics() {
           <Activity size={20} className="text-[var(--scholar-primary)]" />
           <h2 className="font-semibold text-[var(--scholar-text)]">学习活跃热力</h2>
         </div>
-        <p className="text-sm text-[var(--scholar-text-muted)] mb-5">近 12 周学习行为分布</p>
-        <ActivityHeatmap data={mockAnalyticsData.activityGrid} weeks={12} />
+        <p className="text-sm text-[var(--scholar-text-muted)] mb-5">近 12 周学习行为分布（练习、辅导对话等）</p>
+        <ActivityHeatmap data={activityGrid} weeks={12} />
       </section>
 
       <section className="section-card dash-panel">
@@ -298,11 +311,15 @@ export default function Analytics() {
 
       <section className="section-card dash-panel">
         <h2 className="dash-panel__title">优化建议</h2>
-        <ul className="dash-sidebar-notes">
-          {suggestionsList.map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-        </ul>
+        {suggestionsList.length === 0 ? (
+          <p className="text-sm text-[var(--scholar-text-muted)]">暂无个性化建议，请先完成画像构建与练习。</p>
+        ) : (
+          <ul className="dash-sidebar-notes">
+            {suggestionsList.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        )}
       </section>
     </ScholarDashboardLayout>
   );

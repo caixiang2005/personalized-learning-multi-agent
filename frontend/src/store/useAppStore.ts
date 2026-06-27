@@ -2,13 +2,8 @@
  * @file useAppStore.ts
  * @description 全局状态（Zustand）。登录态、主题、画像、会话、消息、学习路径。
  *
- * 【当前 Mock】初始值来自 lib/mockData.ts，页面内修改仅存在内存 + localStorage 持久化。
- *
- * 【待同步后端】建议在 App 登录后或 AppLayout 挂载时请求：
- *   - fetchProfile()        → 覆盖 profile
- *   - fetchLearningPath()   → 覆盖 pathStages
- *   - fetchChatSessions()   → 覆盖 sessions
- * 消息列表 messages 建议在选中会话后 fetchMessages(sessionId)
+ * 登录后 `dataBootstrap` 以 learn-service 为权威源覆盖 profile / path / sessions；
+ * Zustand persist 写入 localStorage 仅作离线缓存。
  */
 
 import { create } from "zustand";
@@ -25,19 +20,19 @@ interface AppState {
   isLoggedIn: boolean;
   user: UserInfo | null;
   darkMode: boolean;
-  /** 【待同步】GET /api/profile */
+  /** 学习画像 · bootstrap 后来自 GET /api/profile */
   profile: LearningProfile;
-  /** 【待同步】GET /api/chat/sessions */
+  /** 辅导会话列表 · bootstrap 后来自 GET /api/chat/sessions */
   sessions: ChatSession[];
   /** 画像智能体 /profile-build 专用会话 */
   profileBuildMessages: ChatMessage[];
   /** 智能辅导 /chat 专用会话 */
   tutorMessages: ChatMessage[];
-  /** 【待同步】GET /api/learning-path */
+  /** 学习路径阶段 · bootstrap 后来自 GET /api/learning-path */
   pathStages: PathStage[];
   /** 路径规划智能体 /path/plan 专用会话 */
   pathPlanMessages: ChatMessage[];
-  /** 【待同步】GET /api/learning-path 元信息 */
+  /** 路径元信息 · bootstrap 后来自 GET /api/learning-path */
   learningPathMeta: LearningPathMeta | null;
   profileInitialized: boolean;
   sidebarCollapsed: boolean;
@@ -59,11 +54,11 @@ interface AppState {
   setPathPlanMessages: (msgs: ChatMessage[]) => void;
   addPathPlanMessage: (msg: ChatMessage) => void;
   updatePathPlanMessage: (id: string, patch: Partial<ChatMessage>) => void;
-  /** 【待同步】POST /api/learning-path/generate */
+  /** 写入路径 · POST /api/learning-path/generate 或本地 fallback */
   setLearningPath: (stages: PathStage[], meta: LearningPathMeta) => void;
   clearLearningPath: () => void;
   toggleSidebar: () => void;
-  /** 【待同步】PUT /api/learning-path/resource-status */
+  /** 更新资源状态 · PUT /api/learning-path/resource-status */
   updateResourceStatus: (topicId: string, resourceId: string, status: string) => void;
 }
 

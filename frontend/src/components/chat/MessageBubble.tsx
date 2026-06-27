@@ -10,14 +10,29 @@ import MarkdownContent from "../ui/MarkdownContent";
 import MultimodalCard from "./MultimodalCard";
 import StreamText from "../ui/StreamText";
 import { useAnimeEntrance } from "../../hooks/useAnimeEntrance";
+import { submitChatFeedback } from "../../lib/api/learn";
 import type { ChatMessage } from "../../types";
+
+export type FeedbackType = "useful" | "useless" | "favorite";
 
 interface Props {
   message: ChatMessage;
+  sessionId?: string | null;
+  feedbackEnabled?: boolean;
+  regenerateEnabled?: boolean;
+  onRegenerate?: (messageId: string) => void;
 }
 
-export default function MessageBubble({ message }: Props) {
+export default function MessageBubble({
+  message,
+  sessionId,
+  feedbackEnabled = false,
+  regenerateEnabled = false,
+  onRegenerate,
+}: Props) {
   const [streamDone, setStreamDone] = useState(!message.streaming);
+  const [feedback, setFeedback] = useState<FeedbackType | null>(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
   const isUser = message.role === "user";
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -29,10 +44,45 @@ export default function MessageBubble({ message }: Props) {
 
   const copyText = () => navigator.clipboard.writeText(message.content);
 
+  const handleFeedback = async (type: FeedbackType) => {
+    if (!feedbackEnabled || feedbackBusy) return;
+    setFeedbackBusy(true);
+    try {
+      const res = await submitChatFeedback({
+        messageId: message.id,
+        type,
+        sessionId: sessionId ?? undefined,
+      });
+      if (res?.code === 200) {
+        setFeedback(res.data?.type ?? null);
+      }
+    } catch {
+      /* 静默失败，不影响对话 */
+    } finally {
+      setFeedbackBusy(false);
+    }
+  };
+
   if (isUser) {
     return (
       <div ref={rootRef} className="doubao-msg doubao-msg--user">
-        <div className="doubao-msg__user-bubble">{message.content}</div>
+        <div className="doubao-msg__user-bubble">
+          {message.attachments?.map((att) =>
+            att.mimeType.startsWith("image/") && att.previewUrl ? (
+              <img
+                key={att.id}
+                src={att.previewUrl}
+                alt={att.fileName}
+                className="max-w-full max-h-48 rounded-lg mb-2 object-contain"
+              />
+            ) : (
+              <p key={att.id} className="text-xs opacity-80 mb-1">
+                📎 {att.fileName}
+              </p>
+            )
+          )}
+          {message.content ? <span>{message.content}</span> : null}
+        </div>
       </div>
     );
   }
@@ -64,18 +114,48 @@ export default function MessageBubble({ message }: Props) {
             <button type="button" onClick={copyText} title="复制">
               <Copy size={15} strokeWidth={1.75} />
             </button>
-            <button type="button" title="重新生成（待后端）" disabled>
+            <button
+              type="button"
+              title="重新生成"
+              disabled={!regenerateEnabled}
+              onClick={() => onRegenerate?.(message.id)}
+            >
               <RotateCcw size={15} strokeWidth={1.75} />
             </button>
-            <button type="button" title="有用">
-              <ThumbsUp size={15} strokeWidth={1.75} />
-            </button>
-            <button type="button" title="没用">
-              <ThumbsDown size={15} strokeWidth={1.75} />
-            </button>
-            <button type="button" title="收藏">
-              <Star size={15} strokeWidth={1.75} />
-            </button>
+            {feedbackEnabled && (
+              <>
+                <button
+                  type="button"
+                  title="有用"
+                  aria-pressed={feedback === "useful"}
+                  className={feedback === "useful" ? "doubao-msg__action--active" : undefined}
+                  disabled={feedbackBusy}
+                  onClick={() => handleFeedback("useful")}
+                >
+                  <ThumbsUp size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  title="没用"
+                  aria-pressed={feedback === "useless"}
+                  className={feedback === "useless" ? "doubao-msg__action--active" : undefined}
+                  disabled={feedbackBusy}
+                  onClick={() => handleFeedback("useless")}
+                >
+                  <ThumbsDown size={15} strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  title="收藏"
+                  aria-pressed={feedback === "favorite"}
+                  className={feedback === "favorite" ? "doubao-msg__action--active" : undefined}
+                  disabled={feedbackBusy}
+                  onClick={() => handleFeedback("favorite")}
+                >
+                  <Star size={15} strokeWidth={1.75} />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

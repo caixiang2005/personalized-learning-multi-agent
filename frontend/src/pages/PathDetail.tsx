@@ -3,7 +3,7 @@
  * @description 三栏路径视图：节点列表 · 图谱 · 详情与资源
  * @route /path/view
  */
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import {
   FileText,
@@ -27,8 +27,11 @@ import PathGraphCanvas, {
 } from "../components/path/PathGraphCanvas";
 import PathTopicList from "../components/path/PathTopicList";
 import { useAppStore } from "../store/useAppStore";
+import { updateResourceStatus as updateResourceStatusApi } from "../lib/api/learn";
+import { ApiClientError } from "../lib/api/client";
+import { parseLearningPathApiData } from "../lib/pathSync";
 import { PATH_HUB_PATH, PATH_PLAN_PATH } from "../lib/pathRoutes";
-import type { MultimodalResource, ResourceType } from "../types";
+import type { MultimodalResource, ResourceStatus, ResourceType } from "../types";
 
 const typeLabels: Record<string, string> = {
   all: "全部",
@@ -64,8 +67,10 @@ const statusColors: Record<string, string> = {
 };
 
 export default function PathDetail() {
-  const { pathStages, learningPathMeta, updateResourceStatus } = useAppStore();
+  const { pathStages, learningPathMeta, updateResourceStatus, setLearningPath } = useAppStore();
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusError, setStatusError] = useState<string | null>(null);
+  const [syncingResourceId, setSyncingResourceId] = useState<string | null>(null);
   const nodes = useMemo(() => flattenNodes(pathStages), [pathStages]);
   const [selectedNode, setSelectedNode] = useState<PathGraphNode | null>(
     () => nodes.find((n) => !n.locked) ?? nodes[0] ?? null
@@ -107,6 +112,46 @@ export default function PathDetail() {
 
   const filteredResources =
     activeTopic?.resources.filter((r) => typeFilter === "all" || r.type === typeFilter) ?? [];
+
+  const handleResourceStatusChange = useCallback(
+    async (topicId: string, resourceId: string, status: string) => {
+      const prevStatus =
+        pathStages
+          .flatMap((stage) => stage.topics)
+          .find((topic) => topic.id === topicId)
+          ?.resources.find((resource) => resource.id === resourceId)?.status ?? "todo";
+
+      setStatusError(null);
+      setSyncingResourceId(resourceId);
+      updateResourceStatus(topicId, resourceId, status);
+
+      try {
+        const res = await updateResourceStatusApi(topicId, resourceId, status);
+        if (res.code === 200 && res.data) {
+          const parsed = parseLearningPathApiData(res.data as Record<string, unknown>);
+          if (parsed && learningPathMeta) {
+            setLearningPath(parsed.stages, {
+              ...learningPathMeta,
+              overallProgress: parsed.meta.overallProgress,
+            });
+          }
+          return;
+        }
+        updateResourceStatus(topicId, resourceId, prevStatus);
+        setStatusError(res.msg || "状态同步失败");
+      } catch (err) {
+        updateResourceStatus(topicId, resourceId, prevStatus);
+        if (err instanceof ApiClientError && err.code === 401) {
+          setStatusError("学习服务未识别登录态，请确认 learn-service 与 Redis 正常");
+        } else {
+          setStatusError("网络异常，状态未保存");
+        }
+      } finally {
+        setSyncingResourceId(null);
+      }
+    },
+    [pathStages, learningPathMeta, setLearningPath, updateResourceStatus]
+  );
 
   return (
     <ScholarDashboardLayout
@@ -208,6 +253,9 @@ export default function PathDetail() {
               <div className="path-detail-side__resources">
                 <div className="path-detail-side__resources-head">
                   <h4>推送资源</h4>
+                  {statusError && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{statusError}</p>
+                  )}
                   <div className="path-detail-filters path-detail-filters--compact">
                     {["all", "document", "mindmap", "exercise", "video", "practice"].map((t) => (
                       <button
@@ -228,7 +276,8 @@ export default function PathDetail() {
                       <ResourceRow
                         resource={resource}
                         topicId={activeTopic.id}
-                        onStatusChange={updateResourceStatus}
+                        syncing={syncingResourceId === resource.id}
+                        onStatusChange={handleResourceStatusChange}
                       />
                     </li>
                   ))}
@@ -258,11 +307,13 @@ export default function PathDetail() {
 function ResourceRow({
   resource,
   topicId,
+  syncing,
   onStatusChange,
 }: {
   resource: MultimodalResource;
   topicId: string;
-  onStatusChange: (topicId: string, resourceId: string, status: string) => void;
+  syncing?: boolean;
+  onStatusChange: (topicId: string, resourceId: string, status: string) => void | Promise<void>;
 }) {
   const Icon = typeIcons[resource.type];
   const status = resource.status || "todo";
@@ -273,10 +324,10 @@ function ResourceRow({
   };
 
   const cycleStatus = () => {
-    const order = ["todo", "learning", "done", "mastered"];
-    const idx = order.indexOf(status);
+    const order: ResourceStatus[] = ["todo", "learning", "done", "mastered"];
+    const idx = order.indexOf(status as ResourceStatus);
     const next = order[(idx + 1) % order.length];
-    onStatusChange(topicId, resource.id, next);
+    void onStatusChange(topicId, resource.id, next);
   };
 
   return (
@@ -293,8 +344,13 @@ function ResourceRow({
         <button type="button" className="btn-primary text-xs py-1 px-2.5" onClick={openResource}>
           打开
         </button>
-        <button type="button" onClick={cycleStatus} className="btn-secondary text-xs py-1 px-2.5">
-          <CheckCircle2 size={11} /> 标记
+        <button
+          type="button"
+          onClick={cycleStatus}
+          disabled={syncing}
+          className="btn-secondary text-xs py-1 px-2.5"
+        >
+          <CheckCircle2 size={11} /> {syncing ? "保存中…" : "标记"}
         </button>
       </div>
     </article>

@@ -1,8 +1,8 @@
 /**
  * @file generateLearningPath.ts
- * @description 路径智能体规划结果 · **待后端** POST /api/learning-path/generate
+ * @description 路径智能体规划结果 · 本地 fallback（`VITE_PATH_PLAN_API=0` 或 generate API 失败时）
  *
- * 当前：结合学习画像 + 规划对话，本地生成三阶段路径与五类多模态资源占位。
+ * 正常路径：`PathPlan.tsx` → `generateLearningPathApi()` → POST /api/learning-path/generate
  */
 import type { LearningProfile, MultimodalResource, PathStage, LearningPathMeta } from "../types";
 import type { PathPlanDraft } from "./pathPlanChat";

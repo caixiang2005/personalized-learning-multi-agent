@@ -36,6 +36,13 @@ export class AgentApiError extends Error {
   }
 }
 
+/** 通用 agent 响应（finalize 等无 ai_reply 的接口） */
+export interface AgentApiResponse<T = Record<string, unknown>> {
+  code: number;
+  msg: string;
+  data: T | null;
+}
+
 export interface PostAgentChatOptions {
   /** 登录 Chat 传 true，附带 Bearer（后端当前不校验，预留） */
   withAuth?: boolean;
@@ -90,6 +97,58 @@ export async function postAgentChat(
       throw new AgentApiError("请求超时，请稍后再试", 408);
     }
     // TypeError: 连接被拒绝（ms 级快速返回）
+    throw new AgentApiError(err instanceof Error ? err.message : "网络异常", 0);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** 通用 agent POST（profile/path finalize 等，不要求 ai_reply） */
+export async function postAgentRequest<T = Record<string, unknown>>(
+  url: string,
+  body: Record<string, unknown>,
+  options: PostAgentChatOptions = {}
+): Promise<AgentApiResponse<T>> {
+  const { withAuth = false, timeoutMs = 180_000 } = options;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  const headers: HeadersInit = {
+    ...(withAuth ? authHeaders() : { "Content-Type": "application/json" }),
+  };
+  const sessionId = body.session_id;
+  if (typeof sessionId === "string" && sessionId) {
+    (headers as Record<string, string>)["x-session-id"] = sessionId;
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    let json: AgentApiResponse<T>;
+    try {
+      json = (await res.json()) as AgentApiResponse<T>;
+    } catch {
+      throw new AgentApiError(res.ok ? "响应解析失败" : `HTTP ${res.status}`, res.status);
+    }
+
+    if (json.code !== 200) {
+      throw new AgentApiError(
+        json.msg || (res.status >= 500 ? "服务器内部错误，请稍后再试" : `HTTP ${res.status}`),
+        json.code || res.status
+      );
+    }
+
+    return json;
+  } catch (err) {
+    if (err instanceof AgentApiError) throw err;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new AgentApiError("请求超时，请稍后再试", 408);
+    }
     throw new AgentApiError(err instanceof Error ? err.message : "网络异常", 0);
   } finally {
     clearTimeout(timer);

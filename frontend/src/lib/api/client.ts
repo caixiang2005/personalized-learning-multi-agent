@@ -1,8 +1,8 @@
 /**
- * Axios 统一客户端：鉴权、loading、错误与 401 跳转。
+ * Axios 统一客户端：鉴权、loading、错误处理。
  */
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
-import { clearTokens, getToken } from "../auth/token";
+import { getToken } from "../auth/token";
 import type { ApiEnvelope } from "../../types/account";
 
 export class ApiClientError extends Error {
@@ -67,10 +67,7 @@ apiClient.interceptors.response.use(
 
     const body = response.data as ApiEnvelope<unknown> | undefined;
     if (body && typeof body.code === "number" && body.code !== 200) {
-      if (body.code === 401) {
-        clearTokens();
-        window.location.assign("/login");
-      }
+      // 不在全局强制跳转登录：learn-service 等业务 401 时页面可降级 Mock/本地数据
       return Promise.reject(new ApiClientError(body.msg || "请求失败", body.code));
     }
     return response;
@@ -80,11 +77,6 @@ apiClient.interceptors.response.use(
 
     const code = error.response?.data?.code;
     const msg = error.response?.data?.msg ?? error.message ?? "网络异常";
-
-    if (code === 401) {
-      clearTokens();
-      window.location.assign("/login");
-    }
 
     return Promise.reject(new ApiClientError(msg, code ?? error.response?.status ?? 500));
   }

@@ -8,8 +8,12 @@ const BUILD_SOURCE = "对话画像构建";
 
 export function isProfileReady(profile: LearningProfile | null | undefined): boolean {
   const dims = profile?.learnerDimensions;
-  if (!Array.isArray(dims)) return false;
-  return dims.some((d) => d.source === BUILD_SOURCE);
+  if (!Array.isArray(dims) || dims.length < 6) return false;
+  if (dims.some((d) => d.source?.includes(BUILD_SOURCE) || d.source?.includes("用户手动更新"))) {
+    return true;
+  }
+  // 六维均有有效分值也视为已构建（兼容旧数据缺 source）
+  return dims.every((d) => Number(d.value) > 0);
 }
 
 export function shouldShowDashboard(

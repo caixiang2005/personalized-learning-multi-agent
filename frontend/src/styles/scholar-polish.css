@@ -549,6 +549,17 @@
   font-weight: 600;
 }
 
+/* 移动端底栏：挂到 body，预留内容区底部空间 */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-width: 767px) {
+  .has-mobile-nav-pad {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .growth-quick-links {
   display: flex;
   flex-wrap: wrap;
@@ -1097,6 +1108,11 @@
 .doubao-msg__actions button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.doubao-msg__actions button.doubao-msg__action--active {
+  color: var(--scholar-primary);
+  background: color-mix(in srgb, var(--scholar-primary) 14%, transparent);
 }
 
 .doubao-thinking {

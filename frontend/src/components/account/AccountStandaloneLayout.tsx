@@ -52,7 +52,7 @@ export default function AccountStandaloneLayout({ children }: Props) {
         </div>
       </header>
 
-      <main className="account-standalone__main flex-1 pb-14 md:pb-0">{children}</main>
+      <main className="account-standalone__main flex-1 has-mobile-nav-pad">{children}</main>
       <MobileNav />
     </div>
   );

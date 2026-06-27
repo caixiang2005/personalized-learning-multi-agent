@@ -1,17 +1,48 @@
 /**
  * @file stream.ts
- * @description 前端本地模拟工具（不访问网络）。
- *
- * 【当前 Mock】
- *   - simulateStream：假装「流式」输出文字，用于 Home / Chat
- *   - checkSensitiveInput：本地关键词过滤
- *
- * 【待同步后端】
- *   - 流式输出 → 对接 POST /api/chat/stream（见 endpoints.ts API.chat.stream）
- *   - 敏感词   → 可选 client.checkSensitiveApi()，对接 POST /api/safety/check
+ * @description 流式 UX 工具：SSE 解析、本地打字模拟、敏感词过滤。
  */
 
-/** 【当前 Mock】逐字输出，模拟 SSE 的 onChunk 效果 */
+import { API } from "./api/endpoints";
+
+/** 解析 fetch SSE 响应体，逐条 yield JSON 事件 */
+export async function* readSseJsonEvents(
+  response: Response
+): AsyncGenerator<Record<string, unknown>, void, unknown> {
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data: ")) continue;
+        try {
+          yield JSON.parse(trimmed.slice(6)) as Record<string, unknown>;
+        } catch {
+          // skip unparseable lines
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/** 逐字输出，模拟 SSE 的 onChunk 效果（非流式 API 回退时使用） */
 export async function simulateStream(
   text: string,
   onChunk: (partial: string) => void,
@@ -26,14 +57,38 @@ export async function simulateStream(
   }
 }
 
-/** 【当前 Mock】本地违禁词，联调后可改为后端校验 */
-export const BLOCKED_KEYWORDS = ["作弊", "代考", "答案泄露"];
+/** 本地违禁词（API 不可用时的 fallback） */
+export const BLOCKED_KEYWORDS = ["作弊", "代考", "答案泄露", "枪手", "替考"];
 
-/**
- * 【当前 Mock】返回错误文案或 null
- * 【待同步】可改为 await checkSensitiveApi(text)
- */
-export function checkSensitiveInput(text: string): string | null {
+function checkSensitiveInputLocal(text: string): string | null {
   const hit = BLOCKED_KEYWORDS.find((k) => text.includes(k));
   return hit ? `输入包含敏感词「${hit}」，请修改后重试` : null;
+}
+
+/** 优先 POST /api/safety/check，失败时回退本地词表 */
+export async function checkSensitiveInput(text: string): Promise<string | null> {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  try {
+    const res = await fetch(API.safety.check, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: trimmed }),
+    });
+    const json = await res.json();
+    if (json.code === 200 && json.data?.safe === false) {
+      return (
+        (json.data.message as string) ||
+        `输入包含敏感词「${json.data.hit}」，请修改后重试`
+      );
+    }
+    if (json.code === 200 && json.data?.safe === true) {
+      return null;
+    }
+  } catch {
+    /* 后端未就绪 → 本地 fallback */
+  }
+
+  return checkSensitiveInputLocal(trimmed);
 }

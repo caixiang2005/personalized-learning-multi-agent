@@ -32,7 +32,6 @@ function resolveLinkLabel(href: string | undefined, children: ReactNode): ReactN
 function MarkdownLink({
   href,
   children,
-  ...rest
 }: AnchorHTMLAttributes<HTMLAnchorElement>) {
   // B站视频链接由 splitMarkdownWithVideos 提取为卡片，此处不再重复渲染
   if (href && /bilibili\.com\/video\//i.test(href)) {

@@ -1,18 +1,18 @@
 /**
  * @file agentChat.ts
- * @description 登录用户 Agent 对话 · POST /api/agent/chat（agent-service :8003）
+ * @description 登录用户 Agent 对话 · agent-service :8003
  *
- * 对齐 backend/agent-service/api/chat.py：
- *   请求 { user_input, session_id }
- *   响应 { code, msg, data: { ai_reply } }，ai_reply 为 Markdown
- *   多轮上下文由服务端 Redis 按 session_id 维护（TTL 约 2h，暂时方案）
+ * 主路径：POST /api/agent/chat/stream（真实 SSE token 流）
+ * 回退：  POST /api/agent/chat（非流式 + simulateStream 打字）
  *
  * VITE_AGENT_CHAT_MOCK=1 强制本地 Mock
  */
 
 import { API } from "./api/endpoints";
 import { postAgentChat, AgentApiError } from "./api/agent";
-import { simulateStream } from "./stream";
+import { recordLearningActivityApi } from "./api/learn";
+import { authHeaders } from "./auth/token";
+import { readSseJsonEvents, simulateStream } from "./stream";
 
 let pageSessionId: string | null = null;
 
@@ -39,6 +39,34 @@ export interface AgentChatResult {
   usedFallback?: boolean;
 }
 
+async function streamAgentReply(
+  userInput: string,
+  sessionId: string,
+  onChunk: (partial: string) => void
+): Promise<string> {
+  const response = await fetch(API.agent.chatStream, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ user_input: userInput, session_id: sessionId }),
+  });
+
+  let fullContent = "";
+  for await (const event of readSseJsonEvents(response)) {
+    if (event.type === "token") {
+      fullContent += (event.content as string) || "";
+      onChunk(fullContent);
+    } else if (event.type === "done") {
+      fullContent = (event.reply as string) || fullContent;
+      onChunk(fullContent);
+    }
+  }
+
+  if (!fullContent.trim()) {
+    throw new Error("empty reply");
+  }
+  return fullContent;
+}
+
 export async function sendAgentMessage(
   userInput: string,
   onChunk: (partial: string) => void,
@@ -47,7 +75,10 @@ export async function sendAgentMessage(
   const sid = sessionId ?? getAgentSessionId();
   const forceMock = import.meta.env.VITE_AGENT_CHAT_MOCK === "1";
 
-  const finish = async (reply: string, usedFallback = false): Promise<AgentChatResult> => {
+  const finishWithTyping = async (
+    reply: string,
+    usedFallback = false
+  ): Promise<AgentChatResult> => {
     await simulateStream(reply, onChunk, 12);
     return { reply, sessionId: sid, usedFallback };
   };
@@ -57,7 +88,15 @@ export async function sendAgentMessage(
     userInput;
 
   if (forceMock) {
-    return finish(mockReply);
+    return finishWithTyping(mockReply);
+  }
+
+  try {
+    const reply = await streamAgentReply(userInput, sid, onChunk);
+    void recordLearningActivityApi("chat").catch(() => {});
+    return { reply, sessionId: sid };
+  } catch {
+    // SSE 不可用 → 非流式 API
   }
 
   try {
@@ -66,12 +105,13 @@ export async function sendAgentMessage(
       { user_input: userInput, session_id: sid },
       { withAuth: true, timeoutMs: 180_000 }
     );
-    return finish(json.data!.ai_reply);
+    void recordLearningActivityApi("chat").catch(() => {});
+    return finishWithTyping(json.data!.ai_reply);
   } catch (err) {
     const msg = err instanceof AgentApiError ? err.message : "请求失败";
     if (err instanceof AgentApiError && (err.code >= 500 || err.code === 408)) {
-      return finish(`⚠️ ${msg}`, true);
+      return finishWithTyping(`⚠️ ${msg}`, true);
     }
-    return finish(mockReply, true);
+    return finishWithTyping(mockReply, true);
   }
 }

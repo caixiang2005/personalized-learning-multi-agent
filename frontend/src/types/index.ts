@@ -2,8 +2,8 @@
  * @file index.ts
  * @description 前后端共用的数据结构类型定义。
  *
- * 【待同步后端】联调时把后端 JSON 字段与下列 interface 逐项对齐；
- * 若不一致，改本文件或让后端按此返回。尤其 LearningProfile.dimensions 不少于 6 项。
+ * 联调时把后端 JSON 字段与下列 interface 逐项对齐；
+ * 大部分结构已与 learn-service 对齐，变更时请同步 OpenAPI。
  */
 export type ResourceType =
   | "document"
@@ -21,7 +21,17 @@ export interface ChatMessage {
   streaming?: boolean;
   verified?: boolean;
   resources?: MultimodalResource[];
+  attachments?: ChatAttachment[];
   timestamp: number;
+}
+
+export interface ChatAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  /** 本地预览 URL（blob:） */
+  previewUrl?: string;
+  ocrText?: string;
 }
 
 export interface MultimodalResource {
@@ -121,7 +131,7 @@ export interface PathStage {
   topics: PathTopic[];
 }
 
-/** 【待同步】GET /api/learning-path 元信息 */
+/** 学习路径元信息 · GET /api/learning-path */
 export interface LearningPathMeta {
   id: string;
   title: string;

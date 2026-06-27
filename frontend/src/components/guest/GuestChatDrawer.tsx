@@ -79,7 +79,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
     const content = (text ?? input).trim();
     if (!content || thinking || trialExhausted) return;
 
-    const blocked = checkSensitiveInput(content);
+    const blocked = await checkSensitiveInput(content);
     if (blocked) {
       setMessages((m) => [
         ...m,

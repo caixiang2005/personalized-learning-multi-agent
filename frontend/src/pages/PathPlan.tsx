@@ -3,7 +3,8 @@
  * @description 路径规划智能体：结合画像规划阶段路径与多模态资源推送
  * @route /path/plan
  *
- * 【待同步后端】POST /api/agent/path-plan · POST /api/learning-path/generate
+ * ✅ 已对接 POST /api/agent/path-plan · POST /api/learning-path/generate
+ * （VITE_PATH_PLAN_API=0 或 API 失败时走 generateLearningPath.ts 本地 fallback）
  */
 
 import { useRef, useEffect, useState, useCallback, useMemo } from "react";
@@ -26,9 +27,13 @@ import { checkSensitiveInput } from "../lib/stream";
 import {
   bootstrapPathPlanFromInput,
   sendPathPlanMessage,
+  finalizePathPlanRemote,
   type PathPlanDraft,
 } from "../lib/pathPlanChat";
 import { generateLearningPath } from "../lib/generateLearningPath";
+import { generateLearningPathApi } from "../lib/api/learn";
+import { AgentApiError } from "../lib/api/agent";
+import { parseLearningPathApiData } from "../lib/pathSync";
 import { needsProfileBuild as checkNeedsProfileBuild } from "../lib/profileGate";
 import { PROFILE_BUILD_PATH } from "../lib/navConfig";
 import { PATH_HUB_PATH, PATH_VIEW_PATH } from "../lib/pathRoutes";
@@ -69,6 +74,8 @@ export default function PathPlan() {
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [generatingPath, setGeneratingPath] = useState(false);
+  const [pathError, setPathError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const displayMessages = pathPlanMessages.length ? pathPlanMessages : [welcomeMsg];
@@ -102,7 +109,7 @@ export default function PathPlan() {
       const trimmed = text.trim();
       if (!trimmed || loading) return;
 
-      const sensitive = checkSensitiveInput(trimmed);
+      const sensitive = await checkSensitiveInput(trimmed);
       if (sensitive) {
         addPathPlanMessage({
           id: `err-${Date.now()}`,
@@ -148,44 +155,65 @@ export default function PathPlan() {
     [loading, profile, userRounds, addPathPlanMessage, updatePathPlanMessage]
   );
 
-  const handleGeneratePath = async () => {
-    if (!canGenerate) return;
-    // 尝试后端 agent finalize
-    const useRemote = import.meta.env.VITE_PATH_PLAN_API === "1";
-    if (useRemote) {
+  const persistPath = useCallback(
+    async (stages: ReturnType<typeof generateLearningPath>["stages"], meta: ReturnType<typeof generateLearningPath>["meta"]) => {
       try {
-        const { postAgentChat } = await import("../lib/api/agent");
-        const sid = sessionStorage.getItem("path_plan_session_id");
-        if (sid) {
-          const res = await postAgentChat(
-            "/api/agent/path-plan/finalize",
-            { session_id: sid },
-            { withAuth: true, timeoutMs: 15000 }
-          );
-          if (res.code === 200 && res.data) {
-            const data = res.data;
-            const stages = data.stages ?? data.pathStages ?? [];
-            if (stages.length > 0) {
-              setLearningPath(stages, {
-                id: data.id ?? `path-${Date.now()}`,
-                title: data.title ?? "个性化学习路径",
-                course: data.course ?? "",
-                generatedAt: data.generatedAt ?? new Date().toISOString(),
-                source: "路径智能体规划",
-                overallProgress: data.overallProgress ?? 0,
-              });
+        const res = await generateLearningPathApi({
+          course: meta.course,
+          goal: draftRef.current.priority.trim() || profile.goal || "阶段学习目标",
+          stages,
+          title: meta.title,
+        });
+        if (res.code === 200 && res.data) {
+          const parsed = parseLearningPathApiData(res.data as Record<string, unknown>);
+          if (parsed) {
+            setLearningPath(parsed.stages, parsed.meta);
+            return true;
+          }
+        }
+      } catch {
+        // fallback to local store only
+      }
+      setLearningPath(stages, meta);
+      return false;
+    },
+    [profile.goal, setLearningPath]
+  );
+
+  const handleGeneratePath = async () => {
+    if (!canGenerate || generatingPath) return;
+    setPathError(null);
+    setGeneratingPath(true);
+
+    try {
+      const useRemote = import.meta.env.VITE_PATH_PLAN_API !== "0";
+      const sid = sessionStorage.getItem("path_plan_session_id");
+
+      if (useRemote && sid) {
+        try {
+          const res = await finalizePathPlanRemote(sid);
+          if (res.data) {
+            const parsed = parseLearningPathApiData(res.data);
+            if (parsed) {
+              setLearningPath(parsed.stages, parsed.meta);
               navigate(PATH_VIEW_PATH);
               return;
             }
           }
+        } catch (err) {
+          if (err instanceof AgentApiError && err.code === 400) {
+            setPathError(err.message || "请先完成路径对话，待智能体输出完整路径后再生成");
+          }
+          // other errors: fallback below
         }
-      } catch {
-        // fallback to local
       }
+
+      const { stages, meta } = generateLearningPath(profile, draftRef.current, userRounds);
+      await persistPath(stages, meta);
+      navigate(PATH_VIEW_PATH);
+    } finally {
+      setGeneratingPath(false);
     }
-    const { stages, meta } = generateLearningPath(profile, draftRef.current, userRounds);
-    setLearningPath(stages, meta);
-    navigate(PATH_VIEW_PATH);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -288,15 +316,18 @@ export default function PathPlan() {
               <p className="chat-profile-banner__desc">
                 补充课程、薄弱点与资源偏好后，点击「生成学习路径」查看三阶段规划与多模态资源。
               </p>
+              {pathError && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{pathError}</p>
+              )}
             </div>
           </div>
           <button
             type="button"
             className="chat-profile-banner__btn"
-            disabled={!canGenerate}
-            onClick={handleGeneratePath}
+            disabled={!canGenerate || generatingPath}
+            onClick={() => void handleGeneratePath()}
           >
-            生成学习路径
+            {generatingPath ? "生成中…" : "生成学习路径"}
             <ArrowRight size={14} />
           </button>
         </div>

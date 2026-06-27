@@ -1,6 +1,6 @@
 /**
- * 拍照搜题 Mock 流程（OCR → 解析 → 同类题）
- * 【待同步后端】POST /api/scan/ocr · POST /api/scan/analyze
+ * 拍照搜题 Mock 流程（遗留样例，当前未被引用）
+ * 实际页面 Scan.tsx 直连 POST /api/agent/scan
  */
 import type { ScanResult } from "../types";
 import { simulateStream } from "./stream";

@@ -2,6 +2,8 @@
  * @file MobileNav.tsx
  * @description 移动端底栏：4 Tab（首页 · 辅导 · 路径 · 成长）
  */
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, NavLink } from "react-router-dom";
 import { MoreHorizontal } from "lucide-react";
 import { MOBILE_NAV, isGrowthPath, isHomePath } from "../../lib/navConfig";
@@ -9,13 +11,21 @@ import { resolveTutorNavTarget, isTutorNavActive, TUTOR_CHAT_PATH } from "../../
 import { useAppStore } from "../../store/useAppStore";
 
 export default function MobileNav() {
+  const [mounted, setMounted] = useState(false);
   const { pathname } = useLocation();
   const { profile, profileInitialized } = useAppStore();
   const tutorNav = resolveTutorNavTarget(profileInitialized, profile);
   const growthActive = isGrowthPath(pathname) && pathname !== "/profile";
 
-  return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-gray-200/80 dark:border-gray-700/80 safe-area-pb">
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const nav = (
+    <nav
+      className="mobile-nav md:hidden fixed bottom-0 inset-x-0 z-[120] glass-panel border-t border-gray-200/80 dark:border-gray-700/80 safe-area-pb"
+      aria-label="主导航"
+    >
       <div className="flex items-center justify-around h-14 px-2">
         {MOBILE_NAV.map((item) => {
           const { label, icon: Icon } = item;
@@ -66,4 +76,7 @@ export default function MobileNav() {
       </div>
     </nav>
   );
+
+  if (!mounted) return null;
+  return createPortal(nav, document.body);
 }

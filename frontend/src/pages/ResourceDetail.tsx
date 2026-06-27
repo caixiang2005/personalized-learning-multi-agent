@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, ShieldCheck, Loader2, AlertCircle, Sparkles, Brain, Video, FileText, Code2, BookOpen } from "lucide-react";
+import { ArrowLeft, AlertCircle, Sparkles, Brain, Video, FileText, BookOpen } from "lucide-react";
 import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import MarkdownContent from "../components/ui/MarkdownContent";
 import MultiAgentPipeline, { type AgentStage } from "../components/chat/MultiAgentPipeline";
@@ -153,7 +153,7 @@ export default function ResourceDetail() {
   const [agentStages, setAgentStages] = useState<AgentStage[]>([]);
 
   // 流式输出
-  const { displayText, isStreaming, start: startStream, complete: completeStream, reset: resetStream } = useStreamText({ speed: 20 });
+  const { displayText, isStreaming, start: startStream } = useStreamText({ speed: 20 });
   const [generated, setGenerated] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 

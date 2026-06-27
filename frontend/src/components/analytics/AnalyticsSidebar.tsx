@@ -11,20 +11,28 @@ import {
 } from "lucide-react";
 import AnimeReveal from "../motion/AnimeReveal";
 import ProfileRadar from "../charts/ProfileRadar";
-import { analyticsData } from "../../lib/mockData";
+import type { ActivityDay } from "../charts/ActivityHeatmap";
+import { summarizeActivityGrid } from "../../lib/analyticsDisplay";
 import { useAppStore } from "../../store/useAppStore";
 
-type Props = { range: string };
+type Props = {
+  range: string;
+  weekHours: number;
+  latestAccuracy: number;
+  suggestions: string[];
+  activityGrid: ActivityDay[];
+};
 
-export default function AnalyticsSidebar({ range }: Props) {
+export default function AnalyticsSidebar({
+  range,
+  weekHours,
+  latestAccuracy,
+  suggestions,
+  activityGrid,
+}: Props) {
   const { profile } = useAppStore();
-  const latestAccuracy = analyticsData.accuracy[analyticsData.accuracy.length - 1]?.rate ?? 0;
-  const weekHours = analyticsData.studyHours.reduce((s, d) => s + d.hours, 0);
-
-  const grid = analyticsData.activityGrid;
-  const activeDays = grid.filter((d) => d.level > 0).length;
-  const highDays = grid.filter((d) => d.level >= 3).length;
-  const totalStudyMin = grid.reduce((s, d) => s + (d.minutes ?? 0), 0);
+  const { activeDays, highDays, totalStudyMin } = summarizeActivityGrid(activityGrid);
+  const dims = profile.learnerDimensions?.length ? profile.learnerDimensions : profile.dimensions;
 
   return (
     <>
@@ -34,11 +42,11 @@ export default function AnalyticsSidebar({ range }: Props) {
         <ul className="dash-sidebar-facts">
           <li>
             <Clock size={14} aria-hidden />
-            <span>本周学习 {weekHours.toFixed(1)} 小时</span>
+            <span>周期学习 {weekHours.toFixed(1)} 小时</span>
           </li>
           <li>
             <TrendingUp size={14} aria-hidden />
-            <span>最新正确率 {latestAccuracy}%</span>
+            <span>最新正确率 {latestAccuracy || "—"}%</span>
           </li>
           <li>
             <BarChart2 size={14} aria-hidden />
@@ -82,10 +90,10 @@ export default function AnalyticsSidebar({ range }: Props) {
       <AnimeReveal as="section" className="section-card dash-panel" y={14} delay={150}>
         <h2 className="dash-panel__title">学习行为分析</h2>
         <p className="dash-panel__desc mb-3">
-          你更偏好 <strong>视频 + 练习题</strong> 组合，掌握度提升比纯文档阅读快约 23%。
+          六维画像雷达，反映当前各学习维度得分。
         </p>
         <div className="h-40">
-          <ProfileRadar dimensions={profile.dimensions} />
+          <ProfileRadar dimensions={dims} />
         </div>
       </AnimeReveal>
 
@@ -94,14 +102,18 @@ export default function AnalyticsSidebar({ range }: Props) {
           <Lightbulb size={14} className="inline mr-1 text-[var(--scholar-accent)]" aria-hidden />
           学习方案优化建议
         </h2>
-        <ul className="dash-sidebar-notes mb-4">
-          {analyticsData.suggestions.map((s, i) => (
-            <li key={i}>
-              <span className="font-semibold text-[var(--scholar-accent)] mr-1">{i + 1}.</span>
-              {s}
-            </li>
-          ))}
-        </ul>
+        {suggestions.length === 0 ? (
+          <p className="text-sm text-[var(--scholar-text-muted)] mb-4">完成练习后将生成个性化建议。</p>
+        ) : (
+          <ul className="dash-sidebar-notes mb-4">
+            {suggestions.map((s, i) => (
+              <li key={i}>
+                <span className="font-semibold text-[var(--scholar-accent)] mr-1">{i + 1}.</span>
+                {s}
+              </li>
+            ))}
+          </ul>
+        )}
         <div className="dash-sidebar-links">
           <Link to="/plan" className="btn-primary w-full justify-center text-sm no-underline">
             <CalendarDays size={15} /> 调整今日计划

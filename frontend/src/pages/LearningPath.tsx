@@ -46,7 +46,7 @@ interface PathData {
 
 export default function LearningPath() {
   const navigate = useNavigate();
-  const { profile, profileInitialized } = useAppStore();
+  const { profile, profileInitialized, pathStages, learningPathMeta } = useAppStore();
   const [pathData, setPathData] = useState<PathData | null>(null);
   const [pathLoading, setPathLoading] = useState(true);
   const [pathError, setPathError] = useState<string | null>(null);
@@ -71,14 +71,40 @@ export default function LearningPath() {
 
   useEffect(() => { loadPath(); }, [loadPath]);
 
+  const storePathData: PathData | null =
+    pathStages.length > 0
+      ? {
+          id: learningPathMeta?.id ?? "local-path",
+          title: learningPathMeta?.title ?? "我的学习路径",
+          course: learningPathMeta?.course ?? profile.major ?? "",
+          description: "",
+          stages: pathStages.map((stage) => ({
+            id: stage.id,
+            title: stage.title,
+            topics: stage.topics.map((topic) => ({
+              id: topic.id,
+              title: topic.name,
+              progress: topic.progress,
+              resources: topic.resources,
+            })),
+          })),
+          overallProgress: learningPathMeta?.overallProgress ?? 0,
+          generatedAt: learningPathMeta?.generatedAt ?? "",
+        }
+      : null;
+
+  const effectivePath = pathData ?? storePathData;
+
   const profileReady = !needsProfileBuild(profileInitialized, profile);
-  const hasPath = pathData !== null && (pathData.stages?.length ?? 0) > 0;
-  const stages = pathData?.stages ?? [];
+  const hasPath = effectivePath !== null && (effectivePath.stages?.length ?? 0) > 0;
+  const stages = effectivePath?.stages ?? [];
   const totalTopics = stages.reduce((a, s) => a + (s.topics?.length ?? 0), 0);
   const doneTopics = stages.reduce(
     (a, s) => a + (s.topics ?? []).filter((t) => t.progress >= 80).length, 0
   );
-  const overallProgress = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : (pathData?.overallProgress ?? 0);
+  const overallProgress = totalTopics
+    ? Math.round((doneTopics / totalTopics) * 100)
+    : (effectivePath?.overallProgress ?? 0);
   const totalResources = stages.reduce(
     (a, s) => a + (s.topics ?? []).reduce((n, t) => n + (t.resources?.length ?? 0), 0), 0
   );
@@ -89,7 +115,7 @@ export default function LearningPath() {
   };
 
   const subtitle = hasPath
-    ? `${pathData?.course ?? "我的课程"} · ${stages.length} 阶段 · 完成度 ${overallProgress}%`
+    ? `${effectivePath?.course ?? "我的课程"} · ${stages.length} 阶段 · 完成度 ${overallProgress}%`
     : "赛题核心：依托画像与路径智能体，规划科学学习步骤并精准推送多模态资源";
 
   if (pathLoading) {
@@ -211,11 +237,11 @@ export default function LearningPath() {
                 <Sparkles size={14} /> 已生成路径
               </p>
               <h3 className="text-lg font-semibold text-[var(--scholar-text)] mt-1">
-                {pathData?.title ?? "我的学习路径"}
+                {effectivePath?.title ?? "我的学习路径"}
               </h3>
               <p className="text-sm text-[var(--scholar-text-muted)] mt-1">
                 {stages.length} 个阶段 · {totalTopics} 个知识点 · 更新于{" "}
-                {pathData?.generatedAt ?? "—"}
+                {effectivePath?.generatedAt ?? "—"}
               </p>
             </div>
             <div className="text-right">

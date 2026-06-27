@@ -76,12 +76,18 @@ export const API = {
     sessions: `${API_BASE}/chat/sessions`,
     /** GET /:sessionId 某会话消息列表 */
     messages: (sessionId: string) => `${API_BASE}/chat/sessions/${sessionId}/messages`,
-    /** POST SSE 流式发送消息 */
-    stream: `${API_BASE}/chat/stream`,
+    /** POST SSE 流式发送消息（learn-service 代理 agent-service） */
+    stream: `${API_BASE}/chat/send/stream`,
     /** POST 消息反馈 { messageId, type: 'useful'|'useless'|'favorite' } */
     feedback: `${API_BASE}/chat/feedback`,
-    /** POST 上传附件 multipart */
+    /** POST multipart 上传附件 */
     upload: `${API_BASE}/chat/upload`,
+    /** GET 读取已上传附件 */
+    attachment: (id: string) => `${API_BASE}/chat/attachments/${id}`,
+    /** POST 重新生成最后一条 AI 回复 */
+    regenerate: `${API_BASE}/chat/regenerate`,
+    /** POST SSE 重新生成 */
+    regenerateStream: `${API_BASE}/chat/regenerate/stream`,
   },
 
   /** 学习路径与资源 */
@@ -110,6 +116,8 @@ export const API = {
     save: `${API_BASE}/exercises/save`,
     /** GET 当前用户的所有练习记录 */
     my: `${API_BASE}/exercises`,
+    /** POST 练习完成后同步画像薄弱点 */
+    syncProfile: `${API_BASE}/exercises/sync-profile`,
   },
 
   /** 学习效果评估 */
@@ -120,6 +128,10 @@ export const API = {
     weakPoints: `${API_BASE}/analytics/weak-points`,
     /** GET 学习方案优化建议 */
     suggestions: `${API_BASE}/analytics/suggestions`,
+    /** GET ?weeks=12 学习活跃热力 */
+    activity: `${API_BASE}/analytics/activity`,
+    /** POST 记录学习行为 { activity, minutes?, exerciseScore? } */
+    record: `${API_BASE}/analytics/record`,
   },
 
   /** 内容安全 */
@@ -136,12 +148,17 @@ export const API = {
   agent: {
     /** POST 登录用户 · 知识库 RAG + Redis 多轮 */
     chat: `${API_BASE}/agent/chat`,
+    /** POST 登录用户 · SSE 流式 RAG（token + 管道 stage 事件） */
+    chatStream: `${API_BASE}/agent/chat/stream`,
     /** POST 访客 · 最多 3 轮免费 */
     unloginChat: `${API_BASE}/agent/unlogin/chat`,
-    /** POST 画像智能体 · 对话抽取学习特征（待 agent-service 实现） */
+    /** POST 访客 · SSE 流式 */
+    unloginChatStream: `${API_BASE}/agent/unlogin/chat/stream`,
+    /** POST 画像智能体 · 对话抽取学习特征 */
     profileBuild: `${API_BASE}/agent/profile-build`,
-    /** POST 路径规划智能体 · 分阶段路径与资源推送（待 agent-service 实现） */
+    /** POST 路径规划智能体 · 分阶段路径与资源推送 */
     pathPlan: `${API_BASE}/agent/path-plan`,
+    pathPlanFinalize: `${API_BASE}/agent/path-plan/finalize`,
   },
 
   /** 学习规划 */
@@ -164,6 +181,8 @@ export const API = {
     delete: (sessionId: string) => `${API_BASE}/chat/sessions/${sessionId}`,
     /** POST /send { session_id, content } → { ai_reply, resources } */
     send: `${API_BASE}/chat/send`,
+    /** POST /send/stream — SSE 流式（同 chat.stream） */
+    sendStream: `${API_BASE}/chat/send/stream`,
   },
 
   /** 数据库管理（learn-service :8002，开发调试用） */
@@ -177,10 +196,14 @@ export const API = {
   },
 } as const;
 
-/** 流式对话 chunk（SSE data 行 JSON） */
+/** SSE 事件（learn-service / agent-service 流式对话） */
 export interface StreamChunk {
-  type: "text" | "resource" | "done" | "error";
+  type: "stage" | "token" | "text" | "resource" | "done" | "error";
+  stage?: string;
+  status?: string;
+  detail?: string;
   content?: string;
+  reply?: string;
   resource?: unknown;
   progress?: number;
 }

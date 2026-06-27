@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   Brain, Route, FileText, GitBranch, ClipboardList, Film, Code2,
   CheckCircle2, Loader2, AlertCircle, Sparkles, Search, BookOpen, Lightbulb,
-  Database, Zap,
+  Database,
   type LucideIcon,
 } from "lucide-react";
 

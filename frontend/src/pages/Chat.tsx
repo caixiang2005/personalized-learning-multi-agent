@@ -36,8 +36,9 @@ import {
   needsProfileBuild as checkNeedsProfileBuild,
   type ProfileTutorGateLocationState,
 } from "../lib/profileGate";
-import { fetchChatSessions, createChatSession, deleteChatSession, sendChatMessage, sendChatMessageStream } from "../lib/api/learn";
-import type { ChatMessage, ChatSession } from "../types";
+import { fetchChatSessions, createChatSession, deleteChatSession, sendChatMessage, sendChatMessageStream, uploadChatAttachment, regenerateChatStream, regenerateChatMessage } from "../lib/api/learn";
+import { buildOutboundChatText, buildUserBubbleText } from "../lib/chatComposer";
+import type { ChatAttachment, ChatMessage } from "../types";
 import MultiAgentPipeline from "../components/chat/MultiAgentPipeline";
 import { useMultiAgent } from "../hooks/useMultiAgent";
 
@@ -82,6 +83,27 @@ function isProfileAgentReply(content: string): boolean {
   return /学习画像智能体|生成六维画像|还缺少 \*\*学习目标\*\*|信息已基本齐全/.test(content);
 }
 
+async function consumeChatStream(
+  streamGen: AsyncGenerator<Record<string, unknown>, void, unknown>,
+  onToken: (full: string) => void,
+  onStage?: (stage: string, status: string) => void,
+): Promise<string> {
+  let fullContent = "";
+  for await (const event of streamGen) {
+    if (event.type === "stage" && onStage) {
+      onStage(event.stage as string, event.status as string);
+    } else if (event.type === "token") {
+      fullContent += (event.content as string) || "";
+      onToken(fullContent);
+    } else if (event.type === "done") {
+      fullContent = (event.reply as string) || fullContent;
+      onToken(fullContent);
+    }
+  }
+  if (!fullContent) throw new Error("empty reply");
+  return fullContent;
+}
+
 export default function Chat() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -106,11 +128,13 @@ export default function Chat() {
   } = useAppStore();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const autoBootRef = useRef(false);
   const tutorMigrationRef = useRef(false);
   const { stages: agentStages, startPipeline: startAgentPipeline, advancePipeline: advanceAgentPipeline, resetPipeline: resetAgentPipeline } = useMultiAgent({ autoReset: true, resetDelay: 2000 });
@@ -131,6 +155,13 @@ export default function Chat() {
   const quickCmds = isProfileBuild ? profileQuickCmds : tutorQuickCmds;
   const displayMessages = messages.length ? messages : [welcomeMsg];
   const showQuickCmds = messages.length === 0;
+  const lastRegenerableAssistantId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const m = messages[i];
+      if (m.role === "assistant" && m.id !== "welcome") return m.id;
+    }
+    return null;
+  }, [messages]);
   const profileUserRounds = messages.filter((m) => m.role === "user").length;
   const canCompleteProfile = isProfileBuild && profileUserRounds >= 2 && !loading;
 
@@ -230,37 +261,6 @@ export default function Chat() {
     }
   };
 
-  const handleCreateSession = async () => {
-    if (loading) return;
-    try {
-      const res = await createChatSession("新对话", "");
-      if (res.code === 200 && res.data) {
-        const newSession: ChatSession = {
-          id: res.data.id ?? res.data.sessionId,
-          title: "新对话",
-          course: "",
-          updatedAt: "刚刚",
-        };
-        setSessions([newSession, ...sessions]);
-        setActiveSessionId(newSession.id);
-        setMessages([], "tutor");
-        resetAgentSessionId();
-      }
-    } catch {
-      // fallback: 本地创建
-      const fallbackId = `local-${Date.now()}`;
-      const newSession: ChatSession = {
-        id: fallbackId,
-        title: "新对话",
-        course: "",
-        updatedAt: "刚刚",
-      };
-      setSessions([newSession, ...sessions]);
-      setActiveSessionId(fallbackId);
-      setMessages([], "tutor");
-      resetAgentSessionId();
-    }
-  };
 
   const handleDeleteSession = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -274,12 +274,109 @@ export default function Chat() {
     }
   };
 
-  const sendMessage = useCallback(
-    async (text: string) => {
-      const trimmed = text.trim();
-      if (!trimmed || loading) return;
+  const clearPendingAttachment = useCallback(() => {
+    setPendingAttachment((prev) => {
+      if (prev?.previewUrl?.startsWith("blob:")) {
+        URL.revokeObjectURL(prev.previewUrl);
+      }
+      return null;
+    });
+  }, []);
 
-      const sensitive = checkSensitiveInput(trimmed);
+  const handleAttachmentPick = async (file: File) => {
+    if (uploadBusy || loading || isProfileBuild) return;
+    setUploadBusy(true);
+    try {
+      const res = await uploadChatAttachment(file, activeSessionId ?? undefined);
+      const data = res.data;
+      setPendingAttachment((prev) => {
+        if (prev?.previewUrl?.startsWith("blob:")) URL.revokeObjectURL(prev.previewUrl);
+        return {
+          id: data.id,
+          fileName: data.fileName,
+          mimeType: data.mimeType,
+          previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined,
+          ocrText: data.ocrText,
+        };
+      });
+      if (data.ocrText?.trim() && !input.trim()) {
+        setInput(data.ocrText.trim().slice(0, 500));
+      }
+    } catch (err) {
+      addMessage(
+        {
+          id: `err-${Date.now()}`,
+          role: "assistant",
+          content: `⚠️ 附件上传失败：${err instanceof Error ? err.message : "请稍后再试"}`,
+          timestamp: Date.now(),
+        },
+        chatChannel
+      );
+    } finally {
+      setUploadBusy(false);
+    }
+  };
+
+  const applyPipelineStage = useCallback(
+    (stage: string, status: string) => {
+      const stageOrder = ["search", "context", "generate", "memory"];
+      if (status === "processing") {
+        const prevIdx = stageOrder.indexOf(stage) - 1;
+        if (prevIdx >= 0) advanceAgentPipeline(stageOrder[prevIdx], stage);
+      } else if (status === "done") {
+        const idx = stageOrder.indexOf(stage);
+        const nextId = idx >= 0 && idx < stageOrder.length - 1 ? stageOrder[idx + 1] : undefined;
+        if (nextId) advanceAgentPipeline(stage, nextId);
+        else advanceAgentPipeline(stage);
+      } else if (status === "error") {
+        advanceAgentPipeline(stage);
+      }
+    },
+    [advanceAgentPipeline]
+  );
+
+  const requestTutorReply = useCallback(
+    async (
+      outboundText: string,
+      assistantId: string,
+      sessionId: string | null
+    ): Promise<{ usedFallback: boolean }> => {
+      if (sessionId) {
+        try {
+          await consumeChatStream(
+            sendChatMessageStream(sessionId, outboundText),
+            (partial) => updateMessage(assistantId, { content: partial }, chatChannel),
+            applyPipelineStage
+          );
+          return { usedFallback: false };
+        } catch {
+          for (const s of ["search", "context", "generate", "memory"]) {
+            advanceAgentPipeline(s);
+          }
+          try {
+            const res = await sendChatMessage(sessionId, outboundText);
+            if (res.code === 200 && res.data?.aiReply) {
+              updateMessage(assistantId, { content: res.data.aiReply }, chatChannel);
+              return { usedFallback: true };
+            }
+          } catch { /* ignore */ }
+        }
+      }
+      return sendAgentMessage(outboundText, (partial) =>
+        updateMessage(assistantId, { content: partial }, chatChannel)
+      ).then((r) => ({ usedFallback: r.usedFallback ?? false }));
+    },
+    [applyPipelineStage, advanceAgentPipeline, chatChannel, updateMessage]
+  );
+
+  const sendMessage = useCallback(
+    async (text: string, attachmentOverride?: ChatAttachment | null) => {
+      const attachment = attachmentOverride === undefined ? pendingAttachment : attachmentOverride;
+      const trimmed = text.trim();
+      const outboundText = buildOutboundChatText(trimmed, attachment);
+      if (!outboundText || loading) return;
+
+      const sensitive = await checkSensitiveInput(trimmed);
       if (sensitive) {
         addMessage(
           {
@@ -314,9 +411,9 @@ export default function Chat() {
             sessionId = res.data.id ?? res.data.sessionId;
             setActiveSessionId(sessionId);
             // 同时更新侧边栏 + 刷新列表
-            setSessions((prev) => [{
+            setSessions([{
               id: sessionId!, title: "新对话", course: "", updatedAt: "刚刚",
-            }, ...prev]);
+            }, ...sessions]);
           }
         } catch (e) {
           console.warn("[Chat] 创建会话失败，使用无会话模式:", e);
@@ -327,12 +424,14 @@ export default function Chat() {
         {
           id: `u-${Date.now()}`,
           role: "user",
-          content: trimmed,
+          content: buildUserBubbleText(trimmed, attachment),
+          attachments: attachment ? [{ ...attachment }] : undefined,
           timestamp: Date.now(),
         },
         chatChannel
       );
       setInput("");
+      if (attachment) clearPendingAttachment();
       setLoading(true);
 
       const assistantId = `a-${Date.now()}`;
@@ -360,7 +459,7 @@ export default function Chat() {
       try {
         const result = isProfileBuild
           ? await sendProfileBuildMessage(
-              trimmed,
+              outboundText,
               (partial) => updateMessage(assistantId, { content: partial }, chatChannel),
               {
                 major: profile.major,
@@ -369,75 +468,7 @@ export default function Chat() {
               },
               profileUserRounds + 1
             )
-          : sessionId
-            ? await (async () => {
-                try {
-                  // 真实 SSE 流式管道：agent-service 每个阶段实时推送进度
-                  const streamGen = sendChatMessageStream(sessionId, trimmed);
-                  let fullContent = "";
-
-                  for await (const event of streamGen) {
-                    if (event.type === "stage") {
-                      const stage = event.stage as string;
-                      const status = event.status as string;
-                      // 驱动多智能体管道可视化
-                      if (status === "processing") {
-                        // 标记当前阶段为处理中
-                        const stageOrder = ["search", "context", "generate", "memory"];
-                        const prevIdx = stageOrder.indexOf(stage) - 1;
-                        // 完成前一阶段
-                        if (prevIdx >= 0) {
-                          advanceAgentPipeline(stageOrder[prevIdx], stage);
-                        }
-                      } else if (status === "done") {
-                        // 当前阶段完成，推进到下一阶段
-                        const stageOrder = ["search", "context", "generate", "memory"];
-                        const idx = stageOrder.indexOf(stage);
-                        const nextId = idx >= 0 && idx < stageOrder.length - 1 ? stageOrder[idx + 1] : undefined;
-                        if (nextId) {
-                          advanceAgentPipeline(stage, nextId);
-                        } else {
-                          advanceAgentPipeline(stage);
-                        }
-                      } else if (status === "error") {
-                        advanceAgentPipeline(stage);
-                      }
-                    } else if (event.type === "token") {
-                      // 实时 token 流式输出
-                      fullContent += (event.content as string) || "";
-                      updateMessage(assistantId, { content: fullContent }, chatChannel);
-                    } else if (event.type === "done") {
-                      fullContent = (event.reply as string) || fullContent;
-                      updateMessage(assistantId, { content: fullContent }, chatChannel);
-                    }
-                  }
-
-                  if (!fullContent) throw new Error("empty reply");
-                  return { usedFallback: false };
-                } catch {
-                  // SSE 失败 → fallback 到 learn-service 非流式（仍会持久化消息到DB）
-                  if (pipelineStarted) {
-                    for (const s of ["search", "context", "generate", "memory"]) {
-                      advanceAgentPipeline(s);
-                    }
-                  }
-                  try {
-                    const res = await sendChatMessage(sessionId, trimmed);
-                    if (res.code === 200 && res.data?.aiReply) {
-                      updateMessage(assistantId, { content: res.data.aiReply }, chatChannel);
-                      return { usedFallback: true };
-                    }
-                  } catch { /* ignore */ }
-                  // 最终兜底：直接调用 agent-service
-                  const fallbackResult = await sendAgentMessage(trimmed, (partial) =>
-                    updateMessage(assistantId, { content: partial }, chatChannel)
-                  );
-                  return fallbackResult;
-                }
-              })()
-            : await sendAgentMessage(trimmed, (partial) =>
-                updateMessage(assistantId, { content: partial }, chatChannel)
-              );
+          : await requestTutorReply(outboundText, assistantId, sessionId ?? null);
 
         updateMessage(assistantId, { streaming: false }, chatChannel);
         // 多 Agent 流水线全部完成
@@ -466,6 +497,7 @@ export default function Chat() {
     },
     [
       loading,
+      pendingAttachment,
       isProfileBuild,
       chatChannel,
       profileUserRounds,
@@ -473,7 +505,6 @@ export default function Chat() {
       profile.goal,
       profile.level,
       profile.name,
-      user?.username,
       user,
       activeSessionId,
       sessions,
@@ -482,6 +513,96 @@ export default function Chat() {
       setProfile,
       setSessions,
       setActiveSessionId,
+      clearPendingAttachment,
+      requestTutorReply,
+      advanceAgentPipeline,
+      resetAgentPipeline,
+      startAgentPipeline,
+    ]
+  );
+
+  const handleRegenerate = useCallback(
+    async (assistantMessageId: string) => {
+      if (loading) return;
+      const idx = messages.findIndex((m) => m.id === assistantMessageId);
+      if (idx <= 0) return;
+      const userMsg = messages[idx - 1];
+      if (userMsg.role !== "user") return;
+
+      setLoading(true);
+      updateMessage(assistantMessageId, { content: "", streaming: true }, chatChannel);
+
+      const pipelineStarted = !isProfileBuild;
+      if (pipelineStarted) {
+        startAgentPipeline(["search", "context", "generate", "memory"], "正在重新生成回答…");
+      }
+
+      try {
+        if (isProfileBuild) {
+          await sendProfileBuildMessage(
+            userMsg.content,
+            (partial) => updateMessage(assistantMessageId, { content: partial }, chatChannel),
+            {
+              major: profile.major,
+              goal: profile.goal,
+              level: profile.level,
+            },
+            profileUserRounds
+          );
+        } else if (activeSessionId) {
+          try {
+            await consumeChatStream(
+              regenerateChatStream(activeSessionId),
+              (partial) => updateMessage(assistantMessageId, { content: partial }, chatChannel),
+              applyPipelineStage
+            );
+          } catch {
+            for (const s of ["search", "context", "generate", "memory"]) {
+              advanceAgentPipeline(s);
+            }
+            const res = await regenerateChatMessage(activeSessionId);
+            if (res.code === 200 && res.data?.aiReply) {
+              updateMessage(assistantMessageId, { content: res.data.aiReply }, chatChannel);
+            } else {
+              throw new Error(res.msg || "重新生成失败");
+            }
+          }
+        } else {
+          const outbound = userMsg.attachments?.length
+            ? buildOutboundChatText(userMsg.content, userMsg.attachments[0])
+            : userMsg.content;
+          await sendAgentMessage(outbound, (partial) =>
+            updateMessage(assistantMessageId, { content: partial }, chatChannel)
+          );
+        }
+      } catch {
+        updateMessage(
+          assistantMessageId,
+          { content: "⚠️ 重新生成失败，请稍后再试", streaming: false },
+          chatChannel
+        );
+      } finally {
+        updateMessage(assistantMessageId, { streaming: false }, chatChannel);
+        if (pipelineStarted) {
+          advanceAgentPipeline("review");
+          setTimeout(() => resetAgentPipeline(), 2500);
+        }
+        setLoading(false);
+      }
+    },
+    [
+      loading,
+      messages,
+      chatChannel,
+      isProfileBuild,
+      activeSessionId,
+      profile,
+      profileUserRounds,
+      updateMessage,
+      applyPipelineStage,
+      advanceAgentPipeline,
+      resetAgentPipeline,
+      startAgentPipeline,
     ]
   );
 
@@ -808,7 +929,20 @@ export default function Chat() {
         <div className="doubao-chat-thread">
           <div className="doubao-chat-thread__inner">
             {displayMessages.map((m) => (
-              <MessageBubble key={m.id} message={m} />
+              <MessageBubble
+                key={m.id}
+                message={m}
+                sessionId={!isProfileBuild ? activeSessionId : undefined}
+                feedbackEnabled={!isProfileBuild && m.role === "assistant" && !m.streaming}
+                regenerateEnabled={
+                  !loading &&
+                  m.role === "assistant" &&
+                  !m.streaming &&
+                  m.id !== "welcome" &&
+                  m.id === lastRegenerableAssistantId
+                }
+                onRegenerate={handleRegenerate}
+              />
             ))}
             {loading && (
               <div className="doubao-thinking">
@@ -838,6 +972,23 @@ export default function Chat() {
               </div>
             )}
             <div className="doubao-composer__box">
+              {pendingAttachment && (
+                <div className="doubao-composer__attachment flex items-center gap-2 px-3 pt-2 text-xs text-[var(--scholar-text-muted)]">
+                  {pendingAttachment.previewUrl ? (
+                    <img
+                      src={pendingAttachment.previewUrl}
+                      alt=""
+                      className="h-10 w-10 rounded object-cover"
+                    />
+                  ) : (
+                    <Paperclip size={14} />
+                  )}
+                  <span className="truncate flex-1">{pendingAttachment.fileName}</span>
+                  <button type="button" className="text-[var(--scholar-primary)]" onClick={clearPendingAttachment}>
+                    移除
+                  </button>
+                </div>
+              )}
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -849,18 +1000,35 @@ export default function Chat() {
               />
               <div className="doubao-composer__toolbar">
                 <div className="doubao-composer__tools">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handleAttachmentPick(file);
+                      e.target.value = "";
+                    }}
+                  />
                   <button
                     type="button"
                     className="doubao-composer__tool"
-                    title="上传文件"
+                    title="上传图片或 PDF"
+                    disabled={loading || uploadBusy || isProfileBuild}
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <Paperclip size={18} strokeWidth={1.75} />
+                    {uploadBusy ? (
+                      <Loader2 size={18} className="animate-spin" strokeWidth={1.75} />
+                    ) : (
+                      <Paperclip size={18} strokeWidth={1.75} />
+                    )}
                   </button>
                 </div>
                 <button
                   type="button"
                   onClick={() => sendMessage(input)}
-                  disabled={loading || !input.trim()}
+                  disabled={loading || uploadBusy || (!input.trim() && !pendingAttachment)}
                   className="doubao-composer__send"
                   aria-label="发送"
                 >

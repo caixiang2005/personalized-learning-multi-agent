@@ -1,17 +1,16 @@
 /**
  * @file guestChat.ts
- * @description 访客 Agent · POST /api/agent/unlogin/chat（agent-service :8003）
+ * @description 访客 Agent · agent-service :8003
  *
- * 对齐 backend/agent-service/api/unlogin.py · services/unlogin_chat.py：
- *   免费 3 轮，第 4 轮起返回固定登录引导文案（仍 code 200）
- *   Redis key: unlogin:chat:{session_id}，TTL 3600s
+ * 主路径：POST /api/agent/unlogin/chat/stream（SSE token 流）
+ * 回退：  POST /api/agent/unlogin/chat + simulateStream
  *
  * VITE_GUEST_CHAT_MOCK=1 强制 Mock
  */
 
 import { API } from "./api/endpoints";
 import { postAgentChat, AgentApiError } from "./api/agent";
-import { simulateStream } from "./stream";
+import { readSseJsonEvents, simulateStream } from "./stream";
 
 export const GUEST_MAX_FREE_ROUNDS = 3;
 
@@ -60,6 +59,34 @@ function pickMockReply(input: string, userRound: number): string {
   return mockReplies.default;
 }
 
+async function streamGuestReply(
+  userInput: string,
+  sessionId: string,
+  onChunk: (partial: string) => void
+): Promise<string> {
+  const response = await fetch(API.agent.unloginChatStream, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_input: userInput, session_id: sessionId }),
+  });
+
+  let fullContent = "";
+  for await (const event of readSseJsonEvents(response)) {
+    if (event.type === "token") {
+      fullContent += (event.content as string) || "";
+      onChunk(fullContent);
+    } else if (event.type === "done") {
+      fullContent = (event.reply as string) || fullContent;
+      onChunk(fullContent);
+    }
+  }
+
+  if (!fullContent.trim()) {
+    throw new Error("empty reply");
+  }
+  return fullContent;
+}
+
 export async function sendGuestMessage(
   userInput: string,
   onChunk: (partial: string) => void,
@@ -68,14 +95,32 @@ export async function sendGuestMessage(
   const forceMock = import.meta.env.VITE_GUEST_CHAT_MOCK === "1";
   const sessionId = getGuestSessionId();
 
-  const finish = async (reply: string, usedFallback = false): Promise<GuestChatResult> => {
-    const trialExhausted = isTrialExhaustedReply(reply);
+  const finishWithTyping = async (
+    reply: string,
+    usedFallback = false
+  ): Promise<GuestChatResult> => {
     await simulateStream(reply, onChunk, 16);
-    return { reply, sessionId, trialExhausted, usedFallback };
+    return {
+      reply,
+      sessionId,
+      trialExhausted: isTrialExhaustedReply(reply),
+      usedFallback,
+    };
   };
 
   if (forceMock) {
-    return finish(pickMockReply(userInput, userRound));
+    return finishWithTyping(pickMockReply(userInput, userRound));
+  }
+
+  try {
+    const reply = await streamGuestReply(userInput, sessionId, onChunk);
+    return {
+      reply,
+      sessionId,
+      trialExhausted: isTrialExhaustedReply(reply),
+    };
+  } catch {
+    /* SSE 不可用 → 非流式 */
   }
 
   try {
@@ -84,12 +129,12 @@ export async function sendGuestMessage(
       { user_input: userInput, session_id: sessionId },
       { withAuth: false, timeoutMs: 90_000 }
     );
-    return finish(json.data!.ai_reply);
+    return finishWithTyping(json.data!.ai_reply);
   } catch (err) {
     const msg = err instanceof AgentApiError ? err.message : "请求失败";
     if (err instanceof AgentApiError && (err.code >= 500 || err.code === 408)) {
-      return finish(`⚠️ ${msg}`, true);
+      return finishWithTyping(`⚠️ ${msg}`, true);
     }
-    return finish(pickMockReply(userInput, userRound), true);
+    return finishWithTyping(pickMockReply(userInput, userRound), true);
   }
 }

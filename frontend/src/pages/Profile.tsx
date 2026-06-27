@@ -17,6 +17,10 @@ import AnimeReveal from "../components/motion/AnimeReveal";
 import AnimeStagger from "../components/motion/AnimeStagger";
 import { PROFILE_BUILD_PATH } from "../lib/navConfig";
 import { isProfileReady } from "../lib/profileReady";
+import { patchProfileNote } from "../lib/api/learn";
+import { ApiClientError } from "../lib/api/client";
+import { formatProfilePageSubtitle } from "../lib/profileDisplay";
+import { normalizeLearnerDimensions, parseProfileApiData } from "../lib/profileSync";
 import { useAppStore } from "../store/useAppStore";
 
 export default function Profile() {
@@ -26,33 +30,39 @@ export default function Profile() {
   const displayName = profile.name || user?.username || "学习者";
   const [editNote, setEditNote] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [updateFeedback, setUpdateFeedback] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [confirmRebuild, setConfirmRebuild] = useState(false);
+  const [chartTick, setChartTick] = useState(0);
 
-  const dims = profile.learnerDimensions?.length
-    ? profile.learnerDimensions
-    : profile.dimensions;
+  const dims = normalizeLearnerDimensions(
+    profile.learnerDimensions?.length ? profile.learnerDimensions : profile.dimensions
+  );
 
-  const handleUpdate = () => {
-    if (!editNote.trim()) return;
+  const handleUpdate = async () => {
+    const note = editNote.trim();
+    if (!note) return;
     setUpdating(true);
-    setTimeout(() => {
-      setProfile({
-        updatedAt: new Date().toISOString().slice(0, 10),
-        healthScore: Math.min(100, profile.healthScore + 3),
-        learnerDimensions: dims.map((d) =>
-          d.key === "knowledge"
-            ? {
-                ...d,
-                value: Math.min(100, d.value + 4),
-                trendDelta: (d.trendDelta ?? 0) + 2,
-                source: "用户手动更新 + 对话",
-              }
-            : d
-        ),
-      });
-      setUpdating(false);
+    setUpdateFeedback(null);
+    try {
+      const res = await patchProfileNote(note);
+      const parsed = parseProfileApiData(res.data);
+      if (parsed) {
+        setProfile(parsed);
+        setChartTick((t) => t + 1);
+      }
       setEditNote("");
-    }, 700);
+      setUpdateFeedback({ type: "ok", text: res.msg || "学习状态已记录" });
+    } catch (err) {
+      const msg =
+        err instanceof ApiClientError
+          ? err.code === 401
+            ? "登录已失效，请重新登录后再试"
+            : err.message
+          : "更新失败，请确认 learn-service 已启动";
+      setUpdateFeedback({ type: "err", text: msg });
+    } finally {
+      setUpdating(false);
+    }
   };
 
   const avgScore = dims.length
@@ -88,7 +98,7 @@ export default function Profile() {
     <ScholarDashboardLayout
       badge="6 维动态画像"
       title={`${displayName} 的学习画像`}
-      subtitle={`${profile.major}${profile.major && profile.goal ? " · " : ""}${profile.goal ? `目标：${profile.goal}` : profile.level || ""}${profile.updatedAt ? ` · 更新 ${profile.updatedAt}` : ""}`}
+      subtitle={formatProfilePageSubtitle(profile)}
       aside={<DashboardHealthAside score={profile.healthScore} />}
       sidebar={<ProfileSidebar />}
     >
@@ -122,7 +132,7 @@ export default function Profile() {
             知识掌握 · 习题完成 · 专注度 · 薄弱点改善 · 学习效率 · 提升趋势
           </p>
           <LearnerDimensionLegend />
-          <LearnerRadarChart dimensions={dims} />
+          <LearnerRadarChart key={chartTick} dimensions={dims} />
         </AnimeReveal>
 
         <div className="flex flex-col gap-3 min-w-0">
@@ -166,12 +176,23 @@ export default function Profile() {
           <button
             type="button"
             onClick={handleUpdate}
-            disabled={updating}
+            disabled={updating || !editNote.trim()}
             className="mt-3 btn-primary inline-flex items-center gap-2 cursor-pointer"
           >
             <RefreshCw size={16} className={updating ? "animate-spin" : ""} />
             {updating ? "更新中…" : "触发画像动态更新"}
           </button>
+          {updateFeedback && (
+            <p
+              className={`mt-2 text-sm ${
+                updateFeedback.type === "ok"
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-red-600 dark:text-red-400"
+              }`}
+            >
+              {updateFeedback.text}
+            </p>
+          )}
         </section>
 
         <section className="section-card dash-panel">

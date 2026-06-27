@@ -1,8 +1,9 @@
 /**
  * @file pathPlanChat.ts
- * @description 路径规划智能体 · **待后端** POST /api/agent/path-plan
+ * @description 路径规划智能体 · POST /api/agent/path-plan（默认远程）
  *
- * 当前：结合画像做本地多轮规划引导；生成路径走 generateLearningPath。
+ * 默认远程 agent；`VITE_PATH_PLAN_API=0` 时走本地引导。
+ * 生成路径：`generateLearningPathApi()` 或本地 `generateLearningPath` fallback。
  */
 import { API } from "./api/endpoints";
 import { postAgentChat, AgentApiError } from "./api/agent";
@@ -99,7 +100,7 @@ export async function sendPathPlanMessage(
   userRound: number,
   onToken: (chunk: string) => void
 ): Promise<PathPlanChatResult> {
-  const useRemote = import.meta.env.VITE_PATH_PLAN_API === "1";
+  const useRemote = import.meta.env.VITE_PATH_PLAN_API !== "0";
 
   const finish = async (reply: string, usedFallback?: boolean): Promise<PathPlanChatResult> => {
     await simulateStream(reply, onToken, 14);
@@ -128,4 +129,14 @@ export async function sendPathPlanMessage(
   }
 
   return finish(buildPathAgentReply(userInput, draft, profile, userRound));
+}
+
+/** 完成路径规划：Agent finalize → learn-service 持久化 */
+export async function finalizePathPlanRemote(sessionId: string) {
+  const { postAgentRequest } = await import("./api/agent");
+  return postAgentRequest<Record<string, unknown>>(
+    API.agent.pathPlanFinalize,
+    { session_id: sessionId },
+    { withAuth: true, timeoutMs: 120_000 }
+  );
 }

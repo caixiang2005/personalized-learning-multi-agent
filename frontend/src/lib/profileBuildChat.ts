@@ -1,13 +1,13 @@
 /**
  * @file profileBuildChat.ts
- * @description 画像智能体对话 · **待后端** POST /api/agent/profile-build
+ * @description 画像智能体对话 · POST /api/agent/profile-build（默认远程）
  *
- * 当前：前端多轮引导抽取专业/目标/薄弱点，不调用 /api/agent/chat（知识库辅导）。
- * 后端就绪后：设 VITE_PROFILE_BUILD_API=1 并接入 API.agent.profileBuild。
+ * 默认远程 agent；`VITE_PROFILE_BUILD_API=0` 时走本地多轮引导。
+ * 不调用 /api/agent/chat（与知识库辅导会话隔离）。
  */
 
 import { API } from "./api/endpoints";
-import { postAgentChat, AgentApiError } from "./api/agent";
+import { postAgentChat } from "./api/agent";
 import { bootstrapProfileFromInput } from "./resourceIntents";
 import { simulateStream } from "./stream";
 
@@ -172,8 +172,7 @@ export async function sendProfileBuildMessage(
         { withAuth: true, timeoutMs: 120_000 }
       );
       return finish(json.data!.ai_reply);
-    } catch (err) {
-      const msg = err instanceof AgentApiError ? err.message : "画像智能体请求失败";
+    } catch {
       const local = buildProfileAgentReply(userInput, draft, userRound);
       return finish(`⚠️ 后端画像智能体暂不可用，使用本地引导。\n\n${local}`, {
         usedFallback: true,

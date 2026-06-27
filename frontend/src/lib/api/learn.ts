@@ -3,11 +3,12 @@
  * @description learn-service (:8002) API 封装 — 通过 Vite 代理 /api 到达后端。
  *
  * 所有函数返回后端统一响应 { code, msg, data }。
- * 401 时 client.ts 的拦截器会自动清除 token 并跳转登录。
+ * 401 时抛出 ApiClientError，由页面自行降级或提示（不再全局跳转 /login）。
  */
 import { apiClient } from "./client";
 import { API } from "./endpoints";
 import { getToken } from "../auth/token";
+import { readSseJsonEvents } from "../stream";
 
 // ─── 画像 ───
 
@@ -43,10 +44,13 @@ export function updateResourceStatus(
     .then((r) => r.data);
 }
 
-export function generateLearningPathApi(course: string, goal: string) {
-  return apiClient
-    .post(API.path.generate, { course, goal })
-    .then((r) => r.data);
+export function generateLearningPathApi(body: {
+  course: string;
+  goal: string;
+  stages?: unknown[];
+  title?: string;
+}) {
+  return apiClient.post(API.path.generate, body).then((r) => r.data);
 }
 
 // ─── 资源与练习 ───
@@ -107,6 +111,17 @@ export function saveExerciseResultApi(params: {
     .then((r) => r.data);
 }
 
+/** 练习完成后回写薄弱点与六维画像 */
+export function syncExerciseProfileApi(params: {
+  score: number;
+  questions: Record<string, unknown>[];
+  answers: Record<string, unknown>[];
+  ai_review?: Record<string, unknown>[];
+  topic_id?: string;
+}) {
+  return apiClient.post(API.exercise.syncProfile, params).then((r) => r.data);
+}
+
 /** 获取当前用户的所有练习记录（习题银行） */
 export function fetchMyExercises() {
   return apiClient.get(API.exercise.my).then((r) => r.data);
@@ -126,6 +141,30 @@ export function fetchWeakPoints() {
 
 export function fetchSuggestions() {
   return apiClient.get(API.analytics.suggestions).then((r) => r.data);
+}
+
+export function fetchAnalyticsActivity(weeks = 12) {
+  return apiClient
+    .get(API.analytics.activity, { params: { weeks } })
+    .then((r) => r.data);
+}
+
+/** POST /api/analytics/record — 记录学习行为（如 agent 直连辅导） */
+export function recordLearningActivityApi(
+  activity: "exercise" | "chat" | "path_resource" | "profile_patch",
+  extra?: { minutes?: number; exerciseScore?: number; resourceStatus?: string }
+) {
+  return apiClient
+    .post(API.analytics.record, { activity, ...extra }, { skipLoading: true })
+    .then((r) => r.data);
+}
+
+export function submitChatFeedback(body: {
+  messageId: string;
+  type: "useful" | "useless" | "favorite";
+  sessionId?: string;
+}) {
+  return apiClient.post(API.chat.feedback, body).then((r) => r.data);
 }
 
 // ─── 每日计划 ───
@@ -172,7 +211,7 @@ export async function* sendChatMessageStream(
   content: string,
 ): AsyncGenerator<Record<string, unknown>, void, unknown> {
   const token = getToken();
-  const response = await fetch(`${API.chatSessions.send}/stream`, {
+  const response = await fetch(API.chatSessions.sendStream, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -181,37 +220,56 @@ export async function* sendChatMessageStream(
     body: JSON.stringify({ session_id: sessionId, content }),
   });
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
+  yield* readSseJsonEvents(response);
+}
+
+export interface ChatUploadData {
+  id: string;
+  url: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  ocrText?: string;
+}
+
+/** POST /api/chat/upload — multipart 附件上传 */
+export async function uploadChatAttachment(file: File, sessionId?: string) {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("extract_text", "true");
+  if (sessionId) form.append("session_id", sessionId);
+
+  const token = getToken();
+  const res = await fetch(API.chat.upload, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  const json = await res.json();
+  if (json.code !== 200) {
+    throw new Error(json.msg || "上传失败");
   }
+  return json as { code: number; msg: string; data: ChatUploadData };
+}
 
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error("No response body");
+/** SSE 重新生成最后一条 AI 回复 */
+export async function* regenerateChatStream(
+  sessionId: string,
+): AsyncGenerator<Record<string, unknown>, void, unknown> {
+  const token = getToken();
+  const response = await fetch(API.chat.regenerateStream, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ session_id: sessionId }),
+  });
+  yield* readSseJsonEvents(response);
+}
 
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith("data: ")) continue;
-        try {
-          const data = JSON.parse(trimmed.slice(6));
-          yield data;
-        } catch {
-          // skip unparseable lines
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock();
-  }
+export function regenerateChatMessage(sessionId: string) {
+  return apiClient
+    .post(API.chat.regenerate, { session_id: sessionId })
+    .then((r) => r.data);
 }

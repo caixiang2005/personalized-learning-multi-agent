@@ -12,7 +12,7 @@ export default function AppLayout() {
     <div className="app-page-scrim min-h-screen flex flex-col relative overflow-x-hidden">
       <ApiLoadingBar />
       <Navbar />
-      <main className="flex-1 relative z-[1]">
+      <main className="flex-1 relative z-[1] has-mobile-nav-pad">
         <PageTransition />
       </main>
       <MobileNav />

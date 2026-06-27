@@ -10,6 +10,7 @@
  *   /api/analytics    → learn-service :8002
  *   /api/resources    → learn-service :8002
  *   /api/exercises    → learn-service :8002
+ *   /api/safety       → learn-service :8002
  *   /api/admin        → learn-service :8002
  *   /static           → user-service :8001
  *   /api/* (fallback) → user-service :8001
@@ -54,6 +55,10 @@ export default defineConfig({
         changeOrigin: true,
       },
       "/api/exercises": {
+        target: "http://127.0.0.1:8002",
+        changeOrigin: true,
+      },
+      "/api/safety": {
         target: "http://127.0.0.1:8002",
         changeOrigin: true,
       },

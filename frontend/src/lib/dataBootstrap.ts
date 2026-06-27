@@ -11,7 +11,10 @@ import {
   fetchLearningPath,
   fetchChatSessions,
 } from "./api/learn";
+import { parseLearningPathApiData } from "./pathSync";
+import { parseProfileApiData } from "./profileSync";
 import { isProfileReady } from "./profileReady";
+import type { LearningProfile } from "../types";
 
 /** 用户登录后，并行拉取核心数据，填充 Zustand store。 */
 export async function bootstrapAppData(): Promise<void> {
@@ -29,9 +32,9 @@ export async function bootstrapAppData(): Promise<void> {
   // 1. 画像
   const profileRes = results[0].status === "fulfilled" ? results[0].value : null;
   if (profileRes?.code === 200 && profileRes.data) {
-    const p = profileRes.data;
+    const p = parseProfileApiData(profileRes.data) ?? profileRes.data;
     store.setProfile(p);
-    if (isProfileReady(p)) {
+    if (isProfileReady(p as LearningProfile)) {
       store.setProfileInitialized(true);
     }
   }
@@ -39,14 +42,10 @@ export async function bootstrapAppData(): Promise<void> {
   // 2. 学习路径
   const pathRes = results[1].status === "fulfilled" ? results[1].value : null;
   if (pathRes?.code === 200 && pathRes.data) {
-    store.setLearningPath(pathRes.data.stages ?? [], {
-      id: pathRes.data.id ?? "",
-      title: pathRes.data.title ?? "",
-      course: pathRes.data.course ?? "",
-      generatedAt: pathRes.data.generatedAt ?? "",
-      source: pathRes.data.source ?? "mock",
-      overallProgress: pathRes.data.overallProgress ?? 0,
-    });
+    const parsed = parseLearningPathApiData(pathRes.data as Record<string, unknown>);
+    if (parsed) {
+      store.setLearningPath(parsed.stages, parsed.meta);
+    }
   }
 
   // 3. 会话列表

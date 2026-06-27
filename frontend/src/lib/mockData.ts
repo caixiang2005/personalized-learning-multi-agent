@@ -1,16 +1,13 @@
 /**
  * @file mockData.ts
- * @description 演示用静态数据。**后端未就绪前，全站依赖本文件。**
+ * @description 演示用静态数据与空状态模板。登录后 `dataBootstrap` 以服务端数据为准；
+ * 以下 export 主要用于 blankProfile 初始态、联调前演示、以及类型参考。
  *
- * 【当前 Mock】以下数据在 store 初始化时直接引用，不发起网络请求。
- *
- * 【待同步后端】联调后由接口替代，可删除或仅保留 fallback：
- *   - defaultProfile    → GET /api/profile
- *   - defaultSessions   → GET /api/chat/sessions
- *   - defaultPath       → GET /api/learning-path
- *   - analyticsData     → GET /api/analytics/overview 等
- *
- * 字段结构需与后端 JSON 一致，类型定义见 types/index.ts
+ * 真实接口（已由 bootstrap / 各页面调用）：
+ *   - blankProfile / defaultProfile → GET /api/profile
+ *   - defaultSessions               → GET /api/chat/sessions
+ *   - defaultPath                   → GET /api/learning-path
+ *   - analyticsData                 → GET /api/analytics/*（Analytics 已接 API，此处仅保留样例结构）
  */
 
 import type { LearningProfile, PathStage, ChatSession } from "../types";
@@ -32,7 +29,7 @@ export const blankProfile: LearningProfile = {
   goalProgress: { label: "", percent: 0 },
 };
 
-/** 【待同步】GET /api/profile — 学习画像（含 6 个维度） */
+/** 演示用完整画像 · 联调后以 GET /api/profile 为准 */
 export const defaultProfile: LearningProfile = {
   name: "学习者",
   major: "计算机科学与技术 - 数据结构",
@@ -68,14 +65,14 @@ export const defaultProfile: LearningProfile = {
   goalProgress: { label: "数据结构期末复习", percent: 30 },
 };
 
-/** 【待同步】GET /api/chat/sessions — 对话历史侧边栏列表 */
+/** 演示用会话列表 · bootstrap 后以 GET /api/chat/sessions 为准 */
 export const defaultSessions: ChatSession[] = [
   { id: "1", title: "栈与队列复习", course: "数据结构", updatedAt: "今天" },
   { id: "2", title: "二叉树薄弱点", course: "数据结构", updatedAt: "昨天" },
   { id: "3", title: "图算法入门", course: "数据结构", updatedAt: "3天前" },
 ];
 
-/** 【待同步】GET /api/learning-path — 阶段 / 知识点 / 资源树 */
+/** 演示用路径树 · bootstrap 后以 GET /api/learning-path 为准 */
 export const defaultPath: PathStage[] = [
   {
     id: "s1",
@@ -146,7 +143,7 @@ export const defaultPath: PathStage[] = [
   },
 ];
 
-/** 【待同步】GET /api/analytics/overview、weak-points、suggestions */
+/** 演示用评估样例 · Analytics.tsx 已接 GET /api/analytics/* */
 export const analyticsData = {
   studyHours: [
     { day: "周一", hours: 1.2 },
@@ -168,7 +165,7 @@ export const analyticsData = {
     "你更偏好视频学习，掌握度提升更快，可多安排视频资源",
     "二叉树与图算法仍是薄弱点，推荐先完成阶段 2 专项练习",
   ],
-  /** 【待同步】GET /api/analytics/activity — 近 12 周，按周列 × 星期行排列 */
+  /** 演示用活动热力样例 · Analytics 已接 GET /api/analytics/activity */
   activityGrid: (() => {
     const days: { date: string; level: 0 | 1 | 2 | 3 | 4; minutes?: number }[] = [];
     const today = new Date();

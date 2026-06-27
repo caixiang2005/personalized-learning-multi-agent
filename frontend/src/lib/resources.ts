@@ -1,9 +1,9 @@
 /**
  * @file resources.ts
- * @description 按 id 在学习路径树中查找资源（Mock 阶段用）。
+ * @description 按 id 在学习路径树中查找资源（辅助函数）。
  *
- * 【当前 Mock】仅遍历 store.pathStages，找不到则详情页显示「未找到」。
- * 【待同步后端】ResourceDetail 应直接 fetchResourceDetail(id)，本文件可删除或作缓存辅助。
+ * ResourceDetail 优先 `fetchResourceDetail(id)` 拉取详情；
+ * 本文件用于在 pathStages 树内定位资源及所属知识点。
  */
 
 import type { MultimodalResource, PathStage } from "../types";

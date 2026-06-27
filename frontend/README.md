@@ -1,6 +1,6 @@
 # 智慧学习中心 · 前端
 
-> **当前：** 用户认证已对接 **user-service:8001**（路径见 `backend/user-service/frontend-handoff.md`）；访客 Agent 对接 **agent-service:8003**。其余业务模块仍为 Mock。  
+> **当前：** 用户认证已对接 **user-service:8001**；学习业务（画像/路径/资源/练习/analytics）已对接 **learn-service:8002**；多智能体对话已对接 **agent-service:8003**（含 video RAG）。登录后由 `dataBootstrap` 拉取服务端数据；日计划/搜题已接 API，失败时有本地 fallback。  
 > 联调认证时 **不要** 设置 `VITE_USE_MOCK=true`；本地无后端时可开 Mock，密码/验证码为 `123456`。
 
 ## 文档（必读）
@@ -15,8 +15,8 @@
 
 ## 代码里怎么找
 
-- `【当前 Mock】` — 假数据 / 假逻辑
-- `【待同步后端】` — 其它模块尚未接真实接口
+- `【当前 Mock】` — 仍走本地的逻辑（如 `simulateStream`、敏感词过滤、API 失败 fallback）
+- `【待同步后端】` — 尚未接 API 或仅作规划占位（搜索可定位剩余项）
 - **`src/lib/api/user.ts`** — 用户认证（user-service）
 - `src/lib/api/endpoints.ts` — `API.user` 路径常量
 
@@ -41,7 +41,8 @@ copy .env.example .env.development   # Windows
 | 路径前缀 | 转发到 | 服务 |
 |----------|--------|------|
 | `/api/agent` | `http://127.0.0.1:8003` | agent-service |
-| `/api`（含 `/api/user`） | `http://127.0.0.1:8001` | **user-service** |
+| `/api/profile` · `/api/learning-path` · `/api/plan` · `/api/chat` · `/api/analytics` · `/api/resources` · `/api/exercises` 等 | `http://127.0.0.1:8002` | **learn-service** |
+| `/api`（兜底，含 `/api/user`） | `http://127.0.0.1:8001` | **user-service** |
 
 ### 用户认证联调（user-service）
 

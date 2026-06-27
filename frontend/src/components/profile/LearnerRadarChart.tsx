@@ -29,14 +29,15 @@ export function LearnerDimensionLegend() {
 
 export default function LearnerRadarChart({ dimensions }: { dimensions: ProfileDimension[] }) {
   const data = dimensions.map((d) => ({
-    subject: d.label,
-    value: d.value,
+    subject: d.label || d.key,
+    value: Number(d.value),
     fullMark: 100,
   }));
+  const chartKey = data.map((d) => `${d.subject}:${d.value}`).join("|");
 
   return (
     <ResponsiveContainer width="100%" height={320}>
-      <RadarChart data={data} cx="50%" cy="50%" outerRadius="76%">
+      <RadarChart key={chartKey} data={data} cx="50%" cy="50%" outerRadius="76%">
         <PolarGrid stroke="var(--scholar-border)" gridType="polygon" />
         <PolarAngleAxis
           dataKey="subject"
@@ -50,7 +51,8 @@ export default function LearnerRadarChart({ dimensions }: { dimensions: ProfileD
           fill="url(#learnerRadarFill)"
           fillOpacity={0.42}
           strokeWidth={2}
-          animationDuration={900}
+          isAnimationActive
+          animationDuration={600}
         />
         <defs>
           <linearGradient id="learnerRadarFill" x1="0" y1="0" x2="0" y2="1">
