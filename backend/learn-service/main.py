@@ -21,6 +21,7 @@ from api.analytics import router as analytics_router
 from api.chat import router as chat_router
 from api.db_admin import router as db_admin_router
 from api.plan import router as plan_router
+from api.safety import router as safety_router
 from utils.database import init_db
 from utils.redis import init_redis
 
@@ -41,6 +42,7 @@ app.include_router(resource_router)
 app.include_router(analytics_router)
 app.include_router(chat_router)
 app.include_router(plan_router)
+app.include_router(safety_router)
 
 # 数据库管理（开发调试）
 app.include_router(db_admin_router)
@@ -75,16 +77,6 @@ def on_startup():
 
 
 if __name__ == "__main__":
-    import asyncio
-    import socket
     import uvicorn
 
-    # 预创建 socket + SO_REUSEADDR 绕过 Windows TIME_WAIT 僵尸端口
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(("0.0.0.0", 8002))
-    sock.listen(100)
-
-    config = uvicorn.Config(app, host="0.0.0.0", port=8002, log_level="info")
-    server = uvicorn.Server(config)
-    asyncio.run(server.serve(sockets=[sock]))
+    uvicorn.run("main:app", host="0.0.0.0", port=8002, reload=False)

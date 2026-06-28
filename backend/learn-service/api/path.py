@@ -19,6 +19,9 @@ class ResourceStatusBody(BaseModel):
 class GeneratePathBody(BaseModel):
     course: str
     goal: str
+    stages: list | None = None
+    title: str | None = None
+    description: str | None = None
 
 
 @router.get("/api/learning-path")
@@ -44,4 +47,11 @@ def handle_generate_learning_path(
     body: GeneratePathBody,
     authorization: str | None = Header(default=None),
 ):
-    return generate_learning_path(authorization or "", body.course, body.goal)
+    return generate_learning_path(
+        authorization or "",
+        body.course,
+        body.goal,
+        stages=body.stages,
+        title=body.title,
+        description=body.description,
+    )

@@ -23,13 +23,21 @@ class AppSettings:
     def __init__(self) -> None:
         # 优先加载 config/.env，override=True 确保覆盖已有系统变量
         load_dotenv(CONFIG_DIR / ".env", override=True)
-        # 二次加载项目根 .env 作为兜底
+        # 复用 user-service 的数据库配置（同 project_db，避免重复维护）
+        load_dotenv(SERVICE_ROOT.parent / "user-service" / "config" / ".env", override=False)
+        # 项目根 .env 作为兜底
         load_dotenv(SERVICE_ROOT.parent.parent / ".env", override=False)
         self._yaml = _load_yaml()
 
     @property
     def database_url(self) -> str:
-        return os.getenv("DATABASE_URL", "")
+        url = os.getenv("DATABASE_URL", "").strip()
+        if not url:
+            raise RuntimeError(
+                "DATABASE_URL 未配置。请创建 learn-service/config/.env，"
+                "或确保 user-service/config/.env 已填写 DATABASE_URL。"
+            )
+        return url
 
     @property
     def redis_host(self) -> str:
@@ -43,6 +51,9 @@ class AppSettings:
 
     @property
     def redis_db(self) -> int:
+        r = self._yaml.get("redis") or {}
+        if r.get("db") is not None:
+            return int(r["db"])
         return int(os.getenv("REDIS_DB", "1"))
 
     @property

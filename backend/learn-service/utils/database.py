@@ -158,6 +158,18 @@ class ChatMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
 
 
+class ChatMessageFeedback(Base):
+    __tablename__ = "chat_message_feedbacks"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    message_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    session_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    feedback_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+
+
 # ── 每日计划 ──
 
 
@@ -167,13 +179,13 @@ class DailyPlan(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     plan_date: Mapped[date] = mapped_column(Date, nullable=False)
-    greeting: Mapped[str | None]
-    summary: Mapped[str | None]
+    greeting: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     overall_progress: Mapped[int] = mapped_column(Integer, default=0)
     tasks: Mapped[list | None] = mapped_column(JSON, nullable=True)
     knowledge_push: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    updated_at: Mapped[datetime]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=False), nullable=False)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=False), nullable=True)
 
 
 # ── 数据库工具 ──
@@ -202,7 +214,6 @@ _MIGRATIONS: dict[str, list[str]] = {
         "ALTER TABLE exercises ADD COLUMN IF NOT EXISTS source VARCHAR(30) DEFAULT 'ai_generated'",
     ],
     "daily_plans": [
-        "ALTER TABLE daily_plans ADD COLUMN IF NOT EXISTS ai_review JSON DEFAULT NULL",
     ],
 }
 

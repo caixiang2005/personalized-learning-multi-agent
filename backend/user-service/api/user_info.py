@@ -2,6 +2,7 @@ from fastapi import APIRouter, File, Header, UploadFile
 
 from api.schemas import UpdateProfileBody
 from utils.user_info import get_user_profile, update_user_profile, upload_user_avatar
+from utils.user_stats import get_user_stats
 
 router = APIRouter(tags=["个人信息"])
 
@@ -18,6 +19,11 @@ def _extract_token(authorization: str | None) -> str:
 @router.get("/api/user/getProfile")
 def get_profile(authorization: str | None = Header(default=None)):
     return get_user_profile(_extract_token(authorization))
+
+
+@router.get("/api/user/stats")
+def get_stats(authorization: str | None = Header(default=None)):
+    return get_user_stats(_extract_token(authorization))
 
 
 @router.post("/api/user/updateProfile")

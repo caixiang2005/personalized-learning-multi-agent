@@ -83,36 +83,6 @@ export default function PathDetail() {
     }
   }, [nodes, selectedNode]);
 
-  const hasPath = pathStages.length > 0;
-  if (!hasPath) {
-    return <Navigate to={PATH_HUB_PATH} replace />;
-  }
-
-  const totalTopics = pathStages.reduce((a, s) => a + s.topics.length, 0);
-  const doneTopics = pathStages.reduce(
-    (a, s) => a + s.topics.filter((t) => t.progress >= 80).length,
-    0
-  );
-  const overallProgress = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : 0;
-
-  const activeTopic = selectedNode
-    ? pathStages[selectedNode.stageIndex]?.topics[selectedNode.topicIndex]
-    : null;
-
-  const nodeIndex = selectedNode ? nodes.findIndex((n) => n.id === selectedNode.id) : -1;
-
-  const difficulty =
-    selectedNode && selectedNode.stageIndex === 0
-      ? "入门"
-      : selectedNode && selectedNode.stageIndex === pathStages.length - 1
-        ? "进阶"
-        : "巩固";
-
-  const prevNode = nodeIndex > 0 ? nodes[nodeIndex - 1] : null;
-
-  const filteredResources =
-    activeTopic?.resources.filter((r) => typeFilter === "all" || r.type === typeFilter) ?? [];
-
   const handleResourceStatusChange = useCallback(
     async (topicId: string, resourceId: string, status: string) => {
       const prevStatus =
@@ -152,6 +122,36 @@ export default function PathDetail() {
     },
     [pathStages, learningPathMeta, setLearningPath, updateResourceStatus]
   );
+
+  const hasPath = pathStages.length > 0;
+  if (!hasPath) {
+    return <Navigate to={PATH_HUB_PATH} replace />;
+  }
+
+  const totalTopics = pathStages.reduce((a, s) => a + s.topics.length, 0);
+  const doneTopics = pathStages.reduce(
+    (a, s) => a + s.topics.filter((t) => t.progress >= 80).length,
+    0
+  );
+  const overallProgress = totalTopics ? Math.round((doneTopics / totalTopics) * 100) : 0;
+
+  const activeTopic = selectedNode
+    ? pathStages[selectedNode.stageIndex]?.topics[selectedNode.topicIndex]
+    : null;
+
+  const nodeIndex = selectedNode ? nodes.findIndex((n) => n.id === selectedNode.id) : -1;
+
+  const difficulty =
+    selectedNode && selectedNode.stageIndex === 0
+      ? "入门"
+      : selectedNode && selectedNode.stageIndex === pathStages.length - 1
+        ? "进阶"
+        : "巩固";
+
+  const prevNode = nodeIndex > 0 ? nodes[nodeIndex - 1] : null;
+
+  const filteredResources =
+    activeTopic?.resources.filter((r) => typeFilter === "all" || r.type === typeFilter) ?? [];
 
   return (
     <ScholarDashboardLayout

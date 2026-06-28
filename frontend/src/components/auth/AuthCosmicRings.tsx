@@ -39,7 +39,7 @@ const CORNERS: Record<
     hues: [228, 198, 172],
   },
   tr: {
-    getOrigin: (w, _h) => ({ x: w, y: 0 }),
+    getOrigin: (w) => ({ x: w, y: 0 }),
     getMaxRadius: (w, h) => Math.hypot(w * 0.28, h * 0.28),
     arcStart: Math.PI / 2,
     arcEnd: Math.PI,
@@ -172,7 +172,7 @@ export default function AuthCosmicRings() {
     const stars = seedStars();
     let raf = 0;
     let lastTime = performance.now();
-    let spawnAcc = { bl: SPAWN_GAP * 0.55, tr: SPAWN_GAP * 0.2 };
+    const spawnAcc = { bl: SPAWN_GAP * 0.55, tr: SPAWN_GAP * 0.2 };
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);

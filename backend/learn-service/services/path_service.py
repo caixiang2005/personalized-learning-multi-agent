@@ -20,6 +20,47 @@ def _extract_token(authorization: str | None) -> str:
     return authorization.strip()
 
 
+def _normalize_stages(raw_stages: list | None) -> list[dict[str, Any]]:
+    """将 Agent 输出的 stages 规范化为前端 pathSync 可解析的结构。"""
+    if not raw_stages or not isinstance(raw_stages, list):
+        return []
+
+    normalized: list[dict[str, Any]] = []
+    for stage_idx, stage in enumerate(raw_stages):
+        if not isinstance(stage, dict):
+            continue
+        topics_raw = stage.get("topics") or []
+        topics: list[dict[str, Any]] = []
+        for topic_idx, topic in enumerate(topics_raw):
+            if not isinstance(topic, dict):
+                continue
+            resources_raw = topic.get("resources") or []
+            resources: list[dict[str, Any]] = []
+            for res_idx, res in enumerate(resources_raw):
+                if not isinstance(res, dict):
+                    continue
+                resources.append({
+                    "id": str(res.get("id") or f"res-{stage_idx + 1}-{topic_idx + 1}-{res_idx + 1}"),
+                    "type": str(res.get("type") or "document"),
+                    "title": str(res.get("title") or ""),
+                    "description": str(res.get("description") or ""),
+                    "status": str(res.get("status") or "todo"),
+                })
+            topics.append({
+                "id": str(topic.get("id") or f"topic-{stage_idx + 1}-{topic_idx + 1}"),
+                "name": str(topic.get("name") or topic.get("title") or f"知识点 {topic_idx + 1}"),
+                "progress": int(topic.get("progress") or 0),
+                "resources": resources,
+            })
+        normalized.append({
+            "id": str(stage.get("id") or f"stage-{stage_idx + 1}"),
+            "title": str(stage.get("title") or f"阶段 {stage_idx + 1}"),
+            "description": str(stage.get("description") or ""),
+            "topics": topics,
+        })
+    return normalized
+
+
 def _path_to_dict(path: LearningPath) -> dict[str, Any]:
     return {
         "id": str(path.id),
@@ -129,19 +170,25 @@ def update_resource_status(token: str, topic_id: str, resource_id: str, status: 
         }
 
 
-def generate_learning_path(token: str, course: str, goal: str) -> dict:
-    """POST /api/learning-path/generate — 创建/重新生成学习路径。
-
-    注意：此处仅创建空路径骨架，具体路径内容由 path-plan Agent 填充。
-    """
+def generate_learning_path(
+    token: str,
+    course: str,
+    goal: str,
+    stages: list | None = None,
+    title: str | None = None,
+    description: str | None = None,
+) -> dict:
+    """POST /api/learning-path/generate — 创建/重新生成学习路径。"""
     user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
     now = datetime.now()
+    normalized_stages = _normalize_stages(stages)
+    path_title = (title or "").strip() or (f"{course} 学习路径" if course else "个性化学习路径")
+    path_description = (description or "").strip() or (f"目标: {goal}" if goal else "")
 
     with get_db() as db:
-        # 归档旧路径
         db.query(LearningPath).filter(
             LearningPath.user_id == user_id,
             LearningPath.status == "active",
@@ -149,10 +196,10 @@ def generate_learning_path(token: str, course: str, goal: str) -> dict:
 
         new_path = LearningPath(
             user_id=user_id,
-            title=f"{course} 学习路径",
+            title=path_title,
             course=course,
-            description=f"目标: {goal}",
-            stages=[],
+            description=path_description,
+            stages=normalized_stages,
             status="active",
             overall_progress=0,
             source="路径智能体规划",
@@ -163,8 +210,9 @@ def generate_learning_path(token: str, course: str, goal: str) -> dict:
         db.add(new_path)
         db.flush()
 
+        msg = "学习路径已生成" if normalized_stages else "学习路径已创建"
         return {
             "code": 200,
-            "msg": "学习路径已创建",
+            "msg": msg,
             "data": _path_to_dict(new_path),
         }

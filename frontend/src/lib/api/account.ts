@@ -11,6 +11,7 @@ import type {
   UserProfileData,
   UserStatsDto,
 } from "../../types/account";
+import { API } from "./endpoints";
 import { apiClient, unwrap } from "./client";
 import { fetchUserInfo } from "./user";
 import { useAppStore } from "../../store/useAppStore";
@@ -20,6 +21,14 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === "true";
 const mockDelay = (ms = 450) => new Promise((r) => setTimeout(r, ms));
 
 async function mergeWithUserInfo(profile: UserProfileData): Promise<AccountProfileView> {
+  const cached = useAppStore.getState().user;
+  if (cached) {
+    return {
+      ...profile,
+      email: cached.email,
+      registerTime: cached.registerTime,
+    };
+  }
   const user = await fetchUserInfo();
   return {
     ...profile,
@@ -66,7 +75,7 @@ export async function getAccountProfile(): Promise<AccountProfileView> {
     return mergeWithUserInfo(data);
   }
 
-  const res = await apiClient.get("/user/getProfile", { skipLoading: true });
+  const res = await apiClient.get(API.user.getProfile, { skipLoading: true });
   const profile = unwrap<UserProfileData>(res);
   return mergeWithUserInfo(profile);
 }
@@ -81,7 +90,7 @@ export async function updateAccountProfile(body: UpdateProfileBody): Promise<Acc
     return getAccountProfile();
   }
 
-  const res = await apiClient.post("/user/updateProfile", body);
+  const res = await apiClient.post(API.user.updateProfile, body);
   const updated = unwrap<UserProfileData>(res);
   syncAccountToStore(updated);
   return mergeWithUserInfo(updated);
@@ -98,20 +107,24 @@ export async function uploadAccountAvatar(file: File): Promise<string> {
 
   const formData = new FormData();
   formData.append("file", file);
-  const res = await apiClient.post("/user/uploadAvatar", formData);
+  const res = await apiClient.post(API.user.uploadAvatar, formData);
   const data = unwrap<{ avatarUrl: string }>(res);
   useAppStore.getState().setUserAvatar(data.avatarUrl, true);
   return data.avatarUrl;
 }
 
-/** GET /api/user/stats */
+/** GET /api/user/stats（后端未实现时 fallback mock） */
 export async function getUserStats(): Promise<UserStatsDto> {
   if (USE_MOCK) {
     await mockDelay(300);
     return mockStats();
   }
-  const res = await apiClient.get("/user/stats", { skipLoading: true });
-  return unwrap<UserStatsDto>(res);
+  try {
+    const res = await apiClient.get(API.user.stats, { skipLoading: true });
+    return unwrap<UserStatsDto>(res);
+  } catch {
+    return mockStats();
+  }
 }
 
 function syncAccountToStore(data: UserProfileData, bumpAvatar = false) {

@@ -232,7 +232,7 @@ export default function ExercisePage() {
       if (patch) setProfile(patch);
     };
 
-    let reviewResults: AiReviewResult[] | null = null;
+    let reviewResults: AiReviewResult[] | null;
     let finalScore = localScore;
 
     try {

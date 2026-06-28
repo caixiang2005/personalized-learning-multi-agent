@@ -10,6 +10,7 @@ from services.chat_session_service import (
     send_message,
     send_message_stream,
 )
+from services.chat_feedback_service import submit_feedback
 
 router = APIRouter(tags=["聊天会话"])
 
@@ -22,6 +23,12 @@ class CreateSessionBody(BaseModel):
 class SendMessageBody(BaseModel):
     session_id: str
     content: str
+
+
+class ChatFeedbackBody(BaseModel):
+    messageId: str
+    type: str
+    sessionId: str | None = None
 
 
 def _extract(authorization: str | None) -> str:
@@ -71,6 +78,19 @@ def handle_send_message(
     authorization: str | None = Header(default=None),
 ):
     return send_message(_extract(authorization), body.session_id, body.content)
+
+
+@router.post("/api/chat/feedback")
+def handle_chat_feedback(
+    body: ChatFeedbackBody,
+    authorization: str | None = Header(default=None),
+):
+    return submit_feedback(
+        _extract(authorization),
+        body.messageId,
+        body.type,
+        session_id=body.sessionId,
+    )
 
 
 @router.post("/api/chat/send/stream")

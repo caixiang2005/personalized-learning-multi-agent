@@ -158,3 +158,122 @@ def get_suggestions(token: str) -> dict:
                 "suggestions": suggestions,
             },
         }
+
+
+def _minutes_from_metrics(metrics: dict | None) -> int:
+    if not metrics or not isinstance(metrics, dict):
+        return 0
+    events = metrics.get("events") or []
+    if isinstance(events, list) and events:
+        return sum(int(e.get("minutes") or 0) for e in events if isinstance(e, dict))
+    total = metrics.get("totalMinutes")
+    if isinstance(total, (int, float)):
+        return int(total)
+    return 0
+
+
+def _level_from_minutes(minutes: int) -> int:
+    if minutes <= 0:
+        return 0
+    if minutes < 15:
+        return 1
+    if minutes < 30:
+        return 2
+    if minutes < 60:
+        return 3
+    return 4
+
+
+def record_activity(
+    token: str,
+    activity: str,
+    minutes: int = 0,
+    exercise_score: int | None = None,
+    resource_status: str | None = None,
+) -> dict:
+    """POST /api/analytics/record — 记录学习行为。"""
+    user_id = resolve_user_id_from_token(_extract_token(token))
+    if user_id is None:
+        return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
+
+    valid_activities = {"exercise", "chat", "path_resource", "profile_patch"}
+    if activity not in valid_activities:
+        return {"code": 400, "msg": f"无效 activity，可选: {', '.join(sorted(valid_activities))}", "data": {}}
+
+    now = datetime.now()
+    today = now.date()
+    event: dict[str, Any] = {
+        "activity": activity,
+        "minutes": max(0, int(minutes or 0)),
+        "ts": now.isoformat(),
+    }
+    if exercise_score is not None:
+        event["exerciseScore"] = exercise_score
+    if resource_status:
+        event["resourceStatus"] = resource_status
+
+    with get_db() as db:
+        record = db.query(LearningAnalytics).filter(
+            LearningAnalytics.user_id == user_id,
+            LearningAnalytics.date == today,
+        ).first()
+
+        if record is None:
+            record = LearningAnalytics(
+                user_id=user_id,
+                date=today,
+                metrics={"events": [event], "totalMinutes": event["minutes"]},
+                created_at=now,
+            )
+            db.add(record)
+        else:
+            metrics = dict(record.metrics or {})
+            events = list(metrics.get("events") or [])
+            events.append(event)
+            metrics["events"] = events
+            metrics["totalMinutes"] = _minutes_from_metrics(metrics)
+            record.metrics = metrics
+
+        return {
+            "code": 200,
+            "msg": "学习行为已记录",
+            "data": {"date": today.isoformat(), "activity": activity},
+        }
+
+
+def get_activity(token: str, weeks: int = 12) -> dict:
+    """GET /api/analytics/activity — 学习活跃热力图数据。"""
+    user_id = resolve_user_id_from_token(_extract_token(token))
+    if user_id is None:
+        return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
+
+    weeks = max(1, min(int(weeks or 12), 52))
+    end_date = datetime.now().date()
+    total_days = weeks * 7
+    start_date = end_date - timedelta(days=total_days - 1)
+
+    with get_db() as db:
+        records = db.query(LearningAnalytics).filter(
+            LearningAnalytics.user_id == user_id,
+            LearningAnalytics.date >= start_date,
+            LearningAnalytics.date <= end_date,
+        ).all()
+
+        by_date = {r.date.isoformat(): r for r in records}
+        grid: list[dict[str, Any]] = []
+        for offset in range(total_days):
+            day = start_date + timedelta(days=offset)
+            date_str = day.isoformat()
+            rec = by_date.get(date_str)
+            minutes = _minutes_from_metrics(rec.metrics if rec else None)
+            grid.append({
+                "date": date_str,
+                "level": _level_from_minutes(minutes),
+                "minutes": minutes,
+            })
+
+        return {
+            "code": 200,
+            "msg": "获取活跃数据成功",
+            "data": {"activityGrid": grid},
+        }

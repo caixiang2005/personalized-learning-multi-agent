@@ -39,6 +39,8 @@ redis==7.4.0
 psycopg2-binary==2.9.12
 pgvector==0.4.2
 sentence-transformers==3.4.1
+cnocr>=2.3.0
+Pillow>=10.0.0
 regex==2026.5.9
 requests==2.34.2
 requests-toolbelt==1.0.0

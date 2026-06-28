@@ -1,5 +1,14 @@
 import asyncio
+import os
 from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from utils.hf_env import configure_hf_mirror
+
+configure_hf_mirror()
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -13,24 +22,38 @@ from api.scan import router as scan_router
 from services.logger import capture_exception
 
 
+def _preload_enabled(name: str) -> bool:
+    return os.getenv(name, "0").strip().lower() in {"1", "true", "yes"}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时预加载 embedding 模型（避免第一个请求卡死事件循环）
-    try:
-        from services.chat_service import _get_embedder
-        loop = asyncio.get_running_loop()
-        await asyncio.wait_for(loop.run_in_executor(None, _get_embedder), timeout=120)
-    except Exception as e:
-        print(f"[WARN] 预加载 embedding 模型失败（不影响业务，请求时会重试）: {e}")
+    import importlib.util
 
-    # 预加载 cnocr 模型（拍照搜题首次调用即时响应）
-    try:
-        from services.ocr_service import _get_ocr
-        loop = asyncio.get_running_loop()
-        await asyncio.wait_for(loop.run_in_executor(None, _get_ocr), timeout=30)
-        print("[INFO] cnocr 模型预加载完成")
-    except Exception as e:
-        print(f"[WARN] 预加载 cnocr 失败（拍照搜题首次调用时加载）: {e}")
+    if _preload_enabled("PRELOAD_EMBEDDING"):
+        try:
+            from services.chat_service import _get_embedder
+
+            loop = asyncio.get_running_loop()
+            await asyncio.wait_for(loop.run_in_executor(None, _get_embedder), timeout=120)
+            print("[INFO] embedding 模型预加载完成")
+        except Exception as e:
+            print(f"[WARN] 预加载 embedding 失败（首次 RAG 聊天时会重试）: {e}")
+    else:
+        print("[INFO] 跳过 embedding 预加载（设 PRELOAD_EMBEDDING=1 可开启）")
+
+    if importlib.util.find_spec("cnocr") is None:
+        print("[INFO] 拍照搜题需安装 cnocr: pip install cnocr")
+    elif _preload_enabled("PRELOAD_CNOCR"):
+        try:
+            from services.ocr_service import _get_ocr
+
+            loop = asyncio.get_running_loop()
+            await asyncio.wait_for(loop.run_in_executor(None, _get_ocr), timeout=60)
+            print("[INFO] cnocr 模型预加载完成")
+        except Exception as e:
+            print(f"[WARN] 预加载 cnocr 失败: {e}")
+
     yield
 
 
@@ -72,4 +95,5 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8003)

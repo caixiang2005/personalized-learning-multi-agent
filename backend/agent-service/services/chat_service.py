@@ -9,6 +9,13 @@ import asyncio
 import os
 
 from dotenv import load_dotenv
+
+load_dotenv()
+
+from utils.hf_env import configure_hf_mirror, load_sentence_transformer
+
+configure_hf_mirror()
+
 from openai import AsyncOpenAI
 import httpx
 from sentence_transformers import SentenceTransformer
@@ -16,8 +23,6 @@ from sentence_transformers import SentenceTransformer
 from core.prompts import KNOWLEDGE_CHAT_PROMPT
 from services.logger import capture_exception, log_error
 from services.redis_client import _get_conn as get_redis
-
-load_dotenv()
 
 # ── LLM 客户端（与 unlogin_chat 一致） ──
 _raw_url = (os.getenv("DEEPSEEK_API_URL") or "").rstrip("/")
@@ -54,10 +59,8 @@ def _key(session_id: str) -> str:
 def _get_embedder() -> SentenceTransformer:
     global _embed_model
     if _embed_model is None:
-        # 国内访问 HuggingFace 受限时禁用在线检查
-        os.environ.setdefault("HF_HUB_OFFLINE", "1")
-        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
-        _embed_model = SentenceTransformer(EMBED_MODEL_NAME)
+        local_path = os.getenv("EMBED_MODEL_PATH", "").strip() or None
+        _embed_model = load_sentence_transformer(EMBED_MODEL_NAME, local_path=local_path)
     return _embed_model
 
 

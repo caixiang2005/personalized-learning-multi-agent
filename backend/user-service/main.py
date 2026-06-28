@@ -24,6 +24,7 @@ _SKIP_401_LOG_PATHS = frozenset({
     "/api/user/refreshToken",
     "/api/user/updateProfile",
     "/api/user/uploadAvatar",
+    "/api/user/stats",
 })
 
 app = FastAPI(title="用户微服务")
