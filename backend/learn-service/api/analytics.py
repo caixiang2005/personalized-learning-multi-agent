@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Header, Query
 from pydantic import BaseModel
 
@@ -59,6 +61,14 @@ def handle_record_activity(
 @router.get("/api/analytics/activity")
 def handle_get_activity(
     weeks: int = Query(12, ge=1, le=52),
+    months: int | None = Query(None, ge=1, le=36, description="日历月数，优先于 weeks"),
+    end: str | None = Query(None, description="窗口结束日期 YYYY-MM-DD，默认今天"),
     authorization: str | None = Header(default=None),
 ):
-    return get_activity(authorization or "", weeks)
+    end_date = None
+    if end:
+        try:
+            end_date = date.fromisoformat(end.strip())
+        except ValueError:
+            return {"code": 400, "msg": "end 日期格式无效，请使用 YYYY-MM-DD", "data": {}}
+    return get_activity(authorization or "", weeks, end_date=end_date, months=months)

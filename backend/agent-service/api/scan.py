@@ -1,8 +1,10 @@
 """
 拍照搜题 API：上传图片 + 可选文字 → AI 分析
 """
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, Header, UploadFile
+
 from services.ocr_service import analyze_question
+from utils.auth import resolve_user_from_auth
 
 router = APIRouter(tags=["拍照搜题"])
 
@@ -11,8 +13,11 @@ router = APIRouter(tags=["拍照搜题"])
 async def scan_image(
     file: UploadFile = File(...),
     text: str = Form(""),
+    authorization: str | None = Header(default=None),
 ):
     """上传题目图片 + 可选手动输入文字，AI 分析"""
+    if resolve_user_from_auth(authorization) is None:
+        return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
     if not file.content_type or not file.content_type.startswith("image/"):
         return {"code": 400, "msg": "请上传图片文件", "data": {}}
 

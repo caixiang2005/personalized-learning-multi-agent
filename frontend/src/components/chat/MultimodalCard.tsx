@@ -43,6 +43,10 @@ export default function MultimodalCard({ resource, onProgress }: Props) {
   const progress = onProgress ?? resource.progress;
 
   const openResource = () => {
+    if (resource.type === "video" && resource.url) {
+      window.open(resource.url, "_blank", "noopener,noreferrer");
+      return;
+    }
     const path = resource.type === "exercise" ? `/exercise/${resource.id}` : `/resource/${resource.id}`;
     navigate(path);
   };

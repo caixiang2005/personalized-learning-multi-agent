@@ -228,7 +228,7 @@ export default function PathPlan() {
   }
 
   return (
-    <div className="scholar-chat-page doubao-chat-shell relative flex h-[calc(100vh-56px)] pb-14 md:pb-0">
+    <div className="scholar-chat-page doubao-chat-shell relative flex flex-1 min-h-0 w-full">
       <aside className={`doubao-sidebar ${sidebarCollapsed ? "doubao-sidebar--collapsed" : ""}`}>
         <nav className="doubao-sidebar__nav">
           <Link to={PATH_HUB_PATH} className="doubao-sidebar__nav-item no-underline">
@@ -280,7 +280,7 @@ export default function PathPlan() {
         <PanelLeft size={18} />
       </button>
 
-      <div className="flex-1 flex flex-col min-w-0 relative doubao-chat-main">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 relative doubao-chat-main">
         <header className="doubao-chat-header">
           <div className="doubao-chat-header__left">
             <button

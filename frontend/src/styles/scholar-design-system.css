@@ -42,8 +42,8 @@
   max-width: none;
   width: 100%;
   margin: 0;
-  padding-left: clamp(1rem, 2.5vw, 1.5rem);
-  padding-right: clamp(1rem, 2.5vw, 1.5rem);
+  padding-left: var(--scholar-page-gutter-x);
+  padding-right: var(--scholar-page-gutter-x);
 }
 
 .nav-link {

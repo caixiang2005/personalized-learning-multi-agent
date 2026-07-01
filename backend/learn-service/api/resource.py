@@ -9,6 +9,7 @@ from services.resource_service import (
     ai_review_exercise,
     save_exercise_result,
     get_my_exercises,
+    sync_exercise_profile,
 )
 
 router = APIRouter(tags=["资源与练习"])
@@ -16,6 +17,7 @@ router = APIRouter(tags=["资源与练习"])
 
 class SubmitExerciseBody(BaseModel):
     answers: list[dict]
+    ai_review: list[dict] | None = None
 
 
 class ExerciseGenerateBody(BaseModel):
@@ -41,23 +43,36 @@ class SaveExerciseBody(BaseModel):
     title: str = ""
 
 
+class SyncExerciseProfileBody(BaseModel):
+    score: int
+    questions: list[dict]
+    answers: list[dict]
+    ai_review: list[dict] | None = None
+    topic_id: str = ""
+
+
 @router.get("/api/resources/{resource_id}")
-def handle_get_resource(resource_id: int, authorization: str | None = Header(default=None)):
+def handle_get_resource(resource_id: str, authorization: str | None = Header(default=None)):
     return get_resource(authorization or "", resource_id)
 
 
 @router.get("/api/exercises/{exercise_id}")
-def handle_get_exercise(exercise_id: int, authorization: str | None = Header(default=None)):
+def handle_get_exercise(exercise_id: str, authorization: str | None = Header(default=None)):
     return get_exercise(authorization or "", exercise_id)
 
 
 @router.post("/api/exercises/{exercise_id}/submit")
 def handle_submit_exercise(
-    exercise_id: int,
+    exercise_id: str,
     body: SubmitExerciseBody,
     authorization: str | None = Header(default=None),
 ):
-    return submit_exercise(authorization or "", exercise_id, body.answers)
+    return submit_exercise(
+        authorization or "",
+        exercise_id,
+        body.answers,
+        ai_review=body.ai_review,
+    )
 
 
 @router.post("/api/exercises/generate")
@@ -94,6 +109,22 @@ def handle_get_exercises(
 ):
     """获取当前用户的所有练习记录"""
     return get_my_exercises(authorization or "")
+
+
+@router.post("/api/exercises/sync-profile")
+def handle_sync_exercise_profile(
+    body: SyncExerciseProfileBody,
+    authorization: str | None = Header(default=None),
+):
+    """练习提交后同步薄弱点与六维画像"""
+    return sync_exercise_profile(
+        authorization or "",
+        body.score,
+        body.questions,
+        body.answers,
+        ai_review=body.ai_review,
+        topic_id=body.topic_id,
+    )
 
 
 @router.post("/api/exercises/{exercise_id}/ai-review")

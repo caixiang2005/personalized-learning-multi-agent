@@ -7,8 +7,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from utils.database import LearningPath, get_db
+from sqlalchemy.orm.attributes import flag_modified
+
+from utils.database import LearningPath, LearningResource, Exercise, get_db
 from utils.redis import resolve_user_id_from_token
+from services.analytics_activity_service import record_learning_activity
 
 
 def _extract_token(authorization: str | None) -> str:
@@ -39,13 +42,17 @@ def _normalize_stages(raw_stages: list | None) -> list[dict[str, Any]]:
             for res_idx, res in enumerate(resources_raw):
                 if not isinstance(res, dict):
                     continue
-                resources.append({
+                entry: dict[str, Any] = {
                     "id": str(res.get("id") or f"res-{stage_idx + 1}-{topic_idx + 1}-{res_idx + 1}"),
                     "type": str(res.get("type") or "document"),
                     "title": str(res.get("title") or ""),
                     "description": str(res.get("description") or ""),
                     "status": str(res.get("status") or "todo"),
-                })
+                }
+                for extra_key in ("url", "content", "mermaid", "bvid", "author"):
+                    if res.get(extra_key):
+                        entry[extra_key] = res[extra_key]
+                resources.append(entry)
             topics.append({
                 "id": str(topic.get("id") or f"topic-{stage_idx + 1}-{topic_idx + 1}"),
                 "name": str(topic.get("name") or topic.get("title") or f"知识点 {topic_idx + 1}"),
@@ -59,6 +66,86 @@ def _normalize_stages(raw_stages: list | None) -> list[dict[str, Any]]:
             "topics": topics,
         })
     return normalized
+
+
+def _parse_resource_id(resource_id: str) -> int | None:
+    try:
+        return int(str(resource_id).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _persist_path_resources(
+    db,
+    user_id: int,
+    path_id: int,
+    stages: list[dict[str, Any]],
+) -> None:
+    """将路径内资源写入 learning_resources，并将 JSON 中的 id 替换为数据库主键。"""
+    now = datetime.now()
+    for stage in stages:
+        if not isinstance(stage, dict):
+            continue
+        stage_id = str(stage.get("id") or "")
+        for topic in stage.get("topics") or []:
+            if not isinstance(topic, dict):
+                continue
+            topic_id = str(topic.get("id") or "")
+            resources = topic.get("resources")
+            if not isinstance(resources, list):
+                continue
+            for res in resources:
+                if not isinstance(res, dict):
+                    continue
+                res_type = str(res.get("type") or "document")
+                title = str(res.get("title") or "")
+                description = str(res.get("description") or "")
+                status = str(res.get("status") or "todo")
+
+                extra_meta: dict[str, Any] = {"description": description}
+                for key in ("url", "mermaid", "progress", "bvid", "author"):
+                    if res.get(key):
+                        extra_meta[key] = res[key]
+
+                content = str(res.get("content") or "")
+                url = str(res.get("url") or extra_meta.get("url") or "")
+                if res_type == "video" and url and not content:
+                    content = f"[{title or '视频讲解'}]({url})"
+
+                row = LearningResource(
+                    path_id=path_id,
+                    user_id=user_id,
+                    topic_id=topic_id,
+                    stage_id=stage_id,
+                    type=res_type,
+                    title=title,
+                    content=content or None,
+                    extra_meta=extra_meta or None,
+                    status=status,
+                    created_at=now,
+                    updated_at=now,
+                )
+                db.add(row)
+                db.flush()
+                res["id"] = str(row.id)
+
+                if res_type == "exercise":
+                    exercise = Exercise(
+                        user_id=user_id,
+                        resource_id=row.id,
+                        topic_id=topic_id,
+                        title=title or f"练习 · {topic_id or '路径资源'}",
+                        questions=[],
+                        question_count=0,
+                        source="path_resource",
+                        status="pending",
+                        created_at=now,
+                        submitted_at=None,
+                    )
+                    db.add(exercise)
+                    db.flush()
+                    extra_meta["exerciseId"] = str(exercise.id)
+                    row.extra_meta = extra_meta
 
 
 def _path_to_dict(path: LearningPath) -> dict[str, Any]:
@@ -162,6 +249,24 @@ def update_resource_status(token: str, topic_id: str, resource_id: str, status: 
                         done += 1
         path.overall_progress = int(done / total * 100) if total > 0 else 0
         path.updated_at = datetime.now()
+        flag_modified(path, "stages")
+
+        rid = _parse_resource_id(resource_id)
+        if rid is not None:
+            resource_row = db.query(LearningResource).filter(
+                LearningResource.id == rid,
+                LearningResource.user_id == user_id,
+            ).first()
+            if resource_row is not None:
+                resource_row.status = status
+                resource_row.updated_at = datetime.now()
+
+        record_learning_activity(
+            db,
+            user_id,
+            "path_resource",
+            resource_status=status,
+        )
 
         return {
             "code": 200,
@@ -209,6 +314,10 @@ def generate_learning_path(
         )
         db.add(new_path)
         db.flush()
+
+        if normalized_stages:
+            _persist_path_resources(db, user_id, new_path.id, normalized_stages)
+            new_path.stages = normalized_stages
 
         msg = "学习路径已生成" if normalized_stages else "学习路径已创建"
         return {

@@ -14,6 +14,7 @@ import httpx
 
 from utils.database import ChatSession, ChatMessage, get_db
 from utils.redis import resolve_user_id_from_token
+from services.analytics_activity_service import record_learning_activity
 
 AGENT_SERVICE_URL = os.getenv("AGENT_SERVICE_URL", "http://127.0.0.1:8003")
 
@@ -53,6 +54,13 @@ def _strip_bearer(token: str) -> str:
     if token and token.startswith("Bearer "):
         return token[7:].strip()
     return token
+
+
+def _agent_auth_headers(token: str) -> dict[str, str]:
+    raw = _strip_bearer(token)
+    if not raw:
+        return {}
+    return {"Authorization": f"Bearer {raw}"}
 
 
 def get_sessions(token: str) -> dict:
@@ -204,7 +212,7 @@ def send_message(token: str, session_id: str, content: str) -> dict:
             session.title = content[:20].replace("\n", " ").strip() or "新对话"
 
         # 2. 调用 agent-service 获取 AI 回复
-        ai_reply = _call_agent_service(user_id, session_id, content)
+        ai_reply = _call_agent_service(user_id, session_id, content, token)
 
         # 3. 保存 AI 回复
         ai_msg = ChatMessage(
@@ -221,6 +229,7 @@ def send_message(token: str, session_id: str, content: str) -> dict:
         session.updated_at = datetime.now()
 
         db.flush()
+        record_learning_activity(db, user_id, "chat")
 
         return {
             "code": 200,
@@ -281,6 +290,7 @@ async def send_message_stream(
                     "session_id": session_id,
                     "user_input": content,
                 },
+                headers=_agent_auth_headers(token),
             ) as resp:
                 async for line in resp.aiter_lines():
                     if not line.startswith("data: "):
@@ -306,6 +316,12 @@ async def send_message_stream(
     # 3. 保存 AI 回复到 DB
     try:
         with get_db() as db:
+            session = db.query(ChatSession).filter(
+                ChatSession.id == session_id,
+                ChatSession.user_id == user_id,
+            ).first()
+            if session is None:
+                return
             ai_msg = ChatMessage(
                 session_id=session_id, user_id=user_id,
                 role="assistant", content=full_reply,
@@ -314,12 +330,164 @@ async def send_message_stream(
             db.add(ai_msg)
             session.message_count += 2
             session.updated_at = datetime.now()
+            record_learning_activity(db, user_id, "chat")
             db.flush()
     except Exception:
         pass  # 静默失败，不影响用户
 
 
-def _call_agent_service(user_id: int, session_id: str, content: str) -> str:
+def _find_last_user_assistant_pair(
+    db, session_id: str, user_id: int
+) -> tuple[ChatMessage | None, ChatMessage | None]:
+    """返回会话中最后一组 user → assistant 消息（assistant 可为 None）。"""
+    rows = (
+        db.query(ChatMessage)
+        .filter(
+            ChatMessage.session_id == session_id,
+            ChatMessage.user_id == user_id,
+        )
+        .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+        .all()
+    )
+    last_user: ChatMessage | None = None
+    last_assistant: ChatMessage | None = None
+    for row in rows:
+        if row.role == "user":
+            last_user = row
+            last_assistant = None
+        elif row.role == "assistant" and last_user is not None:
+            last_assistant = row
+    return last_user, last_assistant
+
+
+def regenerate_last_reply(token: str, session_id: str) -> dict:
+    """POST /api/chat/regenerate — 重新生成最后一条 AI 回复（不重复保存用户消息）。"""
+    user_id = resolve_user_id_from_token(_strip_bearer(token))
+    if user_id is None:
+        return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
+
+    with get_db() as db:
+        session = db.query(ChatSession).filter(
+            ChatSession.id == session_id,
+            ChatSession.user_id == user_id,
+        ).first()
+        if session is None:
+            return {"code": 404, "msg": "会话不存在", "data": {}}
+
+        last_user, last_assistant = _find_last_user_assistant_pair(db, session_id, user_id)
+        if last_user is None:
+            return {"code": 400, "msg": "没有可重新生成的对话", "data": {}}
+
+        if last_assistant is not None:
+            db.delete(last_assistant)
+            session.message_count = max(0, session.message_count - 1)
+            db.flush()
+
+        ai_reply = _call_agent_service(user_id, session_id, last_user.content, token)
+
+        ai_msg = ChatMessage(
+            session_id=session_id,
+            user_id=user_id,
+            role="assistant",
+            content=ai_reply,
+            created_at=datetime.now(),
+        )
+        db.add(ai_msg)
+        session.message_count += 1
+        session.updated_at = datetime.now()
+        record_learning_activity(db, user_id, "chat")
+        db.flush()
+
+        return {
+            "code": 200,
+            "msg": "重新生成成功",
+            "data": {"aiReply": ai_reply, "resources": []},
+        }
+
+
+async def regenerate_last_reply_stream(token: str, session_id: str):
+    """POST /api/chat/regenerate/stream — SSE 重新生成最后一条 AI 回复。"""
+    user_id = resolve_user_id_from_token(_strip_bearer(token))
+    if user_id is None:
+        yield ("error", '{"code":401,"msg":"登录已失效"}')
+        return
+
+    user_content = ""
+    with get_db() as db:
+        session = db.query(ChatSession).filter(
+            ChatSession.id == session_id,
+            ChatSession.user_id == user_id,
+        ).first()
+        if session is None:
+            yield ("error", '{"code":404,"msg":"会话不存在"}')
+            return
+
+        last_user, last_assistant = _find_last_user_assistant_pair(db, session_id, user_id)
+        if last_user is None:
+            yield ("error", '{"code":400,"msg":"没有可重新生成的对话"}')
+            return
+
+        user_content = last_user.content
+        if last_assistant is not None:
+            db.delete(last_assistant)
+            session.message_count = max(0, session.message_count - 1)
+            db.flush()
+
+    full_reply = ""
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            async with client.stream(
+                "POST",
+                f"{AGENT_SERVICE_URL}/api/agent/chat/stream",
+                json={
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "user_input": user_content,
+                },
+                headers=_agent_auth_headers(token),
+            ) as resp:
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]
+                    yield ("data", data_str)
+                    try:
+                        event = json.loads(data_str)
+                        if event.get("type") == "done":
+                            full_reply = event.get("reply", "")
+                    except (json.JSONDecodeError, KeyError):
+                        pass
+    except Exception as e:
+        yield ("data", json.dumps({
+            "type": "stage", "stage": "network", "status": "error",
+            "detail": f"agent-service 连接失败: {str(e)}",
+        }, ensure_ascii=False))
+        full_reply = "抱歉，我暂时无法回答你的问题，请稍后再试。"
+        yield ("data", json.dumps({"type": "done", "reply": full_reply}, ensure_ascii=False))
+
+    try:
+        with get_db() as db:
+            session = db.query(ChatSession).filter(
+                ChatSession.id == session_id,
+                ChatSession.user_id == user_id,
+            ).first()
+            if session is None:
+                return
+            ai_msg = ChatMessage(
+                session_id=session_id, user_id=user_id,
+                role="assistant", content=full_reply,
+                created_at=datetime.now(),
+            )
+            db.add(ai_msg)
+            session.message_count += 1
+            session.updated_at = datetime.now()
+            record_learning_activity(db, user_id, "chat")
+            db.flush()
+    except Exception:
+        pass
+
+
+def _call_agent_service(user_id: int, session_id: str, content: str, token: str) -> str:
     """调用 agent-service /api/agent/chat 获取 AI 回复，失败时返回 fallback。"""
     try:
         with httpx.Client(timeout=30) as client:
@@ -330,6 +498,7 @@ def _call_agent_service(user_id: int, session_id: str, content: str) -> str:
                     "session_id": session_id,
                     "user_input": content,
                 },
+                headers=_agent_auth_headers(token),
             )
             if resp.status_code == 200:
                 data = resp.json()

@@ -30,19 +30,41 @@ export function DimensionLegend() {
   );
 }
 
-export default function ProfileRadar({ dimensions }: { dimensions: ProfileDimension[] }) {
+export default function ProfileRadar({
+  dimensions,
+  compact = false,
+}: {
+  dimensions: ProfileDimension[];
+  compact?: boolean;
+}) {
   const data = dimensions.map((d) => ({
     subject: d.label,
     value: d.value,
     fullMark: 100,
   }));
 
+  const height = compact ? 240 : 300;
+
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <RadarChart data={data} cx="50%" cy="50%" outerRadius="78%">
+    <ResponsiveContainer width="100%" height={height}>
+      <RadarChart
+        data={data}
+        cx="50%"
+        cy="50%"
+        outerRadius={compact ? "68%" : "78%"}
+        margin={{ top: 14, right: 22, bottom: 14, left: 22 }}
+      >
         <PolarGrid stroke="var(--scholar-border)" gridType="polygon" />
-        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "var(--scholar-text-secondary)" }} />
-        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 10 }} />
+        <PolarAngleAxis
+          dataKey="subject"
+          tick={{ fontSize: compact ? 10 : 11, fill: "var(--scholar-text-secondary)" }}
+        />
+        <PolarRadiusAxis
+          angle={30}
+          domain={[0, 100]}
+          tick={compact ? false : { fontSize: 10 }}
+          axisLine={false}
+        />
         <Radar
           name="掌握度"
           dataKey="value"

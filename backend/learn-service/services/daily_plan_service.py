@@ -9,6 +9,7 @@ from typing import Any
 
 from utils.database import DailyPlan, LearnerProfile, get_db
 from utils.redis import resolve_user_id_from_token
+from services.analytics_activity_service import record_learning_activity
 
 
 def _extract_token(token: str | None) -> str:
@@ -108,11 +109,20 @@ def toggle_task(token: str, task_id: str, done: bool) -> dict:
         for task in tasks:
             if isinstance(task, dict) and task.get("id") == task_id:
                 task["done"] = done
+                task["progress"] = 100 if done else 0
                 found = True
                 break
 
         if not found:
             return {"code": 404, "msg": "任务不存在", "data": {}}
+
+        if done:
+            task_type = next(
+                (str(t.get("type") or "") for t in tasks if isinstance(t, dict) and t.get("id") == task_id),
+                "",
+            )
+            activity_map = {"chat": "chat", "exercise": "exercise", "learn": "profile_patch"}
+            record_learning_activity(db, user_id, activity_map.get(task_type, "profile_patch"))
 
         # 重新计算 overall_progress
         done_count = sum(1 for t in tasks if isinstance(t, dict) and t.get("done"))
@@ -194,7 +204,9 @@ def _generate_knowledge_push(weak_points: list) -> list[dict]:
             "id": f"kp-{i}",
             "title": title,
             "content": content,
+            "desc": content,
             "category": category,
+            "tag": category,
         })
 
     return pushes
@@ -233,8 +245,11 @@ def _generate_tasks(weak_points: list, learner_dimensions: list) -> list[dict]:
                 "type": "learn",
                 "title": title,
                 "description": desc,
+                "topic": title.replace("学习：", ""),
+                "durationMin": 25,
                 "priority": priority,
                 "done": False,
+                "progress": 0,
             })
 
     # 2. 从 learner_dimensions 生成 exercise / chat 类型任务
@@ -242,8 +257,8 @@ def _generate_tasks(weak_points: list, learner_dimensions: list) -> list[dict]:
     for dim in learner_dimensions:
         if isinstance(dim, dict):
             key = dim.get("key", "")
-            score = dim.get("score", 50)
-            dim_score_map[key] = score
+            score = dim.get("value", dim.get("score", 50))
+            dim_score_map[key] = float(score)
 
     # knowledge 维度分数低 → exercise 任务
     knowledge_score = dim_score_map.get("knowledge", 50)
@@ -253,8 +268,11 @@ def _generate_tasks(weak_points: list, learner_dimensions: list) -> list[dict]:
             "type": "exercise",
             "title": "练习：知识巩固",
             "description": "完成相关练习题，巩固所学知识",
+            "topic": "知识巩固",
+            "durationMin": 30,
             "priority": _calc_score_priority(knowledge_score),
             "done": False,
+            "progress": 0,
         })
 
     # weakpoints 维度分数低 → chat 任务（薄弱点答疑）
@@ -265,8 +283,11 @@ def _generate_tasks(weak_points: list, learner_dimensions: list) -> list[dict]:
             "type": "chat",
             "title": "对话：薄弱点答疑",
             "description": "与 AI 助教对话，解答薄弱点相关疑问",
+            "topic": "薄弱点答疑",
+            "durationMin": 15,
             "priority": _calc_score_priority(wp_score),
             "done": False,
+            "progress": 0,
         })
 
     # focus 维度分数低 → chat 任务（学习状态）
@@ -277,8 +298,11 @@ def _generate_tasks(weak_points: list, learner_dimensions: list) -> list[dict]:
             "type": "chat",
             "title": "对话：学习状态调整",
             "description": "与 AI 助教交流，获取专注力提升建议",
+            "topic": "学习状态",
+            "durationMin": 15,
             "priority": _calc_score_priority(focus_score),
             "done": False,
+            "progress": 0,
         })
 
     # 如果没有生成任何任务，添加一组默认任务兜底
@@ -289,24 +313,33 @@ def _generate_tasks(weak_points: list, learner_dimensions: list) -> list[dict]:
                 "type": "learn",
                 "title": "学习：今日课程内容",
                 "description": "回顾并学习今天的课程内容",
+                "topic": "今日课程",
+                "durationMin": 25,
                 "priority": "high",
                 "done": False,
+                "progress": 0,
             },
             {
                 "id": "task-exercise-default",
                 "type": "exercise",
                 "title": "练习：完成课后练习",
                 "description": "完成相关练习题，检验学习效果",
+                "topic": "课后练习",
+                "durationMin": 30,
                 "priority": "medium",
                 "done": False,
+                "progress": 0,
             },
             {
                 "id": "task-chat-default",
                 "type": "chat",
                 "title": "对话：与 AI 助教交流",
                 "description": "与 AI 助教讨论学习中遇到的问题",
+                "topic": "学习答疑",
+                "durationMin": 15,
                 "priority": "medium",
                 "done": False,
+                "progress": 0,
             },
         ]
 
@@ -317,7 +350,7 @@ def _calc_priority_from_dimensions(learner_dimensions: list, target_key: str) ->
     """根据画像维度计算优先级。"""
     for dim in learner_dimensions:
         if isinstance(dim, dict) and dim.get("key") == target_key:
-            score = dim.get("score", 50)
+            score = float(dim.get("value", dim.get("score", 50)))
             return _calc_score_priority(score)
     return "medium"
 

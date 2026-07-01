@@ -73,16 +73,65 @@ export function buildCompareData(
   }));
 }
 
-export function emptyActivityGrid(weeks = 12): ActivityDay[] {
-  const days: ActivityDay[] = [];
-  const today = new Date();
-  const total = weeks * 7;
-  for (let i = 0; i < total; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (total - 1 - i));
-    days.push({ date: d.toISOString().slice(0, 10), level: 0, minutes: 0 });
+export const HEATMAP_MONTHS_MIN = 6;
+export const HEATMAP_MONTHS_MAX = 18;
+/** @deprecated 使用 HEATMAP_MONTHS_MIN 或动态 visibleMonths */
+export const HEATMAP_MONTHS = HEATMAP_MONTHS_MIN;
+
+/** 根据容器宽度估算可展示的完整月数 */
+export function heatmapMonthsForWidth(
+  widthPx: number,
+  cellSizePx: number,
+  cellGapPx = 2,
+  monthGapPx = 10
+): number {
+  const weekCols = 6;
+  const monthWidth = weekCols * cellSizePx + Math.max(0, weekCols - 1) * cellGapPx;
+  if (widthPx <= 0 || monthWidth <= 0) return HEATMAP_MONTHS_MIN;
+  const raw = Math.floor((widthPx + monthGapPx) / (monthWidth + monthGapPx));
+  return Math.max(HEATMAP_MONTHS_MIN, Math.min(HEATMAP_MONTHS_MAX, raw));
+}
+
+/** 本地日历日期 YYYY-MM-DD（避免 toISOString 时区偏差） */
+export function localIsoDate(d = new Date()): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function emptyActivityGrid(months = HEATMAP_MONTHS): ActivityDay[] {
+  return expandActivityWindow([], months);
+}
+
+/** 补齐完整 N 个日历月（防止后端只返回周数据时缺月） */
+export function expandActivityWindow(
+  days: ActivityDay[],
+  monthCount = HEATMAP_MONTHS,
+  endIso?: string
+): ActivityDay[] {
+  const today = localIsoDate();
+  const endDate = endIso ?? days.at(-1)?.date ?? today;
+  const end = new Date(`${endDate}T12:00:00`);
+  const start = new Date(end.getFullYear(), end.getMonth() - (monthCount - 1), 1);
+  const byDate = new Map(days.filter((d) => d.date).map((d) => [d.date, d]));
+  const out: ActivityDay[] = [];
+  const cursor = new Date(start);
+
+  while (cursor <= end) {
+    const iso = localIsoDate(cursor);
+    const hit = byDate.get(iso);
+    out.push(
+      hit ?? {
+        date: iso,
+        level: 0,
+        minutes: 0,
+        ...(iso > today ? { future: true as const } : {}),
+      }
+    );
+    cursor.setDate(cursor.getDate() + 1);
   }
-  return days;
+  return out;
 }
 
 export function summarizeActivityGrid(grid: ActivityDay[]) {
@@ -90,4 +139,24 @@ export function summarizeActivityGrid(grid: ActivityDay[]) {
   const highDays = grid.filter((d) => d.level >= 3).length;
   const totalStudyMin = grid.reduce((s, d) => s + (d.minutes ?? 0), 0);
   return { activeDays, highDays, totalStudyMin };
+}
+
+/** 当前年月 key，用于检测跨月自动刷新 */
+export function currentMonthKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}`;
+}
+
+/** 日期加减 N 个月（用于热力图翻页） */
+export function shiftIsoMonths(isoDate: string, months: number): string {
+  const d = new Date(`${isoDate}T12:00:00`);
+  d.setMonth(d.getMonth() + months);
+  return localIsoDate(d);
+}
+
+/** ISO 日期偏移天数 */
+export function shiftIsoDate(isoDate: string, days: number): string {
+  const d = new Date(`${isoDate}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return localIsoDate(d);
 }

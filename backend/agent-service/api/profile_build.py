@@ -5,6 +5,7 @@ from services.profile_build_service import (
     get_profile_build_reply,
     finalize_profile,
 )
+from utils.auth import resolve_user_from_auth
 
 router = APIRouter()
 
@@ -25,8 +26,13 @@ class ProfileBuildResponse(BaseModel):
 
 
 @router.post("/api/agent/profile-build", response_model=ProfileBuildResponse)
-async def profile_build(request: ProfileBuildRequest):
+async def profile_build(
+    request: ProfileBuildRequest,
+    authorization: str | None = Header(default=None),
+):
     """画像构建智能体 — 多轮对话抽取学习特征"""
+    if resolve_user_from_auth(authorization) is None:
+        return ProfileBuildResponse(code=401, msg="登录已失效，请重新登录", data=None)
     reply = await get_profile_build_reply(
         user_input=request.user_input,
         session_id=request.session_id,

@@ -80,6 +80,34 @@ def _resolve_avatar_ext(content_type: str) -> str | None:
     return _CONTENT_TYPE_EXT.get((content_type or "").split(";", 1)[0].strip().lower())
 
 
+def _sync_learner_profile_fields(
+    db,
+    user_id: int,
+    *,
+    nickname: str | None = None,
+    major: str | None = None,
+) -> None:
+    """将 user_info 的昵称/专业同步到 learner_profiles（同库）。"""
+    if nickname is None and major is None:
+        return
+    from sqlalchemy import text
+
+    db.execute(
+        text(
+            "UPDATE learner_profiles SET "
+            "name = COALESCE(:name, name), "
+            "major = COALESCE(:major, major), "
+            "updated_at = NOW() "
+            "WHERE user_id = :uid"
+        ),
+        {
+            "uid": user_id,
+            "name": nickname,
+            "major": major,
+        },
+    )
+
+
 def upload_user_avatar(token: str, content_type: str, data: bytes) -> dict:
     user_id = resolve_user_id_from_token(token)
     if user_id is None:
@@ -178,6 +206,13 @@ def update_user_profile(token: str, updates: dict[str, Any]) -> dict:
                 profile.nickname = updates["nickname"] or None
         except ValueError as exc:
             return {"code": 400, "msg": str(exc), "data": {}}
+
+        _sync_learner_profile_fields(
+            db,
+            user_id,
+            nickname=profile.nickname if "nickname" in updates else None,
+            major=profile.major if "major" in updates else None,
+        )
 
         db.flush()
         return {"code": 200, "msg": "个人信息更新成功", "data": _profile_payload(profile)}

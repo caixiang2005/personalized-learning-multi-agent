@@ -4,7 +4,7 @@
  * @route /analytics
  * @backend GET /api/analytics/overview · /weak-points · /suggestions · /activity
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
@@ -27,6 +27,12 @@ import {
   buildAccuracyData,
   buildCompareData,
   emptyActivityGrid,
+  expandActivityWindow,
+  shiftIsoDate,
+  shiftIsoMonths,
+  currentMonthKey,
+  HEATMAP_MONTHS_MAX,
+  localIsoDate,
 } from "../lib/analyticsDisplay";
 
 const ranges = ["近 7 天", "近 30 天", "自定义"];
@@ -79,8 +85,97 @@ export default function Analytics() {
   const [weakData, setWeakData] = useState<{ weakPoints: WeakPointItem[] } | null>(null);
   const [suggestions, setSuggestions] = useState<{ suggestions: string[] } | null>(null);
   const [activityGrid, setActivityGrid] = useState<ActivityDay[]>([]);
+  const [activityEnd, setActivityEnd] = useState<string | undefined>(undefined);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [visibleHeatmapMonths, setVisibleHeatmapMonths] = useState(6);
   const [busy, setBusy] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+
+  const loadActivity = useCallback(async (end?: string) => {
+    setActivityLoading(true);
+    try {
+      const a = await fetchAnalyticsActivity({ months: HEATMAP_MONTHS_MAX, end });
+      if (a?.code === 200 && Array.isArray(a.data?.activityGrid)) {
+        setActivityGrid(a.data.activityGrid);
+      } else {
+        setActivityGrid(emptyActivityGrid(HEATMAP_MONTHS_MAX));
+      }
+    } catch {
+      setActivityGrid(emptyActivityGrid(HEATMAP_MONTHS_MAX));
+    } finally {
+      setActivityLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadActivity(activityEnd);
+  }, [activityEnd, loadActivity]);
+
+  /** 跨月或回到页面时，在「至今」视图自动刷新，6→7 月等会自然滚入 */
+  const monthKeyRef = useRef(currentMonthKey());
+  useEffect(() => {
+    const refreshIfLive = () => {
+      if (activityEnd !== undefined) return;
+      const key = currentMonthKey();
+      if (key !== monthKeyRef.current) {
+        monthKeyRef.current = key;
+        loadActivity(undefined);
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      refreshIfLive();
+      if (activityEnd === undefined) loadActivity(undefined);
+    };
+
+    const timer = window.setInterval(refreshIfLive, 60_000);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [activityEnd, loadActivity]);
+
+  const canActivityNext = activityEnd !== undefined;
+  const handleActivityPrev = useCallback(() => {
+    const windowDays = expandActivityWindow(
+      activityGrid.filter((d) => d.date),
+      visibleHeatmapMonths,
+      activityEnd
+    );
+    const first = windowDays[0]?.date;
+    if (!first) return;
+    setActivityEnd(shiftIsoDate(first, -1));
+  }, [activityGrid, activityEnd, visibleHeatmapMonths]);
+
+  const handleActivityNext = useCallback(() => {
+    if (!activityEnd) return;
+    const last = activityGrid[activityGrid.length - 1]?.date;
+    if (!last) {
+      setActivityEnd(undefined);
+      return;
+    }
+    const nextEnd = shiftIsoMonths(last, visibleHeatmapMonths);
+    const today = localIsoDate();
+    if (nextEnd >= today) {
+      setActivityEnd(undefined);
+    } else {
+      setActivityEnd(nextEnd);
+    }
+  }, [activityEnd, activityGrid, visibleHeatmapMonths]);
+
+  const heatmapSubtitle = useMemo(() => {
+    if (!activityEnd) {
+      return `近 ${visibleHeatmapMonths} 个月学习行为分布，窗口随当前日期自动更新（练习、辅导对话等）`;
+    }
+    const start = activityGrid[0]?.date;
+    const end = activityGrid[activityGrid.length - 1]?.date;
+    if (start && end) {
+      return `${start} 至 ${end} 的学习行为分布`;
+    }
+    return `历史 ${visibleHeatmapMonths} 个月学习行为分布`;
+  }, [activityEnd, activityGrid, visibleHeatmapMonths]);
 
   useEffect(() => {
     setBusy(true);
@@ -90,24 +185,17 @@ export default function Analytics() {
       fetchAnalyticsOverview(rangeDays),
       fetchWeakPoints(),
       fetchSuggestions(),
-      fetchAnalyticsActivity(12),
     ])
-      .then(([o, w, s, a]) => {
+      .then(([o, w, s]) => {
         if (o?.code === 200) setOverview(o.data);
         if (w?.code === 200) setWeakData(w.data);
         if (s?.code === 200) setSuggestions(s.data);
-        if (a?.code === 200 && Array.isArray(a.data?.activityGrid)) {
-          setActivityGrid(a.data.activityGrid);
-        } else {
-          setActivityGrid(emptyActivityGrid(12));
-        }
         if (o?.code !== 200 && w?.code !== 200 && s?.code !== 200) {
           setErr("无法连接 learn-service，请确认 :8002 已启动");
         }
       })
       .catch(() => {
         setErr("无法连接 learn-service，请确认 :8002 已启动");
-        setActivityGrid(emptyActivityGrid(12));
       })
       .finally(() => setBusy(false));
   }, [range]);
@@ -270,8 +358,16 @@ export default function Analytics() {
           <Activity size={20} className="text-[var(--scholar-primary)]" />
           <h2 className="font-semibold text-[var(--scholar-text)]">学习活跃热力</h2>
         </div>
-        <p className="text-sm text-[var(--scholar-text-muted)] mb-5">近 12 周学习行为分布（练习、辅导对话等）</p>
-        <ActivityHeatmap data={activityGrid} weeks={12} />
+        <p className="text-sm text-[var(--scholar-text-muted)] mb-5">{heatmapSubtitle}</p>
+        <ActivityHeatmap
+          data={activityGrid}
+          loading={activityLoading}
+          onPrevPeriod={handleActivityPrev}
+          onNextPeriod={handleActivityNext}
+          canPrev={activityGrid.length > 0}
+          canNext={canActivityNext}
+          onVisibleMonthsChange={setVisibleHeatmapMonths}
+        />
       </section>
 
       <section className="section-card dash-panel">

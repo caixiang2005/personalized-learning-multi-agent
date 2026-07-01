@@ -19,6 +19,9 @@
   --scholar-shadow-card: 0 1px 0 rgb(255 255 255 / 0.75) inset, 0 1px 3px rgb(12 18 34 / 5%), 0 6px 20px rgb(10 101 120 / 8%);
   --scholar-shadow-elevated: 0 1px 0 rgb(255 255 255 / 0.65) inset, 0 12px 40px rgb(10 101 120 / 14%), 0 4px 12px rgb(12 18 34 / 6%);
 
+  /* 全站页面左右留白（随视口缩放） */
+  --scholar-page-gutter-x: clamp(1.25rem, 4.5vw, 4rem);
+
   /* 访客抽屉 / 聊天 */
   --guest-drawer-bg: var(--scholar-card);
   --guest-drawer-header: linear-gradient(
@@ -29,10 +32,11 @@
   --guest-bubble-user: linear-gradient(145deg, var(--scholar-primary) 0%, var(--scholar-primary-light) 100%);
   --guest-bubble-assistant: var(--scholar-surface);
 
-  /* 智能辅导 · 豆包式布局底板色 */
-  --chat-canvas: var(--scholar-bg);
-  --chat-sidebar: color-mix(in srgb, var(--scholar-card) 92%, var(--scholar-bg));
-  --chat-main: var(--scholar-card);
+  /* 智能辅导 · 豆包式布局（统一底板色） */
+  --chat-surface: var(--scholar-card);
+  --chat-canvas: var(--chat-surface);
+  --chat-sidebar: var(--chat-surface);
+  --chat-main: var(--chat-surface);
 
   --color-primary: var(--scholar-primary);
   --color-accent: var(--scholar-accent);
@@ -96,10 +100,11 @@
   --guest-bubble-user: linear-gradient(145deg, var(--scholar-primary-deep) 0%, var(--scholar-primary) 100%);
   --guest-bubble-assistant: color-mix(in srgb, var(--scholar-surface) 88%, var(--scholar-primary) 12%);
 
-  /* 智能辅导 · 豆包式布局底板色（暗黑） */
-  --chat-canvas: var(--scholar-bg);
-  --chat-sidebar: color-mix(in srgb, var(--scholar-card) 94%, var(--scholar-bg));
-  --chat-main: var(--scholar-card);
+  /* 智能辅导 · 豆包式布局（统一底板色） */
+  --chat-surface: var(--scholar-bg);
+  --chat-canvas: var(--chat-surface);
+  --chat-sidebar: var(--chat-surface);
+  --chat-main: var(--chat-surface);
 
   --color-surface: var(--scholar-surface);
   --color-border: var(--scholar-border);

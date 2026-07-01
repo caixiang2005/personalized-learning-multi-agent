@@ -5,6 +5,7 @@ from services.path_plan_service import (
     get_path_plan_reply,
     finalize_path_plan,
 )
+from utils.auth import resolve_user_from_auth
 
 router = APIRouter()
 
@@ -25,8 +26,13 @@ class PathPlanResponse(BaseModel):
 
 
 @router.post("/api/agent/path-plan", response_model=PathPlanResponse)
-async def path_plan(request: PathPlanRequest):
+async def path_plan(
+    request: PathPlanRequest,
+    authorization: str | None = Header(default=None),
+):
     """路径规划智能体 — 多轮对话收集偏好并生成学习路径"""
+    if resolve_user_from_auth(authorization) is None:
+        return PathPlanResponse(code=401, msg="登录已失效，请重新登录", data=None)
     reply = await get_path_plan_reply(
         user_input=request.user_input,
         session_id=request.session_id,

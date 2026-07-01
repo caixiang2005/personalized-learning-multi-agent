@@ -2,8 +2,11 @@
 拍照搜题服务 — cnocr OCR 识别 + DeepSeek AI 分析
 """
 import asyncio
+import json
 import os
+import re
 from io import BytesIO
+from typing import Any
 
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
@@ -40,13 +43,50 @@ ANALYSIS_PROMPT = """你是一个学习辅导助手。以下是一道题目的�
 
 [[QUESTION_TEXT]]
 
-请：
-1. 判断题目类型（选择题/填空题/问答题/代码题等）
-2. 给出正确答案和详细解析
-3. 说明涉及的知识点
-4. 用友好、鼓励的语气回答
+请输出 JSON（不要其它文字），格式如下：
+{
+  "knowledge_points": ["知识点1", "知识点2"],
+  "analysis": "Markdown 格式的详细解析（含答案与思路）",
+  "steps": [
+    {"order": 1, "title": "审题", "content": "步骤说明"},
+    {"order": 2, "title": "解题", "content": "步骤说明"}
+  ],
+  "similar_questions": [
+    {"id": "sq-1", "question": "同类题题干", "difficulty": "基础", "knowledgePoint": "对应知识点"}
+  ]
+}
 
-用中文，控制在 500 字以内。"""
+要求：knowledge_points 2-4 个；steps 2-4 步；similar_questions 2-3 道；用中文。"""
+
+
+def _extract_json_from_reply(reply: str) -> dict[str, Any] | None:
+    match = re.search(r"```json\s*([\s\S]*?)\s*```", reply)
+    candidates = [match.group(1)] if match else []
+    candidates.append(reply.strip())
+    for text in candidates:
+        try:
+            data = json.loads(text)
+            if isinstance(data, dict):
+                return data
+        except json.JSONDecodeError:
+            continue
+    return None
+
+
+def _normalize_scan_payload(raw: dict[str, Any] | None, fallback_analysis: str) -> dict[str, Any]:
+    if not raw:
+        return {
+            "knowledge_points": [],
+            "analysis": fallback_analysis,
+            "steps": [],
+            "similar_questions": [],
+        }
+    return {
+        "knowledge_points": raw.get("knowledge_points") or raw.get("knowledgePoints") or [],
+        "analysis": str(raw.get("analysis") or fallback_analysis),
+        "steps": raw.get("steps") or [],
+        "similar_questions": raw.get("similar_questions") or raw.get("similarQuestions") or [],
+    }
 
 
 async def analyze_question(image_bytes: bytes, user_text: str = "") -> dict:
@@ -88,28 +128,38 @@ async def analyze_question(image_bytes: bytes, user_text: str = "") -> dict:
                 "ocr_text": "",
                 "ai_analysis": "图片中未检测到文字，请在文本框中手动输入题目内容。",
                 "ocr_status": ocr_status,
+                "knowledge_points": [],
+                "steps": [],
+                "similar_questions": [],
             },
         }
 
     # 4. AI 分析
+    ai_analysis = ""
+    structured: dict[str, Any] = {}
     try:
         prompt = ANALYSIS_PROMPT.replace("[[QUESTION_TEXT]]", question_text)
         resp = await _client.chat.completions.create(
             model=MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=800,
+            max_tokens=1200,
         )
         ai_analysis = resp.choices[0].message.content or ""
-    except Exception as e:
+        structured = _normalize_scan_payload(_extract_json_from_reply(ai_analysis), ai_analysis)
+    except Exception:
         ai_analysis = f"AI 分析暂时不可用。以下为识别到的题目文字：\n\n{question_text}"
+        structured = _normalize_scan_payload(None, ai_analysis)
 
     return {
         "code": 200,
         "msg": "分析完成",
         "data": {
             "ocr_text": ocr_text,
-            "ai_analysis": ai_analysis,
+            "ai_analysis": structured.get("analysis") or ai_analysis,
             "ocr_status": ocr_status,
+            "knowledge_points": structured.get("knowledge_points") or [],
+            "steps": structured.get("steps") or [],
+            "similar_questions": structured.get("similar_questions") or [],
         },
     }

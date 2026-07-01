@@ -1,16 +1,33 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import MarkdownContent from "../ui/MarkdownContent";
-import { PLAN_CHAT_REPLY, PLAN_CHAT_SEED } from "../../lib/mockDailyPlan";
-import { simulateStream } from "../../lib/stream";
+import { sendAgentMessage, setAgentSessionId } from "../../lib/agentChat";
 
 type Msg = { role: "user" | "assistant"; content: string; streaming?: boolean };
 
 type Props = { embedded?: boolean };
 
+const PLAN_SESSION_KEY = "plan-chat-session-id";
+
+function getPlanSessionId(): string {
+  const cached = sessionStorage.getItem(PLAN_SESSION_KEY);
+  if (cached) {
+    setAgentSessionId(cached);
+    return cached;
+  }
+  const id = `plan-${crypto.randomUUID()}`;
+  sessionStorage.setItem(PLAN_SESSION_KEY, id);
+  setAgentSessionId(id);
+  return id;
+}
+
+const PLAN_SEED =
+  "你好，我是今日学习助手。你可以问我今日计划里的知识点、薄弱点，或让我帮你拆解一道题。";
+
 export default function PlanChatPanel({ embedded = false }: Props) {
+  const sessionRef = useRef(getPlanSessionId());
   const [messages, setMessages] = useState<Msg[]>([
-    { role: "assistant", content: PLAN_CHAT_SEED },
+    { role: "assistant", content: PLAN_SEED },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,23 +39,40 @@ export default function PlanChatPanel({ embedded = false }: Props) {
     setMessages((m) => [...m, { role: "user", content: text }]);
     setLoading(true);
 
-    const id = messages.length + 1;
+    const assistantIdx = messages.length + 1;
     setMessages((m) => [...m, { role: "assistant", content: "", streaming: true }]);
 
-    await simulateStream(PLAN_CHAT_REPLY, (partial) => {
+    try {
+      await sendAgentMessage(
+        text,
+        (partial) => {
+          setMessages((m) => {
+            const next = [...m];
+            next[assistantIdx] = { role: "assistant", content: partial, streaming: true };
+            return next;
+          });
+        },
+        sessionRef.current,
+      );
       setMessages((m) => {
         const next = [...m];
-        next[id] = { role: "assistant", content: partial, streaming: true };
+        const last = next[assistantIdx];
+        if (last) next[assistantIdx] = { ...last, streaming: false };
         return next;
       });
-    }, 20);
-
-    setMessages((m) => {
-      const next = [...m];
-      next[id] = { role: "assistant", content: PLAN_CHAT_REPLY, streaming: false };
-      return next;
-    });
-    setLoading(false);
+    } catch {
+      setMessages((m) => {
+        const next = [...m];
+        next[assistantIdx] = {
+          role: "assistant",
+          content: "暂时无法连接辅导服务，请稍后再试。",
+          streaming: false,
+        };
+        return next;
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

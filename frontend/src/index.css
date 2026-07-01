@@ -71,6 +71,25 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* 对话页：内部滚动，不预留整页滚动条槽位（否则右侧会空一条） */
+html.chat-layout {
+  scrollbar-gutter: auto;
+  overflow: hidden;
+}
+
+html.chat-layout body {
+  overflow: hidden;
+  height: 100%;
+  background: var(--chat-surface);
+}
+
+html.chat-layout .app-page-scrim--chat .scholar-navbar,
+html.chat-layout .app-page-scrim--chat .app-navbar.landing-header--bar {
+  background: var(--chat-surface) !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
 body {
   background-color: var(--color-surface);
   color: var(--ds-text);
@@ -103,13 +122,13 @@ a {
     max-width: 72rem;
     margin-left: auto;
     margin-right: auto;
-    padding: 1.5rem 1rem 5rem;
+    padding: 1.5rem var(--scholar-page-gutter-x, clamp(1.25rem, 4.5vw, 4rem)) 5rem;
   }
 
   @media (min-width: 640px) {
     .page-container {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
+      padding-left: var(--scholar-page-gutter-x, clamp(1.25rem, 4.5vw, 4rem));
+      padding-right: var(--scholar-page-gutter-x, clamp(1.25rem, 4.5vw, 4rem));
       padding-top: 2rem;
       padding-bottom: 2rem;
     }
@@ -1307,7 +1326,7 @@ a {
 
   @media (min-width: 1280px) {
     .landing-header--bar {
-      margin: 0.75rem 1.5rem 0;
+      margin: 0.75rem var(--scholar-page-gutter-x, clamp(1.25rem, 4.5vw, 4rem)) 0;
     }
   }
 
@@ -1388,7 +1407,7 @@ a {
     width: 100%;
     max-width: 90rem;
     margin: 0 auto;
-    padding: 0 1.25rem 2.5rem;
+    padding: 0 var(--scholar-page-gutter-x, clamp(1.25rem, 4.5vw, 4rem)) 2.5rem;
     display: grid;
     grid-template-columns: 1fr;
     gap: 0;
@@ -2423,141 +2442,243 @@ a {
   .heatmap-panel {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
   }
 
-  .heatmap-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+  .heatmap-panel--ref {
+    --heatmap-cell-size: clamp(7px, 0.55vw, 10px);
+    --heatmap-cell-gap: 2px;
+    padding: 0;
     gap: 0.75rem;
   }
 
-  @media (max-width: 640px) {
-    .heatmap-stats {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .heatmap-stat {
+  .heatmap-toolbar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1rem;
-    border-radius: 0.875rem;
-    background: linear-gradient(135deg, rgba(22, 93, 255, 0.04), rgba(54, 211, 153, 0.06));
-    border: 1px solid rgba(22, 93, 255, 0.08);
+    justify-content: space-between;
+    gap: 0.75rem 1.25rem;
   }
 
-  .heatmap-stat__icon {
-    width: 2.25rem;
-    height: 2.25rem;
-    border-radius: 0.625rem;
+  .heatmap-streaks {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    gap: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+    color: #4e5969;
   }
 
-  .heatmap-stat__icon--primary {
-    background: rgba(22, 93, 255, 0.12);
-    color: #165dff;
+  .dark .heatmap-streaks {
+    color: #9ca3af;
   }
 
-  .heatmap-stat__icon--accent {
-    background: rgba(54, 211, 153, 0.15);
-    color: #059669;
-  }
-
-  .heatmap-stat__icon--blue {
-    background: rgba(99, 102, 241, 0.12);
-    color: #6366f1;
-  }
-
-  .heatmap-stat__value {
-    font-size: 1.25rem;
+  .heatmap-streaks__item strong {
     font-weight: 700;
     color: #1d2129;
-    line-height: 1.2;
   }
 
-  .dark .heatmap-stat__value {
+  .dark .heatmap-streaks__item strong {
     color: #f3f4f6;
   }
 
-  .heatmap-stat__label {
-    font-size: 0.75rem;
-    color: #86909c;
-    margin-top: 0.125rem;
+  .heatmap-streaks__accent {
+    color: #f97316 !important;
   }
 
-  .heatmap-scroll {
-    overflow-x: auto;
-    padding-bottom: 0.25rem;
-  }
-
-  .heatmap-chart {
-    min-width: min(100%, 520px);
-  }
-
-  .heatmap-months {
-    display: grid;
-    margin-left: 1.75rem;
-    margin-bottom: 0.35rem;
-    font-size: 0.6875rem;
-    color: #86909c;
-    gap: 3px;
-  }
-
-  .heatmap-month {
-    text-align: left;
-  }
-
-  .heatmap-body {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  .heatmap-days {
-    display: grid;
-    grid-template-rows: repeat(7, 1fr);
-    gap: 3px;
-    padding-top: 0;
-    width: 1.25rem;
+  .heatmap-streaks__dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #c9cdd4;
     flex-shrink: 0;
   }
 
-  .heatmap-day-label {
-    font-size: 0.625rem;
-    color: #86909c;
-    height: 14px;
-    line-height: 14px;
-    text-align: right;
+  .dark .heatmap-streaks__dot {
+    background: #4b5563;
   }
 
-  .heatmap-grid {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(7, 14px);
-    gap: 3px;
-    flex: 1;
+  .heatmap-toolbar__right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+  }
+
+  .heatmap-year-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .heatmap-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 0.375rem;
+    border: 1px solid #e5e6eb;
+    background: #fff;
+    color: #4e5969;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+
+  .heatmap-nav-btn:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.35);
+    color: #1565d8;
+  }
+
+  .heatmap-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .dark .heatmap-nav-btn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #9ca3af;
+  }
+
+  .heatmap-year {
+    display: inline-flex;
+    align-items: center;
+    min-width: 4.5rem;
+    justify-content: center;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #86909c;
+    white-space: nowrap;
+  }
+
+  .heatmap-scroll--loading {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  .heatmap-scroll {
+    overflow: hidden;
+    padding: 0.125rem 0 0.375rem;
+    width: 100%;
+  }
+
+  .heatmap-month-blocks {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: 0.625rem;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .heatmap-month-blocks--fill {
+    justify-content: space-between;
+    gap: 0.25rem;
+    overflow-x: hidden;
+  }
+
+  .heatmap-month-blocks--fill .heatmap-month-block {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .heatmap-month-blocks::-webkit-scrollbar {
+    display: none;
+  }
+
+  .heatmap-month-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 0 0 auto;
+  }
+
+  .heatmap-month-block__grid {
+    display: flex;
+    flex-direction: row;
+    gap: var(--heatmap-cell-gap);
+    width: auto;
+  }
+
+  .heatmap-month-block__label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: #86909c;
+    text-align: center;
+    line-height: 1.2;
+    flex-shrink: 0;
+  }
+
+  .heatmap-month-block__label--current {
+    color: #1565d8;
+    font-weight: 600;
+  }
+
+  .dark .heatmap-month-block__label--current {
+    color: #60a5fa;
+  }
+
+  .heatmap-cell--future {
+    background: #f3f4f6;
+    border: 1px dashed #d1d5db;
+    box-sizing: border-box;
+  }
+
+  .dark .heatmap-cell--future {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .heatmap-cell--future:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .heatmap-cell--pad {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .heatmap-cell--pad:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .dark .heatmap-month-block__label {
+    color: #9ca3af;
+  }
+
+  .heatmap-week-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--heatmap-cell-gap);
+    flex: 0 0 auto;
   }
 
   .heatmap-cell {
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    width: var(--heatmap-cell-size);
+    height: var(--heatmap-cell-size);
+    flex-shrink: 0;
+    border-radius: 2px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
     cursor: default;
   }
 
   .heatmap-cell:not(.heatmap-cell--legend):hover {
-    transform: scale(1.2);
-    box-shadow: 0 0 0 2px rgba(22, 93, 255, 0.35);
+    transform: scale(1.15);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
     z-index: 1;
   }
 
+  /* 蓝色梯度（参考设计） */
   .heatmap-cell--0 {
-    background: #edf0f5;
+    background: #eef0f4;
   }
 
   .dark .heatmap-cell--0 {
@@ -2565,28 +2686,50 @@ a {
   }
 
   .heatmap-cell--1 {
-    background: rgba(54, 211, 153, 0.28);
+    background: #c8e1ff;
+  }
+
+  .dark .heatmap-cell--1 {
+    background: rgba(59, 130, 246, 0.25);
   }
 
   .heatmap-cell--2 {
-    background: rgba(54, 211, 153, 0.52);
+    background: #7eb8ff;
+  }
+
+  .dark .heatmap-cell--2 {
+    background: rgba(59, 130, 246, 0.45);
   }
 
   .heatmap-cell--3 {
-    background: rgba(22, 93, 255, 0.55);
+    background: #3b8ff6;
   }
 
   .heatmap-cell--4 {
-    background: linear-gradient(135deg, #165dff, #36d399);
+    background: #1565d8;
   }
 
   .heatmap-cell--legend {
     cursor: default;
+    width: 9px;
+    height: 9px;
   }
 
   .heatmap-cell--legend:hover {
     transform: none;
     box-shadow: none;
+  }
+
+  .heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.6875rem;
+    color: #86909c;
+  }
+
+  .heatmap-legend--inline {
+    flex-shrink: 0;
   }
 
   .heatmap-tooltip {
@@ -2595,13 +2738,13 @@ a {
     color: #4e5969;
     padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
-    background: rgba(22, 93, 255, 0.04);
-    border: 1px solid rgba(22, 93, 255, 0.08);
+    background: rgba(59, 130, 246, 0.04);
+    border: 1px solid rgba(59, 130, 246, 0.1);
   }
 
   .dark .heatmap-tooltip {
     color: #9ca3af;
-    background: rgba(22, 93, 255, 0.08);
+    background: rgba(59, 130, 246, 0.08);
   }
 
   .heatmap-tooltip strong {
@@ -2613,13 +2756,28 @@ a {
     color: #f3f4f6;
   }
 
-  .heatmap-legend {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.35rem;
-    font-size: 0.6875rem;
-    color: #86909c;
+  /* 旧版统计卡片样式保留给 sidebar 等复用时可删；热力图已改用 toolbar */
+  .heatmap-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 640px) {
+    .heatmap-streaks {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.375rem;
+    }
+
+    .heatmap-streaks__dot {
+      display: none;
+    }
+
+    .heatmap-toolbar__right {
+      width: 100%;
+      justify-content: space-between;
+    }
   }
 
   /* 登录页：透出全站书海，仅保留轻氛围光晕 */
@@ -2629,7 +2787,7 @@ a {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
+    padding: 1.5rem var(--scholar-page-gutter-x, clamp(1.25rem, 4.5vw, 4rem));
     overflow: hidden;
     background: transparent;
   }

@@ -232,18 +232,10 @@ export default function ExercisePage() {
       if (patch) setProfile(patch);
     };
 
-    let reviewResults: AiReviewResult[] | null;
+    let reviewResults: AiReviewResult[];
     let finalScore = localScore;
 
     try {
-      if (!isAiGenerate) {
-        const res = await submitExerciseApi(id, answerList as Record<string, string>[]);
-        if (res.code === 200) {
-          finalScore = res.data?.score ?? localScore;
-          setScore(finalScore);
-        }
-      }
-
       setAiReviewing(true);
       try {
         const res = await aiReviewExerciseApi(
@@ -268,26 +260,41 @@ export default function ExercisePage() {
         setAiReviewing(false);
       }
 
-      if (isAiGenerate) {
-        await saveExerciseResultApi({
-          questions: questions as unknown as Record<string, unknown>[],
-          answers: answerList as Record<string, unknown>[],
-          score: finalScore,
-          topic_id: exerciseData?.topicId ?? "",
-          title: resourceTitle,
-          ai_review: reviewResults as unknown as Record<string, unknown>[] | undefined,
-        }).catch(() => {});
-      }
-
-      const syncRes = await syncExerciseProfileApi({
+      const profilePayload = {
         score: finalScore,
         questions: questions as unknown as Record<string, unknown>[],
         answers: answerList as unknown as Record<string, unknown>[],
-        ai_review: reviewResults as unknown as Record<string, unknown>[] | undefined,
+        ai_review: reviewResults as unknown as Record<string, unknown>[],
         topic_id: exerciseData?.topicId ?? "",
-      });
-      if (syncRes.code === 200) {
-        mergeProfile(syncRes.data?.profile);
+      };
+
+      if (isAiGenerate) {
+        const saveRes = await saveExerciseResultApi({
+          questions: profilePayload.questions,
+          answers: profilePayload.answers,
+          score: finalScore,
+          topic_id: profilePayload.topic_id,
+          title: resourceTitle,
+          ai_review: profilePayload.ai_review,
+        });
+        if (saveRes.code === 200 && saveRes.data?.profile) {
+          mergeProfile(saveRes.data.profile);
+        } else {
+          const syncRes = await syncExerciseProfileApi(profilePayload);
+          if (syncRes.code === 200) mergeProfile(syncRes.data?.profile);
+        }
+      } else {
+        const submitRes = await submitExerciseApi(
+          id,
+          answerList as unknown as Record<string, string>[],
+          profilePayload.ai_review,
+        );
+        if (submitRes.code === 200 && submitRes.data?.profile) {
+          mergeProfile(submitRes.data.profile);
+        } else {
+          const syncRes = await syncExerciseProfileApi(profilePayload);
+          if (syncRes.code === 200) mergeProfile(syncRes.data?.profile);
+        }
       }
     } catch {
       setScore(localScore);

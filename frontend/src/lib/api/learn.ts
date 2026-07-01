@@ -9,6 +9,44 @@ import { apiClient } from "./client";
 import { API } from "./endpoints";
 import { getToken } from "../auth/token";
 import { readSseJsonEvents } from "../stream";
+import type { DailyPlan, DailyPlanTask, DailyTaskType } from "../../types";
+
+const PLAN_DURATION: Record<string, number> = { high: 30, medium: 20, low: 15 };
+
+function normalizeDailyPlan(raw: Record<string, unknown>): DailyPlan {
+  const tasks = (Array.isArray(raw.tasks) ? raw.tasks : []).map((item) => {
+    const t = item as Record<string, unknown>;
+    const priority = String(t.priority ?? "medium");
+    return {
+      id: String(t.id ?? ""),
+      type: (String(t.type ?? "learn") as DailyTaskType),
+      title: String(t.title ?? ""),
+      topic: String(t.topic ?? t.description ?? ""),
+      durationMin: Number(t.durationMin ?? PLAN_DURATION[priority] ?? 20),
+      done: Boolean(t.done),
+      progress: Boolean(t.done) ? 100 : Number(t.progress ?? 0),
+    } satisfies DailyPlanTask;
+  });
+  const knowledgePush = (Array.isArray(raw.knowledgePush) ? raw.knowledgePush : []).map(
+    (item) => {
+      const kp = item as Record<string, unknown>;
+      return {
+        id: String(kp.id ?? ""),
+        title: String(kp.title ?? ""),
+        desc: String(kp.desc ?? kp.content ?? ""),
+        tag: String(kp.tag ?? kp.category ?? ""),
+      };
+    }
+  );
+  return {
+    date: String(raw.date ?? ""),
+    greeting: String(raw.greeting ?? ""),
+    summary: String(raw.summary ?? ""),
+    overallProgress: Number(raw.overallProgress ?? 0),
+    knowledgePush,
+    tasks,
+  };
+}
 
 // ─── 画像 ───
 
@@ -65,10 +103,11 @@ export function fetchExercise(exerciseId: string) {
 
 export function submitExerciseApi(
   exerciseId: string,
-  answers: Record<string, string>[]
+  answers: Record<string, string>[],
+  aiReview?: Record<string, unknown>[],
 ) {
   return apiClient
-    .post(API.exercise.submit(exerciseId), { answers })
+    .post(API.exercise.submit(exerciseId), { answers, ai_review: aiReview })
     .then((r) => r.data);
 }
 
@@ -143,9 +182,18 @@ export function fetchSuggestions() {
   return apiClient.get(API.analytics.suggestions).then((r) => r.data);
 }
 
-export function fetchAnalyticsActivity(weeks = 12) {
+export function fetchAnalyticsActivity(
+  opts: { weeks?: number; months?: number; end?: string } = {}
+) {
+  const params: Record<string, string | number> = {};
+  if (opts.months != null) {
+    params.months = opts.months;
+  } else {
+    params.weeks = opts.weeks ?? 12;
+  }
+  if (opts.end) params.end = opts.end;
   return apiClient
-    .get(API.analytics.activity, { params: { weeks } })
+    .get(API.analytics.activity, { params })
     .then((r) => r.data);
 }
 
@@ -170,13 +218,25 @@ export function submitChatFeedback(body: {
 // ─── 每日计划 ───
 
 export function fetchDailyPlan() {
-  return apiClient.get(API.plan.daily).then((r) => r.data);
+  return apiClient.get(API.plan.daily).then((r) => {
+    const body = r.data;
+    if (body?.code === 200 && body.data) {
+      return { ...body, data: normalizeDailyPlan(body.data as Record<string, unknown>) };
+    }
+    return body;
+  });
 }
 
 export function toggleTaskApi(taskId: string, done: boolean) {
   return apiClient
     .post(API.plan.toggleTask(taskId), { done })
-    .then((r) => r.data);
+    .then((r) => {
+      const body = r.data;
+      if (body?.code === 200 && body.data) {
+        return { ...body, data: normalizeDailyPlan(body.data as Record<string, unknown>) };
+      }
+      return body;
+    });
 }
 
 // ─── 聊天会话 ───

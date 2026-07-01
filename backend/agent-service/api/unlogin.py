@@ -1,6 +1,9 @@
+import json
+
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from services.unlogin_chat import get_unlogin_reply
+from services.unlogin_chat import get_unlogin_reply, stream_unlogin_reply
 
 router = APIRouter()
 
@@ -23,4 +26,26 @@ async def unlogin_chat(request: ChatRequest):
         code=200,
         msg="success",
         data={"ai_reply": reply}
+    )
+
+
+@router.post("/api/agent/unlogin/chat/stream")
+async def unlogin_chat_stream(request: ChatRequest):
+    """访客引导智能体 SSE 流式回复。"""
+
+    async def event_generator():
+        async for event in stream_unlogin_reply(
+            user_input=request.user_input,
+            session_id=request.session_id,
+        ):
+            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )

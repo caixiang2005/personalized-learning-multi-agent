@@ -92,8 +92,8 @@ export default function AnalyticsSidebar({
         <p className="dash-panel__desc mb-3">
           六维画像雷达，反映当前各学习维度得分。
         </p>
-        <div className="h-40">
-          <ProfileRadar dimensions={dims} />
+        <div className="analytics-sidebar-radar">
+          <ProfileRadar dimensions={dims} compact />
         </div>
       </AnimeReveal>
 

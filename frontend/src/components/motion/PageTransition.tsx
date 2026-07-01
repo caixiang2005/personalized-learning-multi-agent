@@ -22,7 +22,7 @@ export default function PageTransition() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.22, ease }}
-        className="min-h-0"
+        className="min-h-0 w-full flex-1 flex flex-col"
       >
         <Outlet />
       </motion.div>

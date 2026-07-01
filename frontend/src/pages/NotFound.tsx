@@ -9,7 +9,7 @@ import { Link } from "react-router-dom";
 
 export default function NotFound() {
   return (
-    <div className="app-page-scrim min-h-screen flex flex-col items-center justify-center px-4">
+    <div className="app-page-scrim min-h-screen flex flex-col items-center justify-center px-gutter">
       <p className="text-6xl font-bold text-primary/30">404</p>
       <h1 className="text-xl font-semibold mt-4 text-gray-900 dark:text-white">页面不存在</h1>
       <p className="text-gray-500 mt-2 text-sm">请检查地址或返回首页</p>

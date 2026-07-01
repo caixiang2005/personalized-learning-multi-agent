@@ -467,6 +467,17 @@
   width: 100%;
 }
 
+.analytics-sidebar-radar {
+  width: 100%;
+  height: 240px;
+  min-height: 220px;
+  overflow: visible;
+}
+
+.analytics-sidebar-radar .recharts-responsive-container {
+  overflow: visible;
+}
+
 .home-feed-layout .home-stats {
   margin-bottom: 0;
 }

@@ -4,11 +4,12 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
-from utils.database import LearningAnalytics, Exercise, LearnerProfile, get_db
+from utils.database import LearningAnalytics, Exercise, LearnerProfile, ChatMessage, get_db
 from utils.redis import resolve_user_id_from_token
+from services.analytics_activity_service import DEFAULT_MINUTES
 
 
 def _extract_token(authorization: str | None) -> str:
@@ -163,13 +164,53 @@ def get_suggestions(token: str) -> dict:
 def _minutes_from_metrics(metrics: dict | None) -> int:
     if not metrics or not isinstance(metrics, dict):
         return 0
-    events = metrics.get("events") or []
-    if isinstance(events, list) and events:
-        return sum(int(e.get("minutes") or 0) for e in events if isinstance(e, dict))
+    # analytics_activity_service 写入格式
+    if isinstance(metrics.get("minutes"), (int, float)):
+        return int(metrics["minutes"])
     total = metrics.get("totalMinutes")
     if isinstance(total, (int, float)):
         return int(total)
+    events = metrics.get("events") or []
+    if isinstance(events, list) and events:
+        return sum(int(e.get("minutes") or 0) for e in events if isinstance(e, dict))
+    hours = metrics.get("hours")
+    if isinstance(hours, (int, float)):
+        return int(hours * 60)
     return 0
+
+
+def _backfill_minutes_by_date(
+    db,
+    user_id: int,
+    start_date,
+    end_date,
+) -> dict[str, int]:
+    """从练习提交与辅导对话补全无 analytics 记录的历史日期。"""
+    by_date: dict[str, int] = {}
+
+    exercises = db.query(Exercise).filter(
+        Exercise.user_id == user_id,
+        Exercise.status == "done",
+        Exercise.submitted_at >= datetime.combine(start_date, datetime.min.time()),
+        Exercise.submitted_at <= datetime.combine(end_date, datetime.max.time()),
+    ).all()
+    for ex in exercises:
+        if not ex.submitted_at:
+            continue
+        key = ex.submitted_at.date().isoformat()
+        by_date[key] = by_date.get(key, 0) + DEFAULT_MINUTES.get("exercise", 30)
+
+    messages = db.query(ChatMessage).filter(
+        ChatMessage.user_id == user_id,
+        ChatMessage.role == "user",
+        ChatMessage.created_at >= datetime.combine(start_date, datetime.min.time()),
+        ChatMessage.created_at <= datetime.combine(end_date, datetime.max.time()),
+    ).all()
+    for msg in messages:
+        key = msg.created_at.date().isoformat()
+        by_date[key] = by_date.get(key, 0) + DEFAULT_MINUTES.get("chat", 5)
+
+    return by_date
 
 
 def _level_from_minutes(minutes: int) -> int:
@@ -241,16 +282,43 @@ def record_activity(
         }
 
 
-def get_activity(token: str, weeks: int = 12) -> dict:
+def _month_start(d: date) -> date:
+    return date(d.year, d.month, 1)
+
+
+def _add_months(d: date, delta: int) -> date:
+    """月份加减，返回目标月 1 号。"""
+    zero_based = d.month - 1 + delta
+    year = d.year + zero_based // 12
+    month = zero_based % 12 + 1
+    return date(year, month, 1)
+
+
+def get_activity(
+    token: str,
+    weeks: int = 12,
+    end_date: date | None = None,
+    months: int | None = None,
+) -> dict:
     """GET /api/analytics/activity — 学习活跃热力图数据。"""
     user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
 
-    weeks = max(1, min(int(weeks or 12), 52))
-    end_date = datetime.now().date()
-    total_days = weeks * 7
-    start_date = end_date - timedelta(days=total_days - 1)
+    today = datetime.now().date()
+    end_date = end_date or today
+    if end_date > today:
+        end_date = today
+
+    if months is not None:
+        months = max(1, min(int(months), 36))
+        start_date = _add_months(_month_start(end_date), -(months - 1))
+    else:
+        weeks = max(1, min(int(weeks or 12), 52))
+        total_days = weeks * 7
+        start_date = end_date - timedelta(days=total_days - 1)
+
+    total_days = (end_date - start_date).days + 1
 
     with get_db() as db:
         records = db.query(LearningAnalytics).filter(
@@ -260,12 +328,15 @@ def get_activity(token: str, weeks: int = 12) -> dict:
         ).all()
 
         by_date = {r.date.isoformat(): r for r in records}
+        backfill = _backfill_minutes_by_date(db, user_id, start_date, end_date)
         grid: list[dict[str, Any]] = []
         for offset in range(total_days):
             day = start_date + timedelta(days=offset)
             date_str = day.isoformat()
             rec = by_date.get(date_str)
             minutes = _minutes_from_metrics(rec.metrics if rec else None)
+            if minutes <= 0:
+                minutes = backfill.get(date_str, 0)
             grid.append({
                 "date": date_str,
                 "level": _level_from_minutes(minutes),
@@ -275,5 +346,9 @@ def get_activity(token: str, weeks: int = 12) -> dict:
         return {
             "code": 200,
             "msg": "获取活跃数据成功",
-            "data": {"activityGrid": grid},
+            "data": {
+                "activityGrid": grid,
+                "startDate": start_date.isoformat(),
+                "endDate": end_date.isoformat(),
+            },
         }

@@ -39,6 +39,7 @@ export interface MultimodalResource {
   type: ResourceType;
   title: string;
   description: string;
+  url?: string;
   progress?: number;
   status?: ResourceStatus;
   content?: string;

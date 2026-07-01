@@ -54,7 +54,7 @@ class AppSettings:
         r = self._yaml.get("redis") or {}
         if r.get("db") is not None:
             return int(r["db"])
-        return int(os.getenv("REDIS_DB", "1"))
+        return int(os.getenv("REDIS_DB", "0"))
 
     @property
     def service_port(self) -> int:

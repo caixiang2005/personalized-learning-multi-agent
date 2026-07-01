@@ -12,20 +12,44 @@ import StreamProgress from "../components/scholar/StreamProgress";
 import ScanUploadZone from "../components/scan/ScanUploadZone";
 import ScanResultPanel from "../components/scan/ScanResultPanel";
 import { getToken } from "../lib/auth/token";
-import type { ScanResult } from "../types";
-
+import type { ScanResult, SimilarQuestion, ScanStep } from "../types";
 const WORKFLOW = [
   "上传或拍摄题目图片",
   "输入题目文字（或等待 OCR 自动识别）",
   "AI 标注知识点并分步讲解",
   "自动生成同类巩固练习",
 ];
-
 const QUESTION_TYPES = ["选择题", "填空题", "计算推导", "几何作图"];
 
-async function scanImageApi(file: File, text: string): Promise<{
-  ocrText: string; aiAnalysis: string; ocrStatus: string;
-}> {
+function mapSimilarQuestions(raw: unknown): SimilarQuestion[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item, idx) => {
+    const row = item as Record<string, unknown>;
+    const difficulty = String(row.difficulty ?? "基础");
+    const normalized =
+      difficulty === "中等" || difficulty === "进阶" ? difficulty : "基础";
+    return {
+      id: String(row.id ?? `sq-${idx + 1}`),
+      question: String(row.question ?? row.title ?? ""),
+      difficulty: normalized as SimilarQuestion["difficulty"],
+      knowledgePoint: String(row.knowledgePoint ?? row.knowledge_point ?? ""),
+    };
+  }).filter((q) => q.question);
+}
+
+function mapSteps(raw: unknown): ScanStep[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item, idx) => {
+    const row = item as Record<string, unknown>;
+    return {
+      order: Number(row.order ?? idx + 1),
+      title: String(row.title ?? `步骤 ${idx + 1}`),
+      content: String(row.content ?? ""),
+    };
+  }).filter((s) => s.content);
+}
+
+async function scanImageApi(file: File, text: string): Promise<ScanResult & { ocrStatus: string }> {
   const formData = new FormData();
   formData.append("file", file);
   if (text.trim()) formData.append("text", text.trim());
@@ -37,10 +61,16 @@ async function scanImageApi(file: File, text: string): Promise<{
   });
   const json = await res.json();
   if (json.code !== 200) throw new Error(json.msg || "识别失败");
+  const data = json.data ?? {};
   return {
-    ocrText: json.data?.ocr_text ?? "",
-    aiAnalysis: json.data?.ai_analysis ?? "",
-    ocrStatus: json.data?.ocr_status ?? "disabled",
+    ocrText: data.ocr_text ?? "",
+    analysis: data.ai_analysis ?? "",
+    knowledgePoints: Array.isArray(data.knowledge_points)
+      ? data.knowledge_points.map(String)
+      : [],
+    steps: mapSteps(data.steps),
+    similarQuestions: mapSimilarQuestions(data.similar_questions),
+    ocrStatus: data.ocr_status ?? "disabled",
   };
 }
 
@@ -74,10 +104,10 @@ export default function Scan() {
 
       setResult({
         ocrText: data.ocrText || textInput,
-        knowledgePoints: [],
-        analysis: data.aiAnalysis,
-        steps: [],
-        similarQuestions: [],
+        knowledgePoints: data.knowledgePoints,
+        analysis: data.analysis,
+        steps: data.steps,
+        similarQuestions: data.similarQuestions,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : "识别失败");

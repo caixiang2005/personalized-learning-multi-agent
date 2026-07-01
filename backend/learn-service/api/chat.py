@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Header
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, File, Form, Header, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from services.chat_session_service import (
@@ -9,8 +9,11 @@ from services.chat_session_service import (
     delete_session,
     send_message,
     send_message_stream,
+    regenerate_last_reply,
+    regenerate_last_reply_stream,
 )
 from services.chat_feedback_service import submit_feedback
+from services.chat_upload_service import upload_chat_attachment, get_chat_attachment
 
 router = APIRouter(tags=["聊天会话"])
 
@@ -29,6 +32,10 @@ class ChatFeedbackBody(BaseModel):
     messageId: str
     type: str
     sessionId: str | None = None
+
+
+class RegenerateBody(BaseModel):
+    session_id: str
 
 
 def _extract(authorization: str | None) -> str:
@@ -90,6 +97,83 @@ def handle_chat_feedback(
         body.messageId,
         body.type,
         session_id=body.sessionId,
+    )
+
+
+@router.post("/api/chat/upload")
+async def handle_chat_upload(
+    file: UploadFile = File(...),
+    session_id: str | None = Form(default=None),
+    extract_text: bool = Form(default=True),
+    authorization: str | None = Header(default=None),
+):
+    """上传聊天附件（图片 / PDF），可选 OCR 提取文字。"""
+    try:
+        data = await file.read()
+    except Exception:
+        return {"code": 400, "msg": "读取文件失败", "data": {}}
+
+    return upload_chat_attachment(
+        _extract(authorization),
+        file.filename or "attachment",
+        file.content_type or "",
+        data,
+        session_id=session_id,
+        extract_text=extract_text,
+    )
+
+
+@router.get("/api/chat/attachments/{attachment_id}")
+def handle_chat_attachment(
+    attachment_id: str,
+    authorization: str | None = Header(default=None),
+):
+    result, path = get_chat_attachment(_extract(authorization), attachment_id)
+    if path is None:
+        return result
+    suffix = path.suffix.lower()
+    media_type = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+        ".pdf": "application/pdf",
+    }.get(suffix, "application/octet-stream")
+    return FileResponse(path, media_type=media_type, filename=path.name)
+
+
+@router.post("/api/chat/regenerate")
+def handle_regenerate(
+    body: RegenerateBody,
+    authorization: str | None = Header(default=None),
+):
+    return regenerate_last_reply(_extract(authorization), body.session_id)
+
+
+@router.post("/api/chat/regenerate/stream")
+async def handle_regenerate_stream(
+    body: RegenerateBody,
+    authorization: str | None = Header(default=None),
+):
+    async def sse_generator():
+        async for event_type, data in regenerate_last_reply_stream(
+            token=_extract(authorization),
+            session_id=body.session_id,
+        ):
+            if event_type == "error":
+                yield f"event: error\ndata: {data}\n\n"
+            else:
+                yield f"data: {data}\n\n"
+
+    return StreamingResponse(
+        sse_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

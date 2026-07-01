@@ -38,7 +38,7 @@ import {
 } from "../lib/profileGate";
 import { fetchChatSessions, createChatSession, deleteChatSession, sendChatMessage, sendChatMessageStream, uploadChatAttachment, regenerateChatStream, regenerateChatMessage } from "../lib/api/learn";
 import { buildOutboundChatText, buildUserBubbleText } from "../lib/chatComposer";
-import type { ChatAttachment, ChatMessage } from "../types";
+import type { ChatAttachment, ChatMessage, MultimodalResource } from "../types";
 import MultiAgentPipeline from "../components/chat/MultiAgentPipeline";
 import { useMultiAgent } from "../hooks/useMultiAgent";
 
@@ -87,11 +87,26 @@ async function consumeChatStream(
   streamGen: AsyncGenerator<Record<string, unknown>, void, unknown>,
   onToken: (full: string) => void,
   onStage?: (stage: string, status: string) => void,
-): Promise<string> {
+  onResources?: (resources: MultimodalResource[]) => void,
+): Promise<{ content: string; resources: MultimodalResource[] }> {
   let fullContent = "";
+  const resources: MultimodalResource[] = [];
   for await (const event of streamGen) {
     if (event.type === "stage" && onStage) {
       onStage(event.stage as string, event.status as string);
+    } else if (event.type === "resource" && event.resource) {
+      const raw = event.resource as Record<string, unknown>;
+      const card: MultimodalResource = {
+        id: String(raw.id ?? ""),
+        type: (raw.type as MultimodalResource["type"]) || "document",
+        title: String(raw.title ?? "学习资源"),
+        description: String(raw.description ?? ""),
+        url: raw.url ? String(raw.url) : undefined,
+      };
+      if (card.id) {
+        resources.push(card);
+        onResources?.([...resources]);
+      }
     } else if (event.type === "token") {
       fullContent += (event.content as string) || "";
       onToken(fullContent);
@@ -101,7 +116,7 @@ async function consumeChatStream(
     }
   }
   if (!fullContent) throw new Error("empty reply");
-  return fullContent;
+  return { content: fullContent, resources };
 }
 
 export default function Chat() {
@@ -343,11 +358,13 @@ export default function Chat() {
     ): Promise<{ usedFallback: boolean }> => {
       if (sessionId) {
         try {
-          await consumeChatStream(
+          const { content, resources } = await consumeChatStream(
             sendChatMessageStream(sessionId, outboundText),
             (partial) => updateMessage(assistantId, { content: partial }, chatChannel),
-            applyPipelineStage
+            applyPipelineStage,
+            (cards) => updateMessage(assistantId, { resources: cards }, chatChannel),
           );
+          updateMessage(assistantId, { content, resources }, chatChannel);
           return { usedFallback: false };
         } catch {
           for (const s of ["search", "context", "generate", "memory"]) {
@@ -551,11 +568,13 @@ export default function Chat() {
           );
         } else if (activeSessionId) {
           try {
-            await consumeChatStream(
+            const { content, resources } = await consumeChatStream(
               regenerateChatStream(activeSessionId),
               (partial) => updateMessage(assistantMessageId, { content: partial }, chatChannel),
-              applyPipelineStage
+              applyPipelineStage,
+              (cards) => updateMessage(assistantMessageId, { resources: cards }, chatChannel),
             );
+            updateMessage(assistantMessageId, { content, resources }, chatChannel);
           } catch {
             for (const s of ["search", "context", "generate", "memory"]) {
               advanceAgentPipeline(s);
@@ -687,7 +706,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="scholar-chat-page doubao-chat-shell relative flex h-[calc(100vh-56px)] pb-14 md:pb-0">
+    <div className="scholar-chat-page doubao-chat-shell relative flex flex-1 min-h-0 w-full">
       <aside
         className={`doubao-sidebar ${
           sidebarCollapsed ? "doubao-sidebar--collapsed" : ""
@@ -800,7 +819,7 @@ export default function Chat() {
         <div className="lg:hidden fixed inset-0 bg-black/30 z-10" onClick={toggleSidebar} aria-hidden />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 relative doubao-chat-main">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 relative doubao-chat-main">
         <header className="doubao-chat-header">
           <div className="doubao-chat-header__left">
             <button
