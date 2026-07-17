@@ -18,14 +18,15 @@ def _load_yaml() -> dict:
 
 
 class AppSettings:
-    """统一配置：敏感项放 config/.env，业务配置放 config/settings.yaml。"""
+    """Unified config: secrets in config/.env, business settings in settings.yaml."""
 
     def __init__(self) -> None:
-        # 优先加载 config/.env，override=True 确保覆盖已有系统变量
-        load_dotenv(CONFIG_DIR / ".env", override=True)
-        # 复用 user-service 的数据库配置（同 project_db，避免重复维护）
+        # File .env fills missing keys only — do NOT override Compose/K8s env
+        # (otherwise REDIS_HOST=127.0.0.1 in image .env beats REDIS_HOST=redis).
+        load_dotenv(CONFIG_DIR / ".env", override=False)
+        # Reuse user-service DB config (same project_db)
         load_dotenv(SERVICE_ROOT.parent / "user-service" / "config" / ".env", override=False)
-        # 项目根 .env 作为兜底
+        # Project root .env as fallback
         load_dotenv(SERVICE_ROOT.parent.parent / ".env", override=False)
         self._yaml = _load_yaml()
 
@@ -34,15 +35,15 @@ class AppSettings:
         url = os.getenv("DATABASE_URL", "").strip()
         if not url:
             raise RuntimeError(
-                "DATABASE_URL 未配置。请创建 learn-service/config/.env，"
-                "或确保 user-service/config/.env 已填写 DATABASE_URL。"
+                "DATABASE_URL is not set. Create learn-service/config/.env "
+                "or ensure user-service/config/.env has DATABASE_URL."
             )
         return url
 
     @property
     def redis_host(self) -> str:
         r = self._yaml.get("redis") or {}
-        return str(r.get("host") or os.getenv("REDIS_HOST", "127.0.0.1"))
+        return str(os.getenv("REDIS_HOST") or r.get("host") or "127.0.0.1")
 
     @property
     def redis_port(self) -> int:

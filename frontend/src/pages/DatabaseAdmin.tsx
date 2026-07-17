@@ -119,7 +119,7 @@ export default function DatabaseAdmin() {
           <Database size={20} className="text-[var(--scholar-primary)]" />
           <div>
             <h1 className="scholar-page-header__title">数据库管理</h1>
-            <p className="scholar-page-header__subtitle">只读浏览 · 开发调试</p>
+            <p className="scholar-page-header__subtitle">数据表浏览</p>
           </div>
         </div>
         <button onClick={fetchTables} className="scholar-btn scholar-btn--secondary" title="刷新">

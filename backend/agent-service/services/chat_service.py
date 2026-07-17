@@ -13,13 +13,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from typing import Any
+
 from utils.hf_env import configure_hf_mirror, load_sentence_transformer
 
 configure_hf_mirror()
 
 from openai import AsyncOpenAI
 import httpx
-from sentence_transformers import SentenceTransformer
 
 from core.prompts import KNOWLEDGE_CHAT_PROMPT
 from services.logger import capture_exception, log_error
@@ -38,8 +39,8 @@ _client = AsyncOpenAI(
 )
 MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
-# ── Embedding 模型（惰性加载） ──
-_embed_model: SentenceTransformer | None = None
+# ── Embedding 模型（惰性加载，依赖 sentence-transformers，见 requirements.txt） ──
+_embed_model: Any | None = None
 EMBED_MODEL_NAME = "BAAI/bge-small-zh-v1.5"
 EMBED_DIM = 512
 
@@ -58,11 +59,17 @@ def _key(session_id: str) -> str:
 
 # ── 加载 embedding 模型 ──
 
-def _get_embedder() -> SentenceTransformer:
+def _get_embedder() -> Any:
     global _embed_model
     if _embed_model is None:
-        local_path = os.getenv("EMBED_MODEL_PATH", "").strip() or None
-        _embed_model = load_sentence_transformer(EMBED_MODEL_NAME, local_path=local_path)
+        try:
+            local_path = os.getenv("EMBED_MODEL_PATH", "").strip() or None
+            _embed_model = load_sentence_transformer(EMBED_MODEL_NAME, local_path=local_path)
+        except ImportError as e:
+            raise RuntimeError(
+                "缺少 sentence-transformers，请执行: "
+                "pip install -r requirements.txt"
+            ) from e
     return _embed_model
 
 

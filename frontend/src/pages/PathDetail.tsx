@@ -112,7 +112,7 @@ export default function PathDetail() {
       } catch (err) {
         updateResourceStatus(topicId, resourceId, prevStatus);
         if (err instanceof ApiClientError && err.code === 401) {
-          setStatusError("学习服务未识别登录态，请确认 learn-service 与 Redis 正常");
+          setStatusError("登录已失效，请重新登录后再同步状态");
         } else {
           setStatusError("网络异常，状态未保存");
         }
@@ -207,7 +207,7 @@ export default function PathDetail() {
 
               <h3 className="path-detail-side__title">{selectedNode.name}</h3>
               <p className="path-detail-side__desc">
-                {selectedNode.stageTitle} · 路径智能体依据画像推送五类多模态资源
+                {selectedNode.stageTitle} · 含文档、导图、练习、视频与实操资源
               </p>
 
               <div className="path-detail-metrics">

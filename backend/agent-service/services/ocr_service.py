@@ -100,26 +100,29 @@ async def analyze_question(image_bytes: bytes, user_text: str = "") -> dict:
     except Exception:
         return {"code": 400, "msg": "无法解析图片，请上传 JPG/PNG 格式", "data": {}}
 
-    # 2. cnocr 识别
-    ocr_text = ""
-    ocr_status = "ok"
-    try:
-        ocr = await loop.run_in_executor(None, _get_ocr)
-        # cnocr.ocr() 返回 list[dict], 每个 dict 含 'text' 和 'score'
-        results = await loop.run_in_executor(
-            None, lambda: ocr.ocr(img)
-        )
-        lines = []
-        for r in results:
-            t = (r.get("text") or "").strip()
-            if t:
-                lines.append(t)
-        ocr_text = "\n".join(lines)
-    except Exception as e:
-        ocr_status = f"error: {e}"
+    user_text = (user_text or "").strip()
 
-    # 3. 确定分析文本（OCR 优先，用户输入兜底）
-    question_text = (ocr_text or user_text or "").strip()
+    # 2. cnocr 识别（用户已手填题干时可跳过，加快响应）
+    ocr_text = ""
+    ocr_status = "skipped" if user_text else "ok"
+    if not user_text:
+        try:
+            ocr = await loop.run_in_executor(None, _get_ocr)
+            # cnocr.ocr() 返回 list[dict], 每个 dict 含 'text' 和 'score'
+            results = await loop.run_in_executor(
+                None, lambda: ocr.ocr(img)
+            )
+            lines = []
+            for r in results:
+                t = (r.get("text") or "").strip()
+                if t:
+                    lines.append(t)
+            ocr_text = "\n".join(lines)
+        except Exception as e:
+            ocr_status = f"error: {e}"
+
+    # 3. 确定分析文本（用户输入优先，OCR 兜底）
+    question_text = (user_text or ocr_text or "").strip()
     if not question_text:
         return {
             "code": 200,

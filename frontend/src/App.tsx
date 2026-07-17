@@ -81,8 +81,9 @@ export default function App() {
           <Route path="/path/plan" element={<PathPlan />} />
           <Route path="/path/view" element={<PathDetail />} />
           <Route path="/resource/:id" element={<ResourceDetail />} />
-          <Route path="/exercise/:id" element={<ExercisePage />} />
+          {/* bank 必须在 :id 之前，否则会被匹配成 exerciseId=bank */}
           <Route path="/exercise/bank" element={<ExerciseBank />} />
+          <Route path="/exercise/:id" element={<ExercisePage />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin/db" element={<DatabaseAdmin />} />

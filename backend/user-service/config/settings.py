@@ -31,7 +31,7 @@ class AppSettings:
     @property
     def redis_host(self) -> str:
         r = self._yaml.get("redis") or {}
-        return str(r.get("host") or os.getenv("REDIS_HOST", "127.0.0.1"))
+        return str(os.getenv("REDIS_HOST") or r.get("host") or "127.0.0.1")
 
     @property
     def redis_port(self) -> int:
@@ -87,3 +87,4 @@ class AppSettings:
 @lru_cache
 def get_settings() -> AppSettings:
     return AppSettings()
+

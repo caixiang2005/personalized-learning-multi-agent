@@ -156,7 +156,10 @@ export default function PathPlan() {
   );
 
   const persistPath = useCallback(
-    async (stages: ReturnType<typeof generateLearningPath>["stages"], meta: ReturnType<typeof generateLearningPath>["meta"]) => {
+    async (
+      stages: ReturnType<typeof generateLearningPath>["stages"],
+      meta: ReturnType<typeof generateLearningPath>["meta"]
+    ) => {
       try {
         const res = await generateLearningPathApi({
           course: meta.course,
@@ -171,11 +174,16 @@ export default function PathPlan() {
             return true;
           }
         }
-      } catch {
-        // fallback to local store only
+        setPathError(res.msg || "路径保存到服务器失败，重新登录后可能丢失");
+        setLearningPath(stages, meta);
+        return false;
+      } catch (err) {
+        setPathError(
+          err instanceof Error ? err.message : "路径保存到服务器失败，重新登录后可能丢失"
+        );
+        setLearningPath(stages, meta);
+        return false;
       }
-      setLearningPath(stages, meta);
-      return false;
     },
     [profile.goal, setLearningPath]
   );
@@ -192,7 +200,8 @@ export default function PathPlan() {
       if (useRemote && sid) {
         try {
           const res = await finalizePathPlanRemote(sid);
-          if (res.data) {
+          // 仅 code=200 才算已持久化；500 时 data 可能只是未入库的草稿
+          if (res.code === 200 && res.data) {
             const parsed = parseLearningPathApiData(res.data);
             if (parsed) {
               setLearningPath(parsed.stages, parsed.meta);
@@ -200,17 +209,37 @@ export default function PathPlan() {
               return;
             }
           }
+          if (res.code === 400) {
+            setPathError(res.msg || "请先完成路径对话，待智能体输出完整路径后再生成");
+            return;
+          }
+          if (res.data) {
+            const parsed = parseLearningPathApiData(res.data);
+            if (parsed) {
+              const ok = await persistPath(parsed.stages, {
+                ...parsed.meta,
+                course: parsed.meta.course || draftRef.current.courseFocus || profile.major || "学习路径",
+              });
+              if (ok) {
+                navigate(PATH_VIEW_PATH);
+              }
+              return;
+            }
+          }
         } catch (err) {
           if (err instanceof AgentApiError && err.code === 400) {
             setPathError(err.message || "请先完成路径对话，待智能体输出完整路径后再生成");
+            return;
           }
           // other errors: fallback below
         }
       }
 
       const { stages, meta } = generateLearningPath(profile, draftRef.current, userRounds);
-      await persistPath(stages, meta);
-      navigate(PATH_VIEW_PATH);
+      const ok = await persistPath(stages, meta);
+      if (ok) {
+        navigate(PATH_VIEW_PATH);
+      }
     } finally {
       setGeneratingPath(false);
     }
@@ -312,7 +341,7 @@ export default function PathPlan() {
           <div className="chat-profile-banner__main">
             <Sparkles size={16} className="text-[var(--scholar-primary)] shrink-0" />
             <div>
-              <p className="chat-profile-banner__title">路径规划中（{userRounds}/2 轮以上可生成）</p>
+              <p className="chat-profile-banner__title">路径规划中（已对话 {userRounds} 轮）</p>
               <p className="chat-profile-banner__desc">
                 补充课程、薄弱点与资源偏好后，点击「生成学习路径」查看三阶段规划与多模态资源。
               </p>

@@ -1,0 +1,184 @@
+# PLMA deploy for Aliyun / competition judges
+# Main app + Redis + n8n. Dify: see start-dify.sh / start-dify.ps1
+#   cd deploy && cp .env.example .env && docker compose up -d --build
+
+# Clear Docker Desktop / Clash proxy so containers talk on the compose network
+x-no-proxy: &no-proxy
+  HTTP_PROXY: ""
+  HTTPS_PROXY: ""
+  http_proxy: ""
+  https_proxy: ""
+  ALL_PROXY: ""
+  all_proxy: ""
+  NO_PROXY: "*"
+  no_proxy: "*"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: plma-redis
+    environment:
+      <<: *no-proxy
+    volumes:
+      - redis-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [plma]
+
+  user-service:
+    build:
+      context: ../backend/user-service
+      dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        ALL_PROXY: ""
+        all_proxy: ""
+    container_name: plma-user
+    env_file: [.env]
+    environment:
+      <<: *no-proxy
+      SERVICE_PORT: "8001"
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+    volumes:
+      - ../backend/user-service/config/settings.yaml:/app/config/settings.yaml:ro
+      - user-static:/app/static
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [plma]
+
+  learn-service:
+    build:
+      context: ../backend/learn-service
+      dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        ALL_PROXY: ""
+        all_proxy: ""
+    container_name: plma-learn
+    env_file: [.env]
+    environment:
+      <<: *no-proxy
+      SERVICE_PORT: "8002"
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      AGENT_SERVICE_URL: http://agent-service:8003
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [plma]
+
+  agent-service:
+    build:
+      context: ../backend/agent-service
+      dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        ALL_PROXY: ""
+        all_proxy: ""
+    container_name: plma-agent
+    env_file: [.env]
+    environment:
+      <<: *no-proxy
+      SERVICE_PORT: "8003"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      LEARN_SERVICE_URL: http://learn-service:8002
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
+      DEEPSEEK_API_URL: ${DEEPSEEK_API_URL:-https://api.deepseek.com/v1}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-chat}
+      PG_HOST: ${PG_HOST}
+      PG_PORT: ${PG_PORT:-5432}
+      PG_USER: ${PG_USER}
+      PG_PASSWORD: ${PG_PASSWORD}
+      PG_DATABASE: ${PG_DATABASE:-project_db}
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [plma]
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        http_proxy: ""
+        https_proxy: ""
+        ALL_PROXY: ""
+        all_proxy: ""
+    container_name: plma-frontend
+    environment:
+      <<: *no-proxy
+    depends_on: [user-service, learn-service, agent-service]
+    restart: unless-stopped
+    networks: [plma]
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: plma-nginx
+    environment:
+      <<: *no-proxy
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [frontend, user-service, learn-service, agent-service, n8n]
+    restart: unless-stopped
+    networks: [plma]
+
+  n8n:
+    image: n8nio/n8n:1.82.3
+    container_name: plma-n8n
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      <<: *no-proxy
+      N8N_HOST: ${N8N_HOST:-0.0.0.0}
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://127.0.0.1:5678/}
+      GENERIC_TIMEZONE: Asia/Shanghai
+      TZ: Asia/Shanghai
+      N8N_SECURE_COOKIE: "false"
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ../integrations/n8n:/import:ro
+    depends_on:
+      - user-service
+    restart: unless-stopped
+    networks: [plma]
+
+volumes:
+  redis-data:
+  user-static:
+  n8n-data:
+
+networks:
+  plma:
+    driver: bridge

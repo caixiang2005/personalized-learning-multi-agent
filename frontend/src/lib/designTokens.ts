@@ -42,7 +42,7 @@ export const capabilities = [
   {
     id: "scan",
     title: "拍照搜题",
-    desc: "OCR 识题 · AI 逐步解析 · 自动生成同类练习",
+    desc: "拍照识题 · AI 逐步解析 · 生成同类练习",
     path: "/scan",
     tone: "cyan" as const,
   },

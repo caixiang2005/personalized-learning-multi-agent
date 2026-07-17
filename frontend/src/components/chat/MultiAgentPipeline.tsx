@@ -45,10 +45,10 @@ const STATUS_BG: Record<AgentStatus, string> = {
 
 export const AGENT_TEMPLATES: Record<string, { name: string; icon: LucideIcon; desc: string }> = {
   // 真实 Agent 管道阶段（agent-service SSE 推送）
-  search: { name: "知识检索", icon: Search, desc: "向量化 · PGVector 搜索知识库" },
-  context: { name: "上下文构建", icon: BookOpen, desc: "加载对话历史 · 拼接知识参考" },
-  generate: { name: "AI 生成", icon: Sparkles, desc: "DeepSeek 流式生成回答" },
-  memory: { name: "记忆存储", icon: Database, desc: "Redis 保存对话记忆" },
+  search: { name: "知识检索", icon: Search, desc: "检索相关知识点" },
+  context: { name: "上下文构建", icon: BookOpen, desc: "结合对话与知识参考" },
+  generate: { name: "AI 生成", icon: Sparkles, desc: "流式生成回答" },
+  memory: { name: "记忆存储", icon: Database, desc: "保存本轮对话要点" },
   // 其他智能体模板
   profile: { name: "画像分析", icon: Brain, desc: "分析学习特征与薄弱点" },
   path: { name: "路径规划", icon: Route, desc: "规划最佳学习路径" },
@@ -200,12 +200,12 @@ export default function MultiAgentPipeline({ stages, compact = false, title, sub
       {/* 总结行 */}
       {errorCount > 0 && (
         <p className="mt-2 text-[10px] text-red-400 flex items-center gap-1">
-          <AlertCircle size={10} /> {errorCount} 个智能体出错，已降级处理
+          <AlertCircle size={10} /> {errorCount} 个步骤未完成，已使用备用方案
         </p>
       )}
       {processingCount === 0 && doneCount === stages.length && stages.length > 0 && (
         <p className="mt-2 text-[10px] text-green-500 flex items-center gap-1">
-          <CheckCircle2 size={10} /> 全部智能体协同完成
+          <CheckCircle2 size={10} /> 协同处理完成
         </p>
       )}
     </div>

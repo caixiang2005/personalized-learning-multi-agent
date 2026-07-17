@@ -41,7 +41,7 @@ export default function ExerciseBank() {
         setError(res.msg || "获取失败");
       }
     } catch {
-      setError("后端未就绪，请启动 learn-service(:8002)");
+      setError("暂时无法加载习题，请稍后重试");
     } finally {
       setLoading(false);
     }

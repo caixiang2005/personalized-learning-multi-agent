@@ -58,7 +58,7 @@ export default function Profile() {
           ? err.code === 401
             ? "登录已失效，请重新登录后再试"
             : err.message
-          : "更新失败，请确认 learn-service 已启动";
+          : "更新失败，请稍后重试";
       setUpdateFeedback({ type: "err", text: msg });
     } finally {
       setUpdating(false);

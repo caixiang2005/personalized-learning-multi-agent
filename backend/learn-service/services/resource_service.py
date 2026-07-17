@@ -205,10 +205,13 @@ def submit_exercise(
 
 
 def _forward_authorization(headers: dict, token: str) -> dict:
-    """构建转发到 agent-service 的请求头。"""
+    """构建转发到 agent-service 的请求头（避免重复加 Bearer 前缀）。"""
     h = {k: v for k, v in headers.items() if k.lower() in ("content-type",)}
-    if token:
-        h["Authorization"] = f"Bearer {token}"
+    raw = (token or "").strip()
+    if raw.lower().startswith("bearer "):
+        raw = raw[7:].strip()
+    if raw:
+        h["Authorization"] = f"Bearer {raw}"
     return h
 
 

@@ -15,7 +15,7 @@ import { getToken } from "../lib/auth/token";
 import type { ScanResult, SimilarQuestion, ScanStep } from "../types";
 const WORKFLOW = [
   "上传或拍摄题目图片",
-  "输入题目文字（或等待 OCR 自动识别）",
+  "输入题目文字",
   "AI 标注知识点并分步讲解",
   "自动生成同类巩固练习",
 ];
@@ -58,6 +58,7 @@ async function scanImageApi(file: File, text: string): Promise<ScanResult & { oc
     method: "POST",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: formData,
+    signal: AbortSignal.timeout(180000),
   });
   const json = await res.json();
   if (json.code !== 200) throw new Error(json.msg || "识别失败");
@@ -83,20 +84,38 @@ export default function Scan() {
   const [textInput, setTextInput] = useState("");
   const [statusText, setStatusText] = useState("");
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFile = useCallback((file: File) => {
     if (busy) return;
     const url = URL.createObjectURL(file);
     setPreview(url);
     setResult(null);
     setError(null);
+    // 只预览，等用户点「分析」再请求（避免未填题干就卡在 OCR）
+  }, [busy]);
+
+  const runAnalyze = useCallback(async () => {
+    if (busy) return;
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = fileInput?.files?.[0];
+    if (!file) {
+      setError("请先上传题目图片");
+      return;
+    }
+    if (!getToken()) {
+      setError("登录已失效，请重新登录后再试");
+      return;
+    }
+
     setBusy(true);
     setProgress(0);
-    setStatusText("上传分析中…");
+    setStatusText(textInput.trim() ? "AI 分析中…" : "OCR 识别并分析中…");
+    setError(null);
+    setResult(null);
 
     try {
       const progressTimer = setInterval(() => {
         setProgress((p) => (p !== null && p < 85 ? p + 5 : p));
-      }, 300);
+      }, 400);
 
       const data = await scanImageApi(file, textInput);
       clearInterval(progressTimer);
@@ -109,8 +128,12 @@ export default function Scan() {
         steps: data.steps,
         similarQuestions: data.similarQuestions,
       });
+      if (data.ocrStatus?.startsWith("error") && !data.ocrText && !textInput.trim()) {
+        setError("OCR 未识别到文字，请在下方输入题目后再点分析");
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "识别失败");
+      const msg = e instanceof Error ? e.message : "识别失败";
+      setError(msg.includes("登录") ? "登录已失效，请重新登录后再试" : msg);
     } finally {
       setBusy(false);
       setProgress(null);
@@ -122,7 +145,7 @@ export default function Scan() {
     <ScholarDashboardLayout
       badge="多模态 · 拍照搜题"
       title="拍照搜题"
-      subtitle="上传题目图片，输入文字（或等 OCR 模型就绪后自动识别），AI 帮你解析"
+      subtitle="上传题目图片或输入文字，AI 帮你解析"
       sidebar={<ScanSidebar />}
     >
       <ScanUploadZone preview={preview} disabled={busy} onFile={handleFile} />
@@ -137,20 +160,18 @@ export default function Scan() {
       {preview && (
         <div className="section-card dash-panel mt-4">
           <label className="block text-sm font-medium text-[var(--scholar-text)] mb-1.5">
-            题目文字（OCR 模型加载中，请手动输入或等待自动识别）
+            题目文字
           </label>
           <div className="flex gap-2">
             <input
               className="input-field flex-1"
-              placeholder="输入图片中的题目文字…"
+              placeholder="可选：手动输入题干（OCR 不准时建议填写）"
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && preview && !busy) {
                   e.preventDefault();
-                  // 重新触发分析
-                  const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
-                  if (fileInput?.files?.[0]) handleFile(fileInput.files[0]);
+                  void runAnalyze();
                 }
               }}
               disabled={busy}
@@ -158,17 +179,14 @@ export default function Scan() {
             <button
               type="button"
               className="btn-primary text-sm shrink-0"
-              disabled={busy || !textInput.trim()}
-              onClick={() => {
-                const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
-                if (fileInput?.files?.[0]) handleFile(fileInput.files[0]);
-              }}
+              disabled={busy}
+              onClick={() => void runAnalyze()}
             >
               <Send size={14} /> 分析
             </button>
           </div>
           <p className="text-[10px] text-[var(--scholar-text-muted)] mt-1">
-            上传图片后输入题目文字，点击"分析"或按 Enter 发送给 AI
+            上传图片后点击「分析」；若 OCR 较慢或不准，可先填写题目文字再分析
           </p>
         </div>
       )}

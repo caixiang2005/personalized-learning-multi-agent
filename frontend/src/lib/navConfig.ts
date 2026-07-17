@@ -68,7 +68,7 @@ export const GROWTH_NAV: GrowthNavItem[] = [
   {
     to: "/scan",
     label: "拍照搜题",
-    desc: "多模态 OCR 即时辅导",
+    desc: "拍照识题 · 即时辅导",
     icon: Camera,
     group: "tool",
   },

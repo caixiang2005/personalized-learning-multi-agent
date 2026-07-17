@@ -16,7 +16,7 @@ export default function ScanResultPanel({ result, analysisStream, analyzing }: P
       <section className="scholar-card p-5">
         <h3 className="text-sm font-semibold text-[var(--scholar-text)] flex items-center gap-2 mb-3">
           <BookOpen size={16} className="text-[var(--scholar-primary)]" aria-hidden />
-          OCR 识别结果
+          识别结果
         </h3>
         <p className="text-sm leading-relaxed text-[var(--scholar-text-secondary)] whitespace-pre-wrap">
           {result.ocrText}

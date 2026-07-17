@@ -52,7 +52,7 @@ def handle_record_activity(
     return record_activity(
         authorization or "",
         body.activity,
-        minutes=body.minutes or 0,
+        minutes=body.minutes,
         exercise_score=body.exerciseScore,
         resource_status=body.resourceStatus,
     )

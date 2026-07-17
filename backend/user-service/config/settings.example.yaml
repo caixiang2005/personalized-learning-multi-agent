@@ -1,7 +1,8 @@
 # 复制为 settings.yaml 并填写真实信息（settings.yaml 勿提交）
 
 redis:
-  host: 8.153.204.117
+  # 须为可写主节点(master)。若 host 为只读从库(slave)，验证码/会话写入会失败
+  host: 127.0.0.1
   port: 6379
   db: 0
 

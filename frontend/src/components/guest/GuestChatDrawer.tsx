@@ -144,7 +144,7 @@ export default function GuestChatDrawer({ open, onClose }: Props) {
         {usedFallback && (
           <div className="guest-drawer__alert guest-drawer__alert--warn">
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
-            未连接 agent-service，当前为本地 Mock。请启动后端 8003 端口后刷新。
+            智能助手暂时不可用，已切换为本地引导。请稍后重试。
           </div>
         )}
 

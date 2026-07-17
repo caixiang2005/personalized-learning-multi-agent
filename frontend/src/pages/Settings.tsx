@@ -3,7 +3,7 @@
  * @description 设置中心：账号、偏好、系统信息导航。
  */
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, LogOut, Moon, Sun, Info, Shield, User, Database, Palette } from "lucide-react";
+import { ArrowRight, LogOut, Moon, Sun, Info, Shield, User, Palette } from "lucide-react";
 import ScholarDashboardLayout from "../components/dashboard/ScholarDashboardLayout";
 import { logoutLocal } from "../lib/api/user";
 import { useAppStore } from "../store/useAppStore";
@@ -31,12 +31,6 @@ const SETTING_SECTIONS = [
     title: "偏好设置",
     items: [
       { to: "/profile", icon: Palette, label: "学习画像", desc: "查看六维画像与薄弱知识点" },
-    ],
-  },
-  {
-    title: "开发者",
-    items: [
-      { to: "/admin/db", icon: Database, label: "数据库管理", desc: "浏览数据表、执行 SQL 查询" },
     ],
   },
 ];
@@ -95,7 +89,7 @@ export default function Settings() {
             <Info size={16} strokeWidth={1.75} aria-hidden />
             关于
           </p>
-          <p className="about-panel__sub">智慧学习中心 · 第十五届中国软件杯 A 组 · 版本 0.1.0</p>
+          <p className="about-panel__sub">智慧学习中心 · 版本 0.1.0</p>
         </div>
         <div className="about-panel__grid">
           {OPEN_SOURCE_STACK.map((item) => (

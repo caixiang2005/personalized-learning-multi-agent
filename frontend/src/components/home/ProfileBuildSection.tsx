@@ -82,8 +82,8 @@ export default function ProfileBuildSection() {
               对话式学习画像 · 自主构建
             </p>
             <p className="profile-build__desc">
-              赛题核心能力：通过<strong>画像智能体</strong>多轮对话抽取 ≥6 维学习特征，无需填表。
-              完成后生成专属画像并开放学习驾驶舱与智能辅导。
+              通过<strong>画像智能体</strong>多轮对话抽取六维学习特征，无需填表。
+              完成后生成专属画像，并开放学习驾驶舱与智能辅导。
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function ProfileBuildSection() {
         </AnimeStagger>
 
         <p className="profile-build__resource-hint">
-          完成画像后，可协同生成以下类型资源（预览）
+          完成画像后，可协同生成以下类型资源
         </p>
         <AnimeStagger selector=".scholar-resource-pill" staggerMs={50} y={8} delay={240}>
           <ResourceTypeStrip mode="static" />

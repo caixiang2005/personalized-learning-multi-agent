@@ -114,24 +114,41 @@ export default function ExercisePage() {
   // 是否是 AI 出题模式
   const isAiGenerate = id === "ai-generate";
 
-  // 加载练习题库
+  // 加载练习题库（路径资源可能尚无题目，需降级到 AI 出题）
   const loadExercise = useCallback(async () => {
     if (!id || isAiGenerate) return;
     setLoading(true);
     setError(null);
     try {
       const res = await fetchExercise(id);
-      if (res.code === 200) {
+      if (res.code === 200 && Array.isArray(res.data?.questions) && res.data.questions.length > 0) {
         setExerciseData(res.data);
+      } else if (res.code === 200) {
+        // 路径练习占位记录：有 ID 但无题目，引导 AI 出题
+        setExerciseData(null);
+        setError(null);
       } else {
-        setError(res.msg);
+        // 非数字路径 ID（如 res-1-1-3）或练习不存在：不阻断页面，走 AI 出题
+        setExerciseData(null);
+        setError(null);
       }
-    } catch {
-      setError("后端未就绪，请启动 learn-service");
+    } catch (err) {
+      setExerciseData(null);
+      if (err instanceof ApiClientError && (err.code === 400 || err.code === 404)) {
+        setError(null);
+      } else if (err instanceof ApiClientError && err.code === 401) {
+        setError("登录已失效，可先练习本地题目");
+      } else {
+        setError("服务暂不可用，可先练习本地题目");
+      }
     } finally {
       setLoading(false);
     }
   }, [id, isAiGenerate]);
+
+  useEffect(() => {
+    loadedRef.current = false;
+  }, [id]);
 
   useEffect(() => {
     if (!isAiGenerate) {
@@ -168,8 +185,9 @@ export default function ExercisePage() {
       setAgentStages(prev => prev.map(s => s.id === "exercise" ? { ...s, status: "processing" as const, detail: "生成练习题" } : s));
 
       const weakPoints = profile.weakPoints.map(w => w.name);
+      const topicHint = resource?.title || resource?.description || "";
       const res = await generateExerciseApi({
-        user_input: `${profile.major} ${profile.goal}`,
+        user_input: [profile.major, profile.goal, topicHint].filter(Boolean).join(" "),
         weak_points: weakPoints.length > 0 ? weakPoints : undefined,
         count: 5,
         difficulty: "medium",
@@ -189,18 +207,23 @@ export default function ExercisePage() {
         s.status === "processing" ? { ...s, status: "error" as const, detail: err instanceof Error ? err.message : "生成失败" } : s
       ));
       const apiMsg = err instanceof ApiClientError ? err.message : err instanceof Error ? err.message : "AI 出题失败";
-      const hint =
-        err instanceof ApiClientError && err.code === 401
-          ? "学习服务未识别登录态（请确认 learn-service 已启动且 Redis 可用）"
-          : apiMsg;
-      setError(`${hint} · 已使用本地题目`);
-      // 使用本地备选题
-      setAiQuestions([
-        { id: "q1", type: "choice", title: "栈的特点是？", options: ["FIFO", "LIFO", "随机存取", "双向"], correctAnswer: "LIFO", explanation: "栈是后进先出（LIFO）的数据结构" },
-        { id: "q2", type: "fill", title: "二叉树前序遍历顺序：根 → ___ → 右", correctAnswer: "左", explanation: "前序遍历顺序为：根节点 → 左子树 → 右子树" },
-        { id: "q3", type: "choice", title: "以下哪种排序算法平均时间复杂度为 O(n log n)？", options: ["冒泡排序", "插入排序", "快速排序", "选择排序"], correctAnswer: "快速排序", explanation: "快速排序的平均时间复杂度为 O(n log n)" },
-        { id: "q4", type: "fill", title: "链表相比数组的主要优点是 ___ 操作高效", correctAnswer: "插入删除", explanation: "链表在插入和删除操作上比数组更高效" },
-      ]);
+      const isAuth =
+        err instanceof ApiClientError && err.code === 401;
+      const hint = isAuth ? "登录已失效，请重新登录后再生成题目" : apiMsg;
+      setError(hint);
+      // 鉴权失败不再塞固定本地题（否则每次题目都一样）
+      if (!isAuth) {
+        const stamp = Date.now().toString(36).slice(-4);
+        setAiQuestions([
+          { id: `q1-${stamp}`, type: "choice", title: "栈的特点是？", options: ["FIFO", "LIFO", "随机存取", "双向"], correctAnswer: "LIFO", explanation: "栈是后进先出（LIFO）的数据结构" },
+          { id: `q2-${stamp}`, type: "fill", title: "二叉树前序遍历顺序：根 → ___ → 右", correctAnswer: "左", explanation: "前序遍历顺序为：根节点 → 左子树 → 右子树" },
+          { id: `q3-${stamp}`, type: "choice", title: "以下哪种排序算法平均时间复杂度为 O(n log n)？", options: ["冒泡排序", "插入排序", "快速排序", "选择排序"], correctAnswer: "快速排序", explanation: "快速排序的平均时间复杂度为 O(n log n)" },
+          { id: `q4-${stamp}`, type: "fill", title: "链表相比数组的主要优点是 ___ 操作高效", correctAnswer: "插入删除", explanation: "链表在插入和删除操作上比数组更高效" },
+        ]);
+        setError(`${hint} · 已切换为本地备选题（请稍后重试 AI 出题）`);
+      } else {
+        setAiQuestions(null);
+      }
     } finally {
       setGenerating(false);
       generatingRef.current = false;
@@ -268,12 +291,15 @@ export default function ExercisePage() {
         topic_id: exerciseData?.topicId ?? "",
       };
 
-      if (isAiGenerate) {
+      // 路径资源 ID（非数字）或本页 AI 生成的题目：走 save，避免 submit 404
+      const useSaveFlow = isAiGenerate || Boolean(aiQuestions) || !/^\d+$/.test(id);
+
+      if (useSaveFlow) {
         const saveRes = await saveExerciseResultApi({
           questions: profilePayload.questions,
           answers: profilePayload.answers,
           score: finalScore,
-          topic_id: profilePayload.topic_id,
+          topic_id: profilePayload.topic_id || resource?.id || "",
           title: resourceTitle,
           ai_review: profilePayload.ai_review,
         });

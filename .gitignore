@@ -62,3 +62,5 @@ backend/user-service/static/
 # 开发调试脚本（根目录级别，避免误提交）
 /_*.ps1
 /_*.py
+deploy/.env
+deploy/dify-src/

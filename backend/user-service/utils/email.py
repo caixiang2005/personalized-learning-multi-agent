@@ -9,6 +9,8 @@ from enum import Enum
 logger = logging.getLogger(__name__)
 
 from email_validator import EmailNotValidError, validate_email
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import RedisError, TimeoutError as RedisTimeoutError
 
 from config import get_settings
 from error.logger import capture_exception, log_error
@@ -130,7 +132,8 @@ def _send_smtp(to_email: str, code: str, purpose: CodePurpose) -> bool:
         return False
 
 
-def _save_code(email: str, code: str, purpose: CodePurpose) -> bool:
+def _save_code(email: str, code: str, purpose: CodePurpose) -> tuple[bool, str]:
+    """写入验证码。成功返回 (True, '')，失败返回 (False, 用户可见原因)。"""
     client = get_redis_client()
     if client is None:
         log_error(
@@ -138,7 +141,7 @@ def _save_code(email: str, code: str, purpose: CodePurpose) -> bool:
             message="验证码写入失败：Redis 不可用",
             session_id=email,
         )
-        return False
+        return False, "验证码保存失败：Redis 未连接"
     expire_seconds = get_settings().verification["expire_seconds"]
     resend_seconds = get_settings().verification["resend_interval_seconds"]
     try:
@@ -146,10 +149,17 @@ def _save_code(email: str, code: str, purpose: CodePurpose) -> bool:
         pipe.set(_code_key(email, purpose), code, ex=expire_seconds)
         pipe.set(_sent_key(email, purpose), "1", ex=resend_seconds)
         pipe.execute()
-        return True
-    except (ConnectionError, TimeoutError, OSError) as exc:
+        return True, ""
+    except RedisError as exc:
+        # 含 ReadOnlyError：连到了只读副本/只读实例时 SET 会抛此异常
         capture_exception(exc, session_id=email, context="Redis save_code")
-        return False
+        err = str(exc).lower()
+        if "readonly" in err or type(exc).__name__ == "ReadOnlyError":
+            return False, "验证码保存失败：Redis 为只读，请改用可写主节点"
+        return False, "验证码保存失败，请检查 Redis 连接"
+    except OSError as exc:
+        capture_exception(exc, session_id=email, context="Redis save_code")
+        return False, "验证码保存失败，请检查 Redis 连接"
 
 
 def verify_verification_code(email: str, code: str, purpose: CodePurpose) -> bool:
@@ -169,7 +179,7 @@ def verify_verification_code(email: str, code: str, purpose: CodePurpose) -> boo
         client.delete(key)
         client.delete(_sent_key(email, purpose))
         return True
-    except (ConnectionError, TimeoutError, OSError) as exc:
+    except (RedisConnectionError, RedisTimeoutError, RedisError, OSError) as exc:
         capture_exception(exc, session_id=email, context="Redis verify_code")
         return False
 
@@ -195,10 +205,12 @@ def send_verification_code(email: str, purpose: CodePurpose) -> dict:
         return {"code": 200, "msg": "验证码已发送，请稍后再试", "data": {}}
 
     verification_code = generate_code()
+    # 先写 Redis，再发邮件，避免只读 Redis 导致「邮件已发但验证码未入库」
+    ok, save_msg = _save_code(email, verification_code, purpose)
+    if not ok:
+        return {"code": 503, "msg": save_msg, "data": {}}
+
     if not _send_smtp(email, verification_code, purpose):
         return {"code": 500, "msg": "验证码发送失败，请稍后重试", "data": {}}
-
-    if not _save_code(email, verification_code, purpose):
-        return {"code": 503, "msg": "验证码保存失败，请检查 Redis 连接", "data": {}}
 
     return {"code": 200, "msg": _SUCCESS_MSG[purpose], "data": {}}

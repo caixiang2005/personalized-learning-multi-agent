@@ -138,7 +138,7 @@ async def _call_llm(prompt: str, system_prompt: str = "") -> str:
 
 async def generate_exercises(token: str, body) -> dict:
     """POST /api/agent/exercise/generate — 生成练习题。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效", "data": {}}
 
@@ -149,6 +149,7 @@ async def generate_exercises(token: str, body) -> dict:
         f"题目数量：{body.count}\n"
         f"难度等级：{body.difficulty}\n\n"
         f"请生成 {body.count} 道针对性的练习题。"
+        f"不要重复常见模板题；每轮换知识点与题干表述。"
     )
 
     try:
@@ -171,7 +172,7 @@ async def generate_exercises(token: str, body) -> dict:
 
 async def ai_review_answers(token: str, body) -> dict:
     """POST /api/agent/exercise/review — AI 智能批改。"""
-    user_id = resolve_user_id_from_token(token)
+    user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效", "data": {}}
 

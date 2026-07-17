@@ -84,7 +84,7 @@ export async function sendAgentMessage(
   };
 
   const mockReply =
-    "（本地 Mock）agent-service 未连接。\n\n请在 `backend/agent-service` 目录激活 `.venv` 后执行 `python main.py`（端口 **8003**），然后刷新页面。\n\n你的问题是：\n> " +
+    "智能辅导暂时不可用，已切换为本地引导。\n\n你的问题是：\n> " +
     userInput;
 
   if (forceMock) {

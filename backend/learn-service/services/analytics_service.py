@@ -9,7 +9,7 @@ from typing import Any
 
 from utils.database import LearningAnalytics, Exercise, LearnerProfile, ChatMessage, get_db
 from utils.redis import resolve_user_id_from_token
-from services.analytics_activity_service import DEFAULT_MINUTES
+from services.analytics_activity_service import DEFAULT_MINUTES, record_learning_activity
 
 
 def _extract_token(authorization: str | None) -> str:
@@ -105,6 +105,8 @@ def get_weak_points(token: str) -> dict:
                 if any(k in w for k in ["薄弱", "不熟", "不会", "困难", "不懂", "忘了", "难"])
             ))
 
+        dimensions = (profile.learner_dimensions if profile else None) or []
+
         return {
             "code": 200,
             "msg": "获取薄弱点成功",
@@ -113,7 +115,7 @@ def get_weak_points(token: str) -> dict:
                     {"name": kw, "count": 5} for kw in weak_keywords[:5]
                 ],
                 "learnerDimensions": [
-                    d for d in (profile.learner_dimensions or [])
+                    d for d in dimensions
                     if isinstance(d, dict) and d.get("level") in ("weak",)
                 ],
             },
@@ -228,11 +230,11 @@ def _level_from_minutes(minutes: int) -> int:
 def record_activity(
     token: str,
     activity: str,
-    minutes: int = 0,
+    minutes: int | None = None,
     exercise_score: int | None = None,
     resource_status: str | None = None,
 ) -> dict:
-    """POST /api/analytics/record — 记录学习行为。"""
+    """POST /api/analytics/record — 记录学习行为（与内部 upsert 格式一致）。"""
     user_id = resolve_user_id_from_token(_extract_token(token))
     if user_id is None:
         return {"code": 401, "msg": "登录已失效，请重新登录", "data": {}}
@@ -241,40 +243,16 @@ def record_activity(
     if activity not in valid_activities:
         return {"code": 400, "msg": f"无效 activity，可选: {', '.join(sorted(valid_activities))}", "data": {}}
 
-    now = datetime.now()
-    today = now.date()
-    event: dict[str, Any] = {
-        "activity": activity,
-        "minutes": max(0, int(minutes or 0)),
-        "ts": now.isoformat(),
-    }
-    if exercise_score is not None:
-        event["exerciseScore"] = exercise_score
-    if resource_status:
-        event["resourceStatus"] = resource_status
-
+    today = datetime.now().date()
     with get_db() as db:
-        record = db.query(LearningAnalytics).filter(
-            LearningAnalytics.user_id == user_id,
-            LearningAnalytics.date == today,
-        ).first()
-
-        if record is None:
-            record = LearningAnalytics(
-                user_id=user_id,
-                date=today,
-                metrics={"events": [event], "totalMinutes": event["minutes"]},
-                created_at=now,
-            )
-            db.add(record)
-        else:
-            metrics = dict(record.metrics or {})
-            events = list(metrics.get("events") or [])
-            events.append(event)
-            metrics["events"] = events
-            metrics["totalMinutes"] = _minutes_from_metrics(metrics)
-            record.metrics = metrics
-
+        record_learning_activity(
+            db,
+            user_id,
+            activity,
+            minutes=minutes,
+            exercise_score=exercise_score,
+            resource_status=resource_status,
+        )
         return {
             "code": 200,
             "msg": "学习行为已记录",

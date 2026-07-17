@@ -255,8 +255,8 @@ export default function ResourceDetail() {
       title={resource.title}
       subtitle={
         remoteData
-          ? `${typeLabel[resource.type] ?? "资源"} · 来自后端`
-          : `${(topicName || typeLabel[resource.type]) ?? "资源"} · ${hasContent ? "本地内容" : "AI 生成内容"}`
+          ? (typeLabel[resource.type] ?? "学习资源")
+          : `${(topicName || typeLabel[resource.type]) ?? "学习资源"}${generated || !hasContent ? " · 可 AI 生成" : ""}`
       }
       aside={
         <div className="flex flex-wrap gap-2 justify-end">
@@ -273,7 +273,7 @@ export default function ResourceDetail() {
     >
       {error && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm text-amber-700 dark:text-amber-300">
-          ⚠️ {error} · 显示本地内容
+          ⚠️ {error}
         </div>
       )}
 
@@ -292,42 +292,30 @@ export default function ResourceDetail() {
 
       {agentStages.length > 0 && (
         <div className="section-card dash-panel mb-4">
-          <MultiAgentPipeline stages={agentStages} title="多智能体协同生成" />
+          <MultiAgentPipeline stages={agentStages} title="内容生成中" />
         </div>
       )}
 
-      {/* 多模态资源标签 */}
       <div className="flex flex-wrap gap-2 mb-4">
         <span className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--scholar-primary)]/10 text-[var(--scholar-primary)]">
           {typeLabel[resource.type] ?? "资源"}
         </span>
-        {remoteData ? (
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
-            后端数据
-          </span>
-        ) : generated ? (
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
+        {generated && (
+          <span className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--scholar-primary)]/10 text-[var(--scholar-primary)]">
             AI 生成
           </span>
-        ) : hasContent ? (
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
-            本地预览
-          </span>
-        ) : null}
+        )}
       </div>
 
-      {/* 视频类型 */}
       {resource.type === "video" && (
         <div className="section-card mb-6 aspect-video bg-gray-900 rounded-xl flex items-center justify-center text-gray-400 text-sm">
           <div className="text-center">
             <Video size={32} className="mx-auto mb-2 opacity-50" />
-            <p>视频播放器</p>
-            {remoteData && <p className="text-xs mt-1 opacity-70">远程视频资源</p>}
+            <p>视频讲解</p>
           </div>
         </div>
       )}
 
-      {/* 内容渲染 - 流式输出或静态内容 */}
       {(hasContent || generated) && (
         <div ref={containerRef} className="section-card">
           {generated ? (

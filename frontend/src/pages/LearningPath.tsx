@@ -116,7 +116,7 @@ export default function LearningPath() {
 
   const subtitle = hasPath
     ? `${effectivePath?.course ?? "我的课程"} · ${stages.length} 阶段 · 完成度 ${overallProgress}%`
-    : "赛题核心：依托画像与路径智能体，规划科学学习步骤并精准推送多模态资源";
+    : "依托画像与路径智能体，规划学习步骤并推送多模态资源";
 
   if (pathLoading) {
     return (

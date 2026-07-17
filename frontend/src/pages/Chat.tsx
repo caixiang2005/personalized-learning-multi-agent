@@ -648,23 +648,68 @@ export default function Chat() {
   const handleCompleteProfile = async () => {
     if (!canCompleteProfile) return;
 
-    const useRemote = import.meta.env.VITE_PROFILE_BUILD_API !== "0"; // 默认启用后端
+    const persistLocalProfile = async (
+      draft: ReturnType<typeof finalizeProfileBuild>,
+      alreadyOnServer: boolean
+    ) => {
+      const { parseProfileApiData } = await import("../lib/profileSync");
+      const { updateProfile } = await import("../lib/api/learn");
+      let next = parseProfileApiData(draft) ?? draft;
+
+      if (!alreadyOnServer) {
+        try {
+          const saved = await updateProfile({
+            name: next.name ?? profile.name,
+            major: next.major ?? profile.major,
+            goal: next.goal ?? profile.goal,
+            level: next.level ?? profile.level,
+            learnerDimensions: next.learnerDimensions,
+            cognitiveStyle: next.cognitiveStyle,
+            weakPoints: next.weakPoints,
+            healthScore: next.healthScore,
+            progress: next.progress ?? 5,
+            rhythm: next.rhythm,
+            goalProgress: next.goalProgress,
+          });
+          next = parseProfileApiData(saved?.data) ?? next;
+        } catch {
+          addMessage(
+            {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              content:
+                "⚠️ 画像已生成，但保存到服务器失败。请稍后再次点击「完成画像构建」，否则重新登录可能丢失。",
+              timestamp: Date.now(),
+            },
+            "profile"
+          );
+          setProfile(next);
+          setProfileInitialized(true);
+          return;
+        }
+      }
+
+      setProfile(next);
+      setProfileInitialized(true);
+      navigate("/profile");
+    };
+
+    const useRemote = import.meta.env.VITE_PROFILE_BUILD_API !== "0";
     if (useRemote) {
       try {
-        const { getProfileBuildSessionId } = await import("../lib/profileBuildChat");
+        const { getProfileBuildSessionId, finalizeProfileBuildRemote } = await import(
+          "../lib/profileBuildChat"
+        );
         const sessionId = getProfileBuildSessionId();
         if (sessionId) {
-          const { finalizeProfileBuildRemote } = await import("../lib/profileBuildChat");
           const result = await finalizeProfileBuildRemote(sessionId);
           if (result.code === 200 && result.data) {
-            setProfile(result.data);
-            setProfileInitialized(true);
-            navigate("/profile");
+            await persistLocalProfile(result.data, true);
             return;
           }
         }
       } catch {
-        // fallback to local
+        // fallback: local generate + PUT
       }
     }
 
@@ -677,9 +722,7 @@ export default function Chat() {
       },
       profileUserRounds
     );
-    setProfile(finalized);
-    setProfileInitialized(true);
-    navigate("/profile");
+    await persistLocalProfile(finalized, false);
   };
 
   const headerDisclaimer = isProfileBuild
@@ -850,7 +893,7 @@ export default function Chat() {
         {usedFallback && (
           <div className="doubao-chat-alert">
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
-            <span>未连接 agent-service（:8003），当前为本地 Mock。请启动后端后刷新。</span>
+            <span>智能辅导暂时不可用，已切换为本地引导。请稍后重试或刷新页面。</span>
           </div>
         )}
 
@@ -903,7 +946,7 @@ export default function Chat() {
             <div className="chat-profile-banner__main">
               <Sparkles size={16} className="text-[var(--scholar-primary)] shrink-0" />
               <div>
-                <p className="chat-profile-banner__title">画像构建中（{profileUserRounds}/2 轮以上可完成）</p>
+                <p className="chat-profile-banner__title">画像构建中（已对话 {profileUserRounds} 轮）</p>
                 <p className="chat-profile-banner__desc">
                   画像智能体将与你多轮对话，收集专业、目标与薄弱点信息后生成六维学习画像。
                 </p>
@@ -914,14 +957,39 @@ export default function Chat() {
                 type="button"
                 className="chat-profile-banner__skip"
                 onClick={() => {
-                  // 快速生成基础画像后跳转
-                  const quick = finalizeProfileBuild(
-                    { name: profile.name || user?.username || "学习者", major: profile.major || "", goal: profile.goal || "", level: profile.level || "" },
-                    Math.max(profileUserRounds, 1)
-                  );
-                  setProfile(quick);
-                  setProfileInitialized(true);
-                  navigate("/chat");
+                  void (async () => {
+                    const quick = finalizeProfileBuild(
+                      {
+                        name: profile.name || user?.username || "学习者",
+                        major: profile.major || "",
+                        goal: profile.goal || "",
+                        level: profile.level || "",
+                      },
+                      Math.max(profileUserRounds, 1)
+                    );
+                    try {
+                      const { updateProfile } = await import("../lib/api/learn");
+                      const { parseProfileApiData } = await import("../lib/profileSync");
+                      const saved = await updateProfile({
+                        name: quick.name,
+                        major: quick.major,
+                        goal: quick.goal,
+                        level: quick.level,
+                        learnerDimensions: quick.learnerDimensions,
+                        cognitiveStyle: quick.cognitiveStyle,
+                        weakPoints: quick.weakPoints,
+                        healthScore: quick.healthScore,
+                        progress: 5,
+                        rhythm: quick.rhythm,
+                        goalProgress: quick.goalProgress,
+                      });
+                      setProfile(parseProfileApiData(saved?.data) ?? quick);
+                    } catch {
+                      setProfile(quick);
+                    }
+                    setProfileInitialized(true);
+                    navigate("/chat");
+                  })();
                 }}
               >
                 跳过，直接辅导

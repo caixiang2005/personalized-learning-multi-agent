@@ -68,7 +68,7 @@ export default function DailyPlan() {
       }
     } catch {
       setPlan(null);
-      setError("无法连接 learn-service，请确认后端 :8002 已启动");
+      setError("暂时无法加载今日计划，请稍后重试");
     } finally {
       setLoading(false);
     }

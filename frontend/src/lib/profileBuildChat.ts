@@ -172,9 +172,17 @@ export async function sendProfileBuildMessage(
         { withAuth: true, timeoutMs: 120_000 }
       );
       return finish(json.data!.ai_reply);
-    } catch {
+    } catch (err) {
+      const reason =
+        err instanceof Error && err.message
+          ? err.message
+          : "网络或服务异常";
       const local = buildProfileAgentReply(userInput, draft, userRound);
-      return finish(`⚠️ 后端画像智能体暂不可用，使用本地引导。\n\n${local}`, {
+      const tip =
+        reason.includes("登录") || reason.includes("401")
+          ? "登录已失效，请重新登录后再用画像智能体。"
+          : `后端画像智能体暂不可用（${reason}），使用本地引导。`;
+      return finish(`⚠️ ${tip}\n\n${local}`, {
         usedFallback: true,
         usedLocalAgent: true,
       });

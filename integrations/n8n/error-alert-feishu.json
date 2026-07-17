@@ -1,0 +1,209 @@
+{
+  "name": "智慧学习中心 · 错误告警推送飞书",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "每2分钟轮询",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8001/api/error/unsent",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "50"
+            },
+            {
+              "name": "service",
+              "value": "user-service"
+            }
+          ]
+        }
+      },
+      "id": "http-unsent",
+      "name": "拉取未推送错误",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = items[0]?.json ?? {};\nconst list = body?.data?.items ?? body?.items ?? [];\nconst filtered = (Array.isArray(list) ? list : []).filter((row) => {\n  const t = String(row.errorType || row.error_type || '');\n  // 跳过普通登录失效，避免刷屏\n  if (t === 'ApiError401') return false;\n  return true;\n});\nif (!filtered.length) {\n  return [];\n}\nconst lines = filtered.slice(0, 20).map((row, i) => {\n  const id = row.id;\n  const typ = row.errorType || row.error_type || 'Unknown';\n  const msg = row.message || '';\n  const at = row.createdAt || row.created_at || '';\n  const svc = row.service || 'user-service';\n  return `${i + 1}. [#${id}] ${svc} · ${typ}\\n   ${msg}\\n   时间: ${at}`;\n});\nconst ids = filtered.map((r) => r.id);\nconst text =\n  `【智慧学习中心】未处理错误 ${filtered.length} 条\\n\\n` +\n  lines.join('\\n\\n') +\n  (filtered.length > 20 ? `\\n\\n…其余 ${filtered.length - 20} 条已省略` : '');\nreturn [\n  {\n    json: {\n      ids,\n      count: filtered.length,\n      text,\n      feishuBody: {\n        msg_type: 'text',\n        content: { text },\n      },\n    },\n  },\n];"
+      },
+      "id": "code-filter",
+      "name": "过滤并组装消息",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-items",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-has",
+      "name": "是否有新错误",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        780,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.FEISHU_WEBHOOK_URL || 'https://open.feishu.cn/open-apis/bot/v2/hook/REPLACE_ME' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.feishuBody }}",
+        "options": {}
+      },
+      "id": "http-feishu",
+      "name": "推送飞书机器人",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        -80
+      ],
+      "notes": "请把 FEISHU_WEBHOOK_URL 配成飞书自定义机器人 Webhook，或直接改 URL"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8001/api/error/markSent",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"ids\": {{ JSON.stringify($('过滤并组装消息').item.json.ids) }},\n  \"service\": \"user-service\"\n}",
+        "options": {}
+      },
+      "id": "http-mark",
+      "name": "标记已推送",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        -80
+      ]
+    }
+  ],
+  "connections": {
+    "每2分钟轮询": {
+      "main": [
+        [
+          {
+            "node": "拉取未推送错误",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "拉取未推送错误": {
+      "main": [
+        [
+          {
+            "node": "过滤并组装消息",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "过滤并组装消息": {
+      "main": [
+        [
+          {
+            "node": "是否有新错误",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "是否有新错误": {
+      "main": [
+        [
+          {
+            "node": "推送飞书机器人",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "推送飞书机器人": {
+      "main": [
+        [
+          {
+            "node": "标记已推送",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Shanghai"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "id": "2a387c45-e1eb-49c5-bdb4-b50518e354b3",
+  "active": false
+}

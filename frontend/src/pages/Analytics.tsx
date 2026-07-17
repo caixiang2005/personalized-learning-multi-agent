@@ -191,11 +191,11 @@ export default function Analytics() {
         if (w?.code === 200) setWeakData(w.data);
         if (s?.code === 200) setSuggestions(s.data);
         if (o?.code !== 200 && w?.code !== 200 && s?.code !== 200) {
-          setErr("无法连接 learn-service，请确认 :8002 已启动");
+          setErr("暂时无法加载学习数据，请稍后重试");
         }
       })
       .catch(() => {
-        setErr("无法连接 learn-service，请确认 :8002 已启动");
+        setErr("暂时无法加载学习数据，请稍后重试");
       })
       .finally(() => setBusy(false));
   }, [range]);
