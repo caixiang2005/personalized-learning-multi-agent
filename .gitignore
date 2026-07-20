@@ -66,10 +66,12 @@ backend/user-service/static/**/*~
 # 开发调试脚本（根目录级别，避免误提交）
 /_*.ps1
 /_*.py
+backend/_tmp*
 deploy/.env
 deploy/dify-src/
 deploy/compose-run.log
 
 # 打包上传临时包（勿上交）
 plma-upload.tar
+*-source-*.zip
 
