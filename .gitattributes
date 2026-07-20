@@ -1,0 +1,3 @@
+# 比赛源码打包时排除（git archive 生效）
+.github export-ignore
+backend/_tmp* export-ignore
