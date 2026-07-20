@@ -15,12 +15,14 @@ node_modules/
 dist/
 dist-ssr/
 
-# 环境密钥（仅忽略真实配置；*.example 模板可提交）
+# 环境密钥 / 隐私配置（仅忽略真实文件；*.example / env.example 模板可提交上交）
 .env
 .env.local
 .env.development
 .env.production
 .env.*.local
+# user-service 真实 SMTP 等（模板为 settings.example.yaml）
+backend/user-service/config/settings.yaml
 
 # Cursor IDE 本地配置 / Agent Skills（勿提交仓库）
 .cursor/
@@ -46,8 +48,10 @@ knowledge/
 logs/
 *.log
 
-# user-service 用户上传静态资源（头像等）
-backend/user-service/static/
+# user-service 静态资源：演示头像等图片需要随作品上传
+# 仅忽略明显的本地临时文件；avatar 下 png/jpg/webp/gif 可提交
+backend/user-service/static/**/*.tmp
+backend/user-service/static/**/*~
 
 # github 目录（workflow 若已跟踪则保持；新文件默认忽略）
 .github/
@@ -64,3 +68,8 @@ backend/user-service/static/
 /_*.py
 deploy/.env
 deploy/dify-src/
+deploy/compose-run.log
+
+# 打包上传临时包（勿上交）
+plma-upload.tar
+

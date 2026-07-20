@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+from error.logger import capture_exception
 from utils.database import User, UserProfile, get_db
 from utils.email import CodePurpose, send_verification_code, verify_verification_code
 from utils.token_store import (
@@ -123,6 +125,8 @@ def send_reset_email_code(email: str) -> dict:
 def register_user(email: str, username: str, password: str, code: str) -> dict:
     email = _normalize_email(email)
     username = _normalize_username(username)
+    if not username:
+        return {"code": 400, "msg": "用户名不能为空", "data": {}}
     if _get_user_by_email(email) is not None:
         return {"code": 400, "msg": "邮箱已注册", "data": {}}
     if _get_user_by_username(username) is not None:
@@ -130,25 +134,47 @@ def register_user(email: str, username: str, password: str, code: str) -> dict:
     if not verify_verification_code(email, code, CodePurpose.REGISTER):
         return {"code": 400, "msg": "验证码错误或已过期", "data": {}}
 
-    with get_db() as db:
-        user = User(
-            email=email,
-            username=username,
-            user_password=_hash_password(password),
-            register_time=_beijing_now(),
-        )
-        db.add(user)
-        db.flush()
+    try:
+        with get_db() as db:
+            user = User(
+                email=email,
+                username=username,
+                user_password=_hash_password(password),
+                register_time=_beijing_now(),
+            )
+            db.add(user)
+            db.flush()
 
-        # 同步创建 user_info 记录（头像、昵称、专业等字段）
-        profile = UserProfile(
-            user_id=user.user_id,
-            username=username,
-        )
-        db.add(profile)
-        db.flush()
+            # 兼容历史脏数据：user_info 可能已有同 user_id 孤儿行
+            profile = db.get(UserProfile, user.user_id)
+            if profile is None:
+                profile = UserProfile(
+                    user_id=user.user_id,
+                    username=username,
+                )
+                db.add(profile)
+            else:
+                profile.username = username
+            db.flush()
 
-        return {"code": 200, "msg": "注册成功", "data": _user_payload(user)}
+            return {"code": 200, "msg": "注册成功", "data": _user_payload(user)}
+    except IntegrityError as exc:
+        capture_exception(exc, session_id=email, context="register_user IntegrityError")
+        err = str(exc.orig) if getattr(exc, "orig", None) else str(exc)
+        if "email" in err.lower():
+            return {"code": 400, "msg": "邮箱已注册", "data": {}}
+        if "username" in err.lower():
+            return {"code": 400, "msg": "用户名已存在", "data": {}}
+        if "user_id" in err.lower() or "duplicate key" in err.lower():
+            return {
+                "code": 500,
+                "msg": "注册失败：用户编号冲突，请联系管理员修复数据库后重试",
+                "data": {},
+            }
+        return {"code": 400, "msg": "注册失败，邮箱或用户名可能已存在", "data": {}}
+    except SQLAlchemyError as exc:
+        capture_exception(exc, session_id=email, context="register_user SQLAlchemyError")
+        return {"code": 500, "msg": "注册失败，数据库异常，请稍后重试", "data": {}}
 
 
 def login_user(email: str, password: str) -> dict:
